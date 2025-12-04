@@ -1,0 +1,125 @@
+// BETTERER RESULTS V2.
+// 
+// If this file contains merge conflicts, use `betterer merge` to automatically resolve them:
+// https://phenomnomnominal.github.io/betterer/docs/results-file/#merge
+//
+exports[`eslint`] = {
+  value: `{
+    "js/components/Bookmark/BookmarkIcon/index.tsx:1731923497": [
+      [71, 6, 118, "Visible, non-interactive elements with click handlers must have at least one keyboard listener.", "3051403928"],
+      [71, 6, 118, "Static HTML elements with event handlers require a role.", "3051403928"]
+    ],
+    "js/components/EditableText/index.tsx:2590685581": [
+      [83, 6, 13, "Do not use setState in componentDidUpdate", "57229240"],
+      [101, 6, 13, "Do not use setState in componentDidUpdate", "57229240"]
+    ],
+    "js/components/OwnerEditor/index.tsx:1478889664": [
+      [88, 6, 13, "Do not use setState in componentDidUpdate", "57229240"]
+    ],
+    "js/components/Preloader/index.tsx:958787996": [
+      [22, 4, 26, "Must use destructuring props assignment", "1492876559"],
+      [23, 4, 23, "Must use destructuring props assignment", "3309761012"]
+    ],
+    "js/components/ResourceList/PaginatedApiResourceList/index.tsx:503870783": [
+      [32, 4, 23, "Must use destructuring props assignment", "2627253856"]
+    ],
+    "js/components/ResourceList/PaginatedResourceList/index.tsx:3327154609": [
+      [49, 6, 13, "Do not use setState in componentDidUpdate", "57229240"]
+    ],
+    "js/components/ResourceList/index.tsx:537746045": [
+      [41, 33, 21, "Must use destructuring state assignment", "3239125001"],
+      [41, 33, 10, "Use callback in setState when referencing the previous state.", "4014904506"],
+      [54, 26, 21, "Must use destructuring state assignment", "3239125001"],
+      [78, 16, 50, "Visible, non-interactive elements with click handlers must have at least one keyboard listener.", "1837974012"],
+      [78, 16, 50, "Static HTML elements with event handlers require a role.", "1837974012"],
+      [79, 19, 21, "Must use destructuring state assignment", "3239125001"]
+    ],
+    "js/ducks/dashboard/api/v0.ts:1572663041": [
+      [43, 28, 104, "Do not nest ternary expressions.", "1163212497"]
+    ],
+    "js/ducks/issue/reducer.ts:891877399": [
+      [141, 6, 56, "Unexpected lexical declaration in case block.", "2031834906"]
+    ],
+    "js/ducks/notification/reducer.ts:1532173984": [
+      [112, 6, 191, "Unexpected lexical declaration in case block.", "1433271452"],
+      [118, 6, 59, "Unexpected lexical declaration in case block.", "3993269111"]
+    ],
+    "js/ducks/search/reducer.ts:4202738843": [
+      [310, 6, 27, "Unexpected lexical declaration in case block.", "3336779920"],
+      [364, 6, 53, "Unexpected lexical declaration in case block.", "2684420572"],
+      [387, 6, 66, "Unexpected lexical declaration in case block.", "2160263677"],
+      [402, 6, 123, "Unexpected lexical declaration in case block.", "2271601490"],
+      [417, 6, 61, "Unexpected lexical declaration in case block.", "2053236172"],
+      [444, 6, 60, "Unexpected lexical declaration in case block.", "3101482005"]
+    ],
+    "js/ducks/tableMetadata/api/v0.ts:3333048528": [
+      [141, 23, 2, "Expected to return a value at the end of arrow function.", "5859494"]
+    ],
+    "js/ducks/tableMetadata/reducer.ts:3935312006": [
+      [482, 6, 84, "Unexpected lexical declaration in case block.", "114266473"]
+    ],
+    "js/features/Breadcrumb/index.tsx:1046428150": [
+      [69, 6, 141, "Visible, non-interactive elements with click handlers must have at least one keyboard listener.", "1742605206"],
+      [69, 6, 141, "Static HTML elements with event handlers require a role.", "1742605206"]
+    ],
+    "js/features/ColumnList/ColumnType/index.tsx:3515373876": [
+      [36, 2, 93, "constructor should be placed after nestedType", "2074701101"],
+      [116, 6, 36, "Visible, non-interactive elements with click handlers must have at least one keyboard listener.", "3801508926"],
+      [116, 6, 36, "Static HTML elements with event handlers require a role.", "3801508926"]
+    ],
+    "js/features/Footer/index.tsx:3658564998": [
+      [45, 8, 22, "Must use destructuring props assignment", "1925601400"],
+      [49, 12, 22, "Must use destructuring props assignment", "1925601400"]
+    ],
+    "js/features/SearchBar/index.tsx:2560837631": [
+      [84, 2, 51, "refToSelf should be placed before constructor", "3412474606"]
+    ],
+    "js/features/Tags/TagInput/index.tsx:896029978": [
+      [107, 19, 2, "Array.prototype.map() expects a return value from arrow function.", "5859494"],
+      [172, 2, 801, "onChange should be placed before noOptionsMessage", "331725852"],
+      [186, 8, 21, "Must use destructuring props assignment", "2890513821"],
+      [190, 6, 21, "Must use destructuring props assignment", "2890513821"],
+      [238, 8, 118, "Visible, non-interactive elements with click handlers must have at least one keyboard listener.", "3772713652"],
+      [238, 8, 118, "Static HTML elements with event handlers require a role.", "3772713652"]
+    ],
+    "js/pages/DashboardPage/ChartList/index.tsx:305174342": [
+      [11, 0, 446, "Component should be written as a pure function", "2708651446"]
+    ],
+    "js/pages/DashboardPage/ImagePreview/constants.ts:2459270977": [
+      [1, 2, 76, "Multiline support is limited to browsers supporting ES5 only.", "3113106730"]
+    ],
+    "js/pages/DashboardPage/QueryList/index.tsx:2324422660": [
+      [14, 0, 516, "Component should be written as a pure function", "698708664"]
+    ],
+    "js/pages/DashboardPage/index.tsx:1714082706": [
+      [127, 6, 13, "Do not use setState in componentDidUpdate", "57229240"]
+    ],
+    "js/pages/HomePage/index.tsx:2768486505": [
+      [59, 4, 22, "Must use destructuring props assignment", "2151395318"]
+    ],
+    "js/pages/ProfilePage/index.tsx:2077253528": [
+      [104, 23, 16, "Must use destructuring props assignment", "1899951550"],
+      [106, 19, 17, "Must use destructuring state assignment", "3172298888"],
+      [107, 6, 13, "Do not use setState in componentDidUpdate", "57229240"]
+    ],
+    "js/pages/SearchPage/ResourceSelector/index.tsx:1426301798": [
+      [67, 19, 19, "Must use destructuring props assignment", "3960624135"]
+    ],
+    "js/pages/SearchPage/SearchFilter/InputFilter/index.tsx:2051882225": [
+      [72, 6, 13, "Do not use setState in componentDidUpdate", "57229240"]
+    ],
+    "js/pages/SearchPage/constants.ts:449734368": [
+      [13, 2, 112, "Multiline support is limited to browsers supporting ES5 only.", "2645164555"]
+    ],
+    "js/pages/TableDetailPage/DataPreviewButton/index.tsx:1586154171": [
+      [160, 6, 191, "Missing an explicit type attribute for button", "1938977214"]
+    ],
+    "js/pages/TableDetailPage/ExploreButton/index.tsx:1336461273": [
+      [13, 0, 455, "Component should be written as a pure function", "2334877134"],
+      [15, 35, 20, "Must use destructuring props assignment", "2510284131"]
+    ],
+    "js/pages/TableDetailPage/ReportTableIssue/index.tsx:2299677182": [
+      [168, 15, 20, "Script URL is a form of eval.", "3959800777"]
+    ]
+  }`
+};

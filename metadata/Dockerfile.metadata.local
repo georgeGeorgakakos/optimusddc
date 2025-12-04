@@ -1,0 +1,22 @@
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies (optional: extend if you use native packages later)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy metadata service source code
+COPY metadata_service /app/metadata_service
+
+# Set environment variable for Flask
+ENV FLASK_APP=metadata_service.metadata_wsgi
+
+# Gunicorn entrypoint — matches your Docker Compose port (5014)
+CMD ["gunicorn", "-w", "2", "--bind", ":5014", "metadata_service.metadata_wsgi"]

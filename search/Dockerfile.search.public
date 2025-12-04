@@ -1,0 +1,25 @@
+FROM python:3.8-slim
+
+WORKDIR /app
+
+# Install gunicorn once
+RUN pip3 install --no-cache-dir gunicorn
+
+# Build context is ./search, so "." already contains search_service, setup.py, requirements, etc.
+COPY . /app
+
+# If you actually want to use the requirements files (recommended):
+RUN if [ -f requirements-common.txt ]; then \
+        pip3 install --no-cache-dir -r requirements-common.txt; \
+    fi && \
+    if [ -f requirements-dev.txt ]; then \
+        pip3 install --no-cache-dir -r requirements-dev.txt; \
+    fi && \
+    pip3 install --no-cache-dir -e .
+
+# Expose search port
+EXPOSE 5013
+
+# Prefer gunicorn over raw python for the service
+ENTRYPOINT ["gunicorn"]
+CMD ["-w", "2", "--bind", ":5013", "search_service.search_wsgi"]
