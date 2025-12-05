@@ -19,6 +19,7 @@ const LogDetailsModal: React.FC<LogDetailsModalProps> = ({ log, onClose }) => {
       ERROR: '#f48771',
       FATAL: '#ff0000',
     };
+
     return colors[level] || '#d4d4d4';
   };
 
@@ -31,11 +32,22 @@ const LogDetailsModal: React.FC<LogDetailsModalProps> = ({ log, onClose }) => {
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+
     a.href = url;
     a.download = `log_${log.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Helper to convert timestamp to ISO string
+  const getISOTimestamp = (timestamp: string | Date): string =>
+    typeof timestamp === 'string' ? timestamp : timestamp.toISOString();
+
+  // Helper to get localized timestamp string
+  const getLocalTimestamp = (timestamp: string | Date): string =>
+    typeof timestamp === 'string'
+      ? new Date(timestamp).toLocaleString()
+      : timestamp.toLocaleString();
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -55,10 +67,12 @@ const LogDetailsModal: React.FC<LogDetailsModalProps> = ({ log, onClose }) => {
               <div className="detail-item">
                 <span className="detail-label">Timestamp:</span>
                 <span className="detail-value">
-                  {log.timestamp.toLocaleString()}
+                  {getLocalTimestamp(log.timestamp)}
                   <button
                     className="btn-copy"
-                    onClick={() => copyToClipboard(log.timestamp.toISOString())}
+                    onClick={() =>
+                      copyToClipboard(getISOTimestamp(log.timestamp))
+                    }
                     title="Copy timestamp"
                   >
                     📋
@@ -92,7 +106,9 @@ const LogDetailsModal: React.FC<LogDetailsModalProps> = ({ log, onClose }) => {
 
               <div className="detail-item">
                 <span className="detail-label">Category:</span>
-                <span className="detail-value category-badge">{log.category}</span>
+                <span className="detail-value category-badge">
+                  {log.category}
+                </span>
               </div>
 
               {log.traceId && (
@@ -143,7 +159,9 @@ const LogDetailsModal: React.FC<LogDetailsModalProps> = ({ log, onClose }) => {
                 <pre>{JSON.stringify(log.details, null, 2)}</pre>
                 <button
                   className="btn-copy"
-                  onClick={() => copyToClipboard(JSON.stringify(log.details, null, 2))}
+                  onClick={() =>
+                    copyToClipboard(JSON.stringify(log.details, null, 2))
+                  }
                   title="Copy raw data"
                 >
                   📋 Copy JSON
@@ -160,13 +178,9 @@ const LogDetailsModal: React.FC<LogDetailsModalProps> = ({ log, onClose }) => {
                 💾 Export Log
               </button>
               {log.traceId && (
-                <button className="btn btn-default">
-                  🔍 View Trace
-                </button>
+                <button className="btn btn-default">🔍 View Trace</button>
               )}
-              <button className="btn btn-default">
-                🔗 Share Log
-              </button>
+              <button className="btn btn-default">🔗 Share Log</button>
             </div>
           </div>
         </div>

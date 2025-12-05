@@ -607,15 +607,10 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
 
 ### **Project Lead**
 **George Georgakakos**  
-PhD Candidate, Athens University of Economics and Business (AUEB)  
-Associate Director & Consult Partner, Kyndryl Greece  
+Athens University of Economics and Business (AUEB)   
 📧 george.georgakakos@gmail.com  
 🔗 [LinkedIn](https://linkedin.com/in/georgegeorgakakos)
 
-### **Academic Supervision**
-**Professor Yiannis Verginadis**  
-Athens University of Economics and Business (AUEB)  
-Institute of Communication and Computer Systems (ICCS)
 
 ### **Institution**
 **Institute of Communications and Computer Systems (ICCS)**  

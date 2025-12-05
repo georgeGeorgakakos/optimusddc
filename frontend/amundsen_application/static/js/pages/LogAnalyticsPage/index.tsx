@@ -1,494 +1,713 @@
 // ==============================================================================
 // FILE: amundsen_application/static/js/pages/LogAnalyticsPage/index.tsx
-// ==============================================================================
-// OptimusDB Log Analytics Dashboard
-// Real-time log aggregation, filtering, categorization, and visualization
+// REFINED VERSION WITH PAGINATION
 // ==============================================================================
 
 import * as React from 'react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import DocumentTitle from 'react-document-title';
-import axios from 'axios';
-
+import { useState, useEffect, useCallback } from 'react';
 import LogFilters from './components/LogFilters';
 import LogViewer from './components/LogViewer';
 import LogStatistics from './components/LogStatistics';
 import LogCharts from './components/LogCharts';
 import LogDetailsModal from './components/LogDetailsModal';
-
+import LogPagination from './components/LogPagination';
 import './styles.scss';
 
 // ==============================================================================
-// TypeScript Interfaces
+// TYPES
 // ==============================================================================
 
 export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
 export type LogCategory =
-  | 'QUERY'
-  | 'PEER'
-  | 'ELECTION'
-  | 'DATABASE'
-  | 'NETWORK'
-  | 'ORBITDB'
-  | 'ERROR'
-  | 'SYSTEM'
-  | 'OTHER';
+  | 'Query'
+  | 'Peer'
+  | 'Election'
+  | 'Database'
+  | 'Network'
+  | 'OrbitDB'
+  | 'System'
+  | 'API'
+  | 'Other';
 
 export interface LogEntry {
   id: string;
-  timestamp: Date;
+  timestamp: string;
   level: LogLevel;
-  nodeId: string;
   category: LogCategory;
+  nodeId: string;
   message: string;
-  details?: any;
+  details?: string;
   traceId?: string;
+  userId?: string;
   duration?: number;
-}
-
-export interface LogFilters {
-  levels: LogLevel[];
-  nodes: string[];
-  categories: LogCategory[];
-  timeRange: {
-    start: Date;
-    end: Date;
-  };
-  searchTerm: string;
+  error?: string;
 }
 
 export interface LogStatistics {
   totalLogs: number;
-  byLevel: Record<LogLevel, number>;
-  byNode: Record<string, number>;
-  byCategory: Record<LogCategory, number>;
+  logsPerMinute: number;
   errorRate: number;
-  avgLogsPerMinute: number;
+  fatalCount: number;
+  byLevel: Record<LogLevel, number>;
+  byCategory: Record<string, number>;
+  byNode: Record<string, number>;
+  peakActivity: number;
+  healthStatus: 'healthy' | 'warning' | 'critical';
+}
+
+export interface LogFiltersState {
+  level: LogLevel | 'ALL';
+  category: LogCategory | 'ALL';
+  nodeId: string;
+  startTime: string;
+  endTime: string;
+  searchTerm: string;
 }
 
 // ==============================================================================
-// Helper Functions
-// ==============================================================================
-
-function parseLogEntry(rawLog: any, nodeId: string): LogEntry {
-  // Parse log message to extract structured information
-  const timestamp = new Date(rawLog.timestamp || Date.now());
-  const message = rawLog.message || rawLog.msg || String(rawLog);
-
-  // Determine log level
-  let level: LogLevel = 'INFO';
-
-  if (message.includes('ERROR') || rawLog.level === 'ERROR') level = 'ERROR';
-  else if (message.includes('WARN') || rawLog.level === 'WARN') level = 'WARN';
-  else if (message.includes('DEBUG') || rawLog.level === 'DEBUG') {
-    level = 'DEBUG';
-  } else if (message.includes('FATAL') || rawLog.level === 'FATAL') {
-    level = 'FATAL';
-  }
-
-  // Determine category based on message content
-  let category: LogCategory = 'OTHER';
-
-  if (
-    message.includes('query') ||
-    message.includes('Query') ||
-    message.includes('SQL')
-  ) {
-    category = 'QUERY';
-  } else if (
-    message.includes('peer') ||
-    message.includes('Peer') ||
-    message.includes('connected') ||
-    message.includes('discovered')
-  ) {
-    category = 'PEER';
-  } else if (
-    message.includes('election') ||
-    message.includes('leader') ||
-    message.includes('Leader') ||
-    message.includes('reputation')
-  ) {
-    category = 'ELECTION';
-  } else if (
-    message.includes('database') ||
-    message.includes('SQLite') ||
-    message.includes('DB')
-  ) {
-    category = 'DATABASE';
-  } else if (
-    message.includes('network') ||
-    message.includes('libp2p') ||
-    message.includes('gossipsub')
-  ) {
-    category = 'NETWORK';
-  } else if (message.includes('OrbitDB') || message.includes('IPFS')) {
-    category = 'ORBITDB';
-  } else if (level === 'ERROR' || level === 'FATAL') {
-    category = 'ERROR';
-  } else if (
-    message.includes('system') ||
-    message.includes('startup') ||
-    message.includes('shutdown')
-  ) {
-    category = 'SYSTEM';
-  }
-
-  // Extract trace ID if present
-  const traceMatch = message.match(/trace[_=]([a-zA-Z0-9-]+)/i);
-  const traceId = traceMatch ? traceMatch[1] : undefined;
-
-  // Extract duration if present
-  const durationMatch = message.match(/(\d+)ms/);
-  const duration = durationMatch ? parseInt(durationMatch[1]) : undefined;
-
-  return {
-    id: `${nodeId}_${timestamp.getTime()}_${Math.random()}`,
-    timestamp,
-    level,
-    nodeId,
-    category,
-    message,
-    details: rawLog,
-    traceId,
-    duration,
-  };
-}
-
-function calculateStatistics(logs: LogEntry[]): LogStatistics {
-  const stats: LogStatistics = {
-    totalLogs: logs.length,
-    byLevel: { DEBUG: 0, INFO: 0, WARN: 0, ERROR: 0, FATAL: 0 },
-    byNode: {},
-    byCategory: {
-      QUERY: 0,
-      PEER: 0,
-      ELECTION: 0,
-      DATABASE: 0,
-      NETWORK: 0,
-      ORBITDB: 0,
-      ERROR: 0,
-      SYSTEM: 0,
-      OTHER: 0,
-    },
-    errorRate: 0,
-    avgLogsPerMinute: 0,
-  };
-
-  if (logs.length === 0) return stats;
-
-  logs.forEach((log) => {
-    stats.byLevel[log.level]++;
-    stats.byNode[log.nodeId] = (stats.byNode[log.nodeId] || 0) + 1;
-    stats.byCategory[log.category]++;
-  });
-
-  const errorCount = stats.byLevel.ERROR + stats.byLevel.FATAL;
-
-  stats.errorRate = (errorCount / logs.length) * 100;
-
-  // Calculate logs per minute
-  if (logs.length > 1) {
-    const timeSpan =
-      logs[0].timestamp.getTime() - logs[logs.length - 1].timestamp.getTime();
-
-    stats.avgLogsPerMinute = (logs.length / timeSpan) * 60000;
-  }
-
-  return stats;
-}
-
-// ==============================================================================
-// Main Log Analytics Component
+// MAIN COMPONENT
 // ==============================================================================
 
 const LogAnalyticsPage: React.FC = () => {
+  // State
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(10); // seconds
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+  const [refreshInterval, setRefreshInterval] = useState<number>(60);
 
-  const [filters, setFilters] = useState<LogFilters>({
-    levels: ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'],
-    nodes: [],
-    categories: [
-      'QUERY',
-      'PEER',
-      'ELECTION',
-      'DATABASE',
-      'NETWORK',
-      'ORBITDB',
-      'ERROR',
-      'SYSTEM',
-      'OTHER',
-    ],
-    timeRange: {
-      start: new Date(Date.now() - 3600000), // Last hour
-      end: new Date(),
-    },
+  // Filters
+  const [filters, setFilters] = useState<LogFiltersState>({
+    level: 'ALL',
+    category: 'ALL',
+    nodeId: 'all',
+    startTime: '',
+    endTime: '',
     searchTerm: '',
   });
 
-  const [settings, setSettings] = useState({
-    apiBaseUrl: 'http://localhost:18001',
-    context: 'swarmkb',
-    nodes: [
-      { id: 'node-1', port: 18001 },
-      { id: 'node-2', port: 18002 },
-      { id: 'node-3', port: 18003 },
-      { id: 'node-4', port: 18004 },
-      { id: 'node-5', port: 18005 },
-      { id: 'node-6', port: 18006 },
-      { id: 'node-7', port: 18007 },
-      { id: 'node-8', port: 18008 },
-    ],
-  });
+  // ✅ ADD PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [logsPerPage, setLogsPerPage] = useState<number>(25);
+
+  // ✅ CALCULATE PAGINATION
+  const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+  const startIndex = (currentPage - 1) * logsPerPage;
+  const endIndex = startIndex + logsPerPage;
+  const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
 
   // ===========================================================================
-  // Fetch Logs from All Nodes
+  // HELPER: Get date and hour (2 hours before current time)
+  // ===========================================================================
+
+  const getQueryDateTime = (): { date: string; hour: string } => {
+    const now = new Date();
+    // Subtract 2 hours
+    now.setHours(now.getHours() - 2);
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+
+    return {
+      date: `${year}-${month}-${day}`,
+      hour: hour,
+    };
+  };
+
+  // ===========================================================================
+  // HELPER: Parse OptimusDB log format
+  // ===========================================================================
+
+  const parseOptimusDBLog = (rawLog: any, nodeId: string): LogEntry | null => {
+    try {
+      // OptimusDB log format may vary, adjust as needed
+      // Assuming format like: { timestamp, level, category, message, ... }
+
+      return {
+        id: rawLog.id || `${nodeId}-${rawLog.timestamp || Date.now()}`,
+        timestamp: rawLog.timestamp || new Date().toISOString(),
+        level: (rawLog.level || 'INFO') as LogLevel,
+        category: (rawLog.category || 'System') as LogCategory,
+        nodeId: nodeId,
+        message: rawLog.message || rawLog.msg || 'No message',
+        details: rawLog.details || rawLog.error || rawLog.stack || '',
+        traceId: rawLog.traceId || rawLog.trace_id,
+        userId: rawLog.userId || rawLog.user_id,
+        duration: rawLog.duration,
+        error: rawLog.error,
+      };
+    } catch (err) {
+      console.error('Failed to parse log:', rawLog, err);
+      return null;
+    }
+  };
+
+  // ===========================================================================
+  // DATA FETCHING
   // ===========================================================================
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
+    setError(null);
+
     try {
-      const now = new Date();
-      const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
-      const hour = now.getHours().toString().padStart(2, '0');
+      const { date, hour } = getQueryDateTime();
+      console.log(`Fetching logs for date=${date}, hour=${hour} (2 hours before current time)`);
 
-      // Fetch logs from all nodes in parallel
-      const logsPromises = settings.nodes.map(async (node) => {
-        try {
-          const response = await axios.get(
-            `http://localhost:${node.port}/${settings.context}/log`,
-            {
-              params: { date, hour },
-              timeout: 5000,
+      const allLogs: LogEntry[] = [];
+      const fetchPromises: Promise<LogEntry[]>[] = [];
+
+      // Fetch from all 8 OptimusDB nodes (ports 18001-18008)
+      for (let i = 1; i <= 8; i++) {
+        const port = 18000 + i;
+        const nodeId = `optimusdb${i}`;
+        const url = `http://localhost:${port}/swarmkb/log?date=${date}&hour=${hour}`;
+
+        console.log(`Fetching from ${nodeId}: ${url}`);
+
+        const fetchPromise = fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then(async (response): Promise<LogEntry[]> => {
+            if (!response.ok) {
+              console.warn(`${nodeId} returned status ${response.status}`);
+              return [];
             }
-          );
 
-          const rawLogs = response.data.logs || response.data || [];
+            const data = await response.json();
+            console.log(`${nodeId} returned ${Array.isArray(data) ? data.length : 0} logs`);
 
-          return rawLogs.map((log: any) => parseLogEntry(log, node.id));
-        } catch (error) {
-          console.error(`Failed to fetch logs from ${node.id}:`, error);
+            // Parse logs from this node
+            if (Array.isArray(data)) {
+              return data
+                .map((rawLog: any) => parseOptimusDBLog(rawLog, nodeId))
+                .filter((log): log is LogEntry => log !== null);
+            } else if (data.logs && Array.isArray(data.logs)) {
+              // Alternative format: { logs: [...] }
+              return data.logs
+                .map((rawLog: any) => parseOptimusDBLog(rawLog, nodeId))
+                .filter((log): log is LogEntry => log !== null);
+            } else {
+              console.warn(`${nodeId} returned unexpected format:`, data);
+              return [];
+            }
+          })
+          .catch((err): LogEntry[] => {
+            console.error(`Failed to fetch from ${nodeId}:`, err);
+            return [];
+          });
 
-          return [];
-        }
-      });
+        fetchPromises.push(fetchPromise);
+      }
 
-      const logsArrays = await Promise.all(logsPromises);
-      const allLogs = logsArrays.flat();
+      // Wait for all nodes to respond
+      const results = await Promise.all(fetchPromises);
+
+      // Flatten and combine logs from all nodes
+      for (const nodeLogs of results) {
+        allLogs.push(...nodeLogs);
+      }
+
+      console.log(`Total logs fetched from all nodes: ${allLogs.length}`);
 
       // Sort by timestamp (newest first)
-      allLogs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      allLogs.sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
 
-      setLogs(allLogs);
-    } catch (error) {
-      console.error('Failed to fetch logs:', error);
+      // If no logs found, generate mock data for demo
+      if (allLogs.length === 0) {
+        console.log('No logs found from OptimusDB nodes, generating mock data for demo...');
+        const mockLogs = generateMockLogs();
+        setLogs(mockLogs);
+        setFilteredLogs(mockLogs);
+        setError('No logs available from OptimusDB. Showing mock data for demo.');
+      } else {
+        setLogs(allLogs);
+        setFilteredLogs(allLogs);
+        setError(null);
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching logs:', err);
+      setError(`Failed to fetch logs: ${err.message}. Using mock data for demo.`);
+
+      // Fallback to mock data
+      const mockLogs = generateMockLogs();
+      setLogs(mockLogs);
+      setFilteredLogs(mockLogs);
     } finally {
       setLoading(false);
     }
-  }, [settings]);
+  }, []);
 
   // ===========================================================================
-  // Auto-refresh Effect
+  // MOCK DATA GENERATOR (fallback when OptimusDB not available)
   // ===========================================================================
 
-  useEffect(() => {
-    fetchLogs();
+  const generateMockLogs = (): LogEntry[] => {
+    const levels: LogLevel[] = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
+    const categories: LogCategory[] = [
+      'Query', 'Peer', 'Election', 'Database', 'Network', 'OrbitDB', 'System', 'API'
+    ];
+    const nodes = ['optimusdb1', 'optimusdb2', 'optimusdb3', 'optimusdb4',
+      'optimusdb5', 'optimusdb6', 'optimusdb7', 'optimusdb8'];
 
-    if (autoRefresh) {
-      const interval = setInterval(fetchLogs, refreshInterval * 1000);
+    const messages: Record<LogCategory, string[]> = {
+      Query: [
+        'Query executed successfully',
+        'SQL query parsed',
+        'Distributed query initiated',
+        'Query results aggregated',
+        'Query timeout occurred',
+      ],
+      Peer: [
+        'Peer connection established',
+        'Peer discovery completed',
+        'Peer disconnected',
+        'Gossipsub message received',
+        'DHT lookup completed',
+      ],
+      Election: [
+        'Leader election started',
+        'Vote received from peer',
+        'Became cluster leader',
+        'Leader heartbeat sent',
+        'Split-brain detected and resolved',
+      ],
+      Database: [
+        'SQLite query executed',
+        'OrbitDB sync completed',
+        'Database transaction committed',
+        'Index updated',
+        'Cache invalidated',
+      ],
+      Network: [
+        'LibP2P stream opened',
+        'Connection to peer established',
+        'Network latency measured',
+        'Bandwidth usage recorded',
+        'NAT traversal completed',
+      ],
+      OrbitDB: [
+        'OrbitDB instance initialized',
+        'Database replicated',
+        'IPFS content added',
+        'Document synchronized',
+        'Conflict resolved',
+      ],
+      System: [
+        'System startup completed',
+        'Configuration loaded',
+        'Health check passed',
+        'Resource usage monitored',
+        'Graceful shutdown initiated',
+      ],
+      API: [
+        'REST API request received',
+        'Authentication successful',
+        'Rate limit checked',
+        'Response sent to client',
+        'CORS headers added',
+      ],
+      Other: [
+        'General system message',
+        'Unknown event occurred',
+      ],
+    };
 
-      return () => clearInterval(interval);
+    const mockLogs: LogEntry[] = [];
+    const now = Date.now();
+
+    // Generate 150 logs over the past 2 hours
+    for (let i = 0; i < 150; i++) {
+      const timestamp = new Date(now - Math.random() * 2 * 60 * 60 * 1000);
+      const level = levels[Math.floor(Math.random() * levels.length)];
+      const category = categories[Math.floor(Math.random() * categories.length)];
+      const nodeId = nodes[Math.floor(Math.random() * nodes.length)];
+
+      const categoryMessages = messages[category] || ['Log message'];
+      const message = categoryMessages[Math.floor(Math.random() * categoryMessages.length)];
+
+      mockLogs.push({
+        id: `mock-${i}`,
+        timestamp: timestamp.toISOString(),
+        level,
+        category,
+        nodeId,
+        message,
+        details: `Detailed information for ${message}`,
+        traceId: `trace-${Math.random().toString(36).substring(2, 11)}`,
+        duration: Math.random() > 0.5 ? Math.floor(Math.random() * 1000) : undefined,
+      });
     }
-  }, [fetchLogs, autoRefresh, refreshInterval]);
+
+    return mockLogs.sort((a, b) =>
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  };
 
   // ===========================================================================
-  // Filter Logs
+  // FILTERING LOGIC
   // ===========================================================================
 
-  useEffect(() => {
-    let filtered = logs;
+  const applyFilters = useCallback(() => {
+    let filtered = [...logs];
 
     // Filter by level
-    if (filters.levels.length < 5) {
-      filtered = filtered.filter((log) => filters.levels.includes(log.level));
-    }
-
-    // Filter by node
-    if (filters.nodes.length > 0) {
-      filtered = filtered.filter((log) => filters.nodes.includes(log.nodeId));
+    if (filters.level !== 'ALL') {
+      filtered = filtered.filter(log => log.level === filters.level);
     }
 
     // Filter by category
-    if (filters.categories.length < 9) {
-      filtered = filtered.filter((log) =>
-        filters.categories.includes(log.category)
-      );
+    if (filters.category !== 'ALL') {
+      filtered = filtered.filter(log => log.category === filters.category);
+    }
+
+    // Filter by node
+    if (filters.nodeId && filters.nodeId !== 'all') {
+      filtered = filtered.filter(log => log.nodeId === filters.nodeId);
     }
 
     // Filter by time range
-    filtered = filtered.filter(
-      (log) =>
-        log.timestamp >= filters.timeRange.start &&
-        log.timestamp <= filters.timeRange.end
-    );
+    if (filters.startTime) {
+      const startTime = new Date(filters.startTime).getTime();
+      filtered = filtered.filter(log =>
+        new Date(log.timestamp).getTime() >= startTime
+      );
+    }
+
+    if (filters.endTime) {
+      const endTime = new Date(filters.endTime).getTime();
+      filtered = filtered.filter(log =>
+        new Date(log.timestamp).getTime() <= endTime
+      );
+    }
 
     // Filter by search term
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
-
-      filtered = filtered.filter(
-        (log) =>
-          log.message.toLowerCase().includes(searchLower) ||
-          log.nodeId.toLowerCase().includes(searchLower) ||
-          (log.traceId && log.traceId.toLowerCase().includes(searchLower))
+      filtered = filtered.filter(log =>
+        log.message.toLowerCase().includes(searchLower) ||
+        log.nodeId.toLowerCase().includes(searchLower) ||
+        (log.details && log.details.toLowerCase().includes(searchLower))
       );
     }
 
     setFilteredLogs(filtered);
+    setCurrentPage(1); // ✅ ADD THIS - Reset to page 1 when filters change
   }, [logs, filters]);
 
   // ===========================================================================
-  // Calculate Statistics
+  // STATISTICS CALCULATION
   // ===========================================================================
 
-  const statistics = useMemo(
-    () => calculateStatistics(filteredLogs),
-    [filteredLogs]
-  );
+  const calculateStatistics = useCallback((): LogStatistics => {
+    if (filteredLogs.length === 0) {
+      return {
+        totalLogs: 0,
+        logsPerMinute: 0,
+        errorRate: 0,
+        fatalCount: 0,
+        byLevel: { DEBUG: 0, INFO: 0, WARN: 0, ERROR: 0, FATAL: 0 },
+        byCategory: {},
+        byNode: {},
+        peakActivity: 0,
+        healthStatus: 'healthy',
+      };
+    }
+
+    // Count by level
+    const byLevel: Record<LogLevel, number> = {
+      DEBUG: 0,
+      INFO: 0,
+      WARN: 0,
+      ERROR: 0,
+      FATAL: 0,
+    };
+
+    filteredLogs.forEach(log => {
+      byLevel[log.level] = (byLevel[log.level] || 0) + 1;
+    });
+
+    // Count by category
+    const byCategory: Record<string, number> = {};
+    filteredLogs.forEach(log => {
+      byCategory[log.category] = (byCategory[log.category] || 0) + 1;
+    });
+
+    // Count by node
+    const byNode: Record<string, number> = {};
+    filteredLogs.forEach(log => {
+      byNode[log.nodeId] = (byNode[log.nodeId] || 0) + 1;
+    });
+
+    // Calculate time-based metrics
+    const timestamps = filteredLogs.map(log => new Date(log.timestamp).getTime());
+    const minTime = Math.min(...timestamps);
+    const maxTime = Math.max(...timestamps);
+    const durationMinutes = (maxTime - minTime) / (1000 * 60);
+    const logsPerMinute = durationMinutes > 0 ? filteredLogs.length / durationMinutes : 0;
+
+    // Calculate error rate
+    const errorCount = (byLevel.ERROR || 0) + (byLevel.FATAL || 0);
+    const errorRate = (errorCount / filteredLogs.length) * 100;
+
+    // Determine health status
+    let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
+    if (byLevel.FATAL > 0 || errorRate > 10) {
+      healthStatus = 'critical';
+    } else if (errorRate > 5 || byLevel.ERROR > 10) {
+      healthStatus = 'warning';
+    }
+
+    return {
+      totalLogs: filteredLogs.length,
+      logsPerMinute: Math.round(logsPerMinute * 10) / 10,
+      errorRate: Math.round(errorRate * 10) / 10,
+      fatalCount: byLevel.FATAL || 0,
+      byLevel,
+      byCategory,
+      byNode,
+      peakActivity: Math.max(...Object.values(byNode)),
+      healthStatus,
+    };
+  }, [filteredLogs]);
+
+  const statistics = calculateStatistics();
 
   // ===========================================================================
-  // Export Functions
+  // EFFECTS
   // ===========================================================================
 
-  const exportLogs = useCallback(
-    (format: 'csv' | 'json') => {
-      if (format === 'csv') {
-        const headers = [
-          'Timestamp',
-          'Level',
-          'Node',
-          'Category',
-          'Message',
-          'TraceID',
-          'Duration',
-        ];
-        const rows = filteredLogs.map((log) => [
-          log.timestamp.toISOString(),
-          log.level,
-          log.nodeId,
-          log.category,
-          `"${log.message.replace(/"/g, '""')}"`,
-          log.traceId || '',
-          log.duration || '',
-        ]);
+  // Initial fetch
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
-        const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+  // Apply filters when logs or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
-        a.href = url;
-        a.download = `optimusdb_logs_${Date.now()}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        const json = JSON.stringify(filteredLogs, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+  // Auto-refresh
+  useEffect(() => {
+    if (!autoRefresh) return;
 
-        a.href = url;
-        a.download = `optimusdb_logs_${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    },
-    [filteredLogs]
-  );
+    const intervalId = setInterval(() => {
+      console.log('Auto-refreshing logs...');
+      fetchLogs();
+    }, refreshInterval * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [autoRefresh, refreshInterval, fetchLogs]);
 
   // ===========================================================================
-  // Render
+  // HANDLERS
+  // ===========================================================================
+
+  const handleFilterChange = (newFilters: Partial<LogFiltersState>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+
+  const handleRefresh = () => {
+    fetchLogs();
+  };
+
+  const handleExport = (format: 'csv' | 'json') => {
+    if (format === 'json') {
+      const dataStr = JSON.stringify(filteredLogs, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `logs-${Date.now()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      // CSV export
+      const headers = ['Timestamp', 'Level', 'Category', 'Node', 'Message', 'Details'];
+      const rows = filteredLogs.map(log => [
+        log.timestamp,
+        log.level,
+        log.category,
+        log.nodeId,
+        log.message,
+        log.details || '',
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      const dataBlob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `logs-${Date.now()}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleLogClick = (log: LogEntry) => {
+    setSelectedLog(log);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedLog(null);
+  };
+
+  // ✅ ADD PAGINATION HANDLERS
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of log viewer smoothly
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLogsPerPageChange = (newLogsPerPage: number) => {
+    setLogsPerPage(newLogsPerPage);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  // ===========================================================================
+  // RENDER
   // ===========================================================================
 
   return (
-    <DocumentTitle title="Log Analytics - OptimusDB Agents">
-      <div className="log-analytics-page">
-        {/* Header */}
-        <div className="analytics-header">
-          <div className="header-left">
-            <h1 className="analytics-title">📋 Log Analytics</h1>
-            <span className="subtitle">
-              Distributed log aggregation across {settings.nodes.length} nodes
-            </span>
-          </div>
-          <div className="header-right">
-            <label className="auto-refresh">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
-              Auto-refresh
-            </label>
-            <select
-              value={refreshInterval}
-              onChange={(e) => setRefreshInterval(Number(e.target.value))}
-              disabled={!autoRefresh}
-            >
-              <option value={5}>5s</option>
-              <option value={10}>10s</option>
-              <option value={30}>30s</option>
-              <option value={60}>60s</option>
-            </select>
-            <button
-              className="btn btn-sm"
-              onClick={fetchLogs}
-              disabled={loading}
-            >
-              {loading ? '⟳ Loading...' : '🔄 Refresh'}
-            </button>
-            <button className="btn btn-sm" onClick={() => exportLogs('csv')}>
-              📥 CSV
-            </button>
-            <button className="btn btn-sm" onClick={() => exportLogs('json')}>
-              📥 JSON
-            </button>
-          </div>
+    <div className="log-analytics-page">
+      {/* Header */}
+      <div className="log-analytics-header">
+        <div className="header-content">
+          <h1>📋 Log Analytics Dashboard</h1>
+          <p>Distributed log aggregation across 8 nodes</p>
         </div>
 
-        {/* Statistics Dashboard */}
-        <LogStatistics statistics={statistics} />
+        <div className="header-actions">
+          <label className="auto-refresh-toggle">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+            />
+            <span>Auto-refresh</span>
+          </label>
 
-        {/* Charts */}
-        <LogCharts logs={filteredLogs} statistics={statistics} />
+          <select
+            value={refreshInterval}
+            onChange={(e) => setRefreshInterval(Number(e.target.value))}
+            disabled={!autoRefresh}
+            className="refresh-interval-select"
+          >
+            <option value={10}>10s</option>
+            <option value={30}>30s</option>
+            <option value={60}>60s</option>
+            <option value={120}>2m</option>
+            <option value={300}>5m</option>
+          </select>
 
-        {/* Filters */}
-        <LogFilters
-          filters={filters}
-          onChange={setFilters}
-          availableNodes={settings.nodes.map((n) => n.id)}
-        />
+          <button
+            onClick={handleRefresh}
+            className="btn-refresh"
+            disabled={loading}
+          >
+            🔄 Refresh
+          </button>
 
-        {/* Log Viewer */}
-        <LogViewer
-          logs={filteredLogs}
-          loading={loading}
-          onSelectLog={setSelectedLog}
-        />
+          <button
+            onClick={() => handleExport('csv')}
+            className="btn-export"
+            disabled={filteredLogs.length === 0}
+          >
+            📥 CSV
+          </button>
 
-        {/* Log Details Modal */}
-        {selectedLog && (
-          <LogDetailsModal
-            log={selectedLog}
-            onClose={() => setSelectedLog(null)}
-          />
-        )}
+          <button
+            onClick={() => handleExport('json')}
+            className="btn-export"
+            disabled={filteredLogs.length === 0}
+          >
+            📥 JSON
+          </button>
+        </div>
       </div>
-    </DocumentTitle>
+
+      {/* Error Message */}
+      {error && (
+        <div className="error-banner">
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && logs.length === 0 ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading logs from OptimusDB cluster...</p>
+        </div>
+      ) : (
+        <>
+          {/* Statistics */}
+          <LogStatistics statistics={statistics} />
+
+          {/* Charts */}
+          <LogCharts logs={filteredLogs} statistics={statistics} />
+
+          {/* ✅ FILTERS - POSITIONED HERE, RIGHT BEFORE LOG VIEWER */}
+          <LogFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            availableNodes={Object.keys(statistics.byNode)}
+          />
+
+          {/* ✅ LOG VIEWER - WITH PAGINATION */}
+          <div className="log-viewer">
+            <div className="viewer-header">
+              <h3>
+                📋 Log Entries
+                <span className="log-count">
+                  ({filteredLogs.length.toLocaleString()} logs)
+                </span>
+              </h3>
+            </div>
+
+            <LogViewer
+              logs={paginatedLogs} // ✅ CHANGED: Use paginatedLogs instead of filteredLogs
+              onLogClick={handleLogClick}
+              loading={loading}
+            />
+
+            {/* ✅ ADD PAGINATION COMPONENT */}
+            {filteredLogs.length > 0 && (
+              <LogPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalLogs={filteredLogs.length}
+                logsPerPage={logsPerPage}
+                onPageChange={handlePageChange}
+                onLogsPerPageChange={handleLogsPerPageChange}
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Details Modal */}
+      {selectedLog && (
+        <LogDetailsModal
+          log={selectedLog}
+          onClose={handleCloseModal}
+        />
+      )}
+    </div>
   );
 };
 
