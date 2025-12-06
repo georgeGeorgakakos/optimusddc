@@ -124,7 +124,8 @@ if ([string]::IsNullOrWhiteSpace($remotes)) {
 # Push to remote
 Write-Host ""
 Write-Host "🚀 Pushing to remote..." -ForegroundColor Cyan
-git push origin $currentBranch
+git push origin $currentBranch --force
+
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
