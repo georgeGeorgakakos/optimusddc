@@ -51,6 +51,18 @@ const configDefault: AppConfig = {
         },
       },
       {
+        name: 'ClusterHealthWidget',
+        options: {
+          path: 'ClusterHealthWidget/index',
+        },
+      },
+      {
+        name: 'SwarmchestrateWidget',
+        options: {
+          path: 'SwarmchestrateWidget/index',
+        },
+      },
+      {
         name: 'BadgesWidget',
         options: {
           additionalProps: {
@@ -113,6 +125,7 @@ const configDefault: AppConfig = {
       id: 'nav::home',
       label: 'Home',
       use_router: true,
+      iconOnly: true,
     },
     {
       href: '/announcements',

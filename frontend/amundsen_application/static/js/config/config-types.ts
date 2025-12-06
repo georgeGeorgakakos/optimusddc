@@ -430,6 +430,7 @@ interface Link {
 
 export interface LinkConfig extends Link {
   use_router: boolean;
+  iconOnly?: boolean;
 }
 
 export interface VisualLinkConfig extends Link {

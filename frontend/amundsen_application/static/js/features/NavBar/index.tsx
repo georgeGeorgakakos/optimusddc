@@ -8,6 +8,7 @@ import { Link, NavLink, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { Binoculars, GridIcon } from 'components/SVGIcons';
+import HomeIcon from 'components/HomeIcon';
 
 import { LinkConfig, TourConfig } from 'config/config-types';
 import {
@@ -44,7 +45,8 @@ const APP_SUITE_BUTTON_TEXT = 'Related Apps';
 export const HOMEPAGE_PATH = '/';
 const AVATAR_SIZE = 32;
 
-const GENERIC_LIGHT_LOGO_PATH = '/static/images/icons/optimusddc-logo-light.svg';
+const GENERIC_LIGHT_LOGO_PATH =
+  '/static/images/icons/optimusddc-logo-light.svg';
 const GENERIC_DARK_LOGO_PATH = '/static/images/icons/optimusddc-logo-dark.svg';
 const TRACKING_MESSAGES = {
   START_TOUR: 'Start Tour',
@@ -159,8 +161,14 @@ const generateNavLinks = (navLinks: LinkConfig[]) =>
           target={link.target}
           onClick={logClick}
           data-test={`link-to-${link.label}`}
+          title={link.iconOnly ? link.label : undefined}
+          aria-label={link.iconOnly ? link.label : undefined}
         >
-          {link.label}
+          {link.iconOnly ? (
+            <HomeIcon size={20} className="home-icon" />
+          ) : (
+            link.label
+          )}
         </NavLink>
       );
     }
@@ -173,8 +181,14 @@ const generateNavLinks = (navLinks: LinkConfig[]) =>
         target={link.target}
         onClick={logClick}
         data-test={`link-to-${link.label}`}
+        title={link.iconOnly ? link.label : undefined}
+        aria-label={link.iconOnly ? link.label : undefined}
       >
-        {link.label}
+        {link.iconOnly ? (
+          <HomeIcon size={20} className="home-icon" />
+        ) : (
+          link.label
+        )}
       </a>
     );
   });

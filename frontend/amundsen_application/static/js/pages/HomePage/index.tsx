@@ -27,10 +27,7 @@ export type HomePageProps = DispatchFromProps & RouteComponentProps<any>;
 const getHomePageWidgetComponents = (
   layout: HomePageWidgetsConfig
 ): React.ReactNode[] =>
-  /* Imports each widget based on its path and puts the widget component's
-  JSX into the output array. */
-
-  layout.widgets.map((widget) => {
+  layout.widgets.map((widget, index) => {
     const WidgetComponent = React.lazy(
       () =>
         import('/js/features/HomePageWidgets/' + widget.options.path + '.tsx')
@@ -41,7 +38,7 @@ const getHomePageWidgetComponents = (
       : null;
 
     return (
-      <div className="home-element-container">
+      <div key={index} className="home-widget-item">
         <React.Suspense fallback={<div>Loading...</div>}>
           <WidgetComponent {...additionalProps} />
         </React.Suspense>
@@ -52,7 +49,11 @@ const getHomePageWidgetComponents = (
 export const HomePageWidgets = (props) => {
   const { homePageLayout } = props;
 
-  return <div>{getHomePageWidgetComponents(homePageLayout)}</div>;
+  return (
+    <div className="home-widgets-container">
+      {getHomePageWidgetComponents(homePageLayout)}
+    </div>
+  );
 };
 
 export class HomePage extends React.Component<HomePageProps> {
@@ -61,25 +62,24 @@ export class HomePage extends React.Component<HomePageProps> {
   }
 
   render() {
-    /* TODO, just display either popular or curated tags,
-    do we want the title to change based on which
-    implementation is being used? probably not */
     return (
       <main className="container home-page">
         <div className="row">
-          <div
-            className={`col-xs-12 ${
-              announcementsEnabled() ? 'col-md-8' : 'col-md-offset-1 col-md-10'
-            }`}
-          >
+          <div className="col-xs-12">
             <h1 className="sr-only">{HOMEPAGE_TITLE}</h1>
-            <HomePageWidgets homePageLayout={getHomePageWidgets()} />
-          </div>
-          {announcementsEnabled() && (
-            <div className="col-xs-12 col-md-offset-1 col-md-3">
-              <Announcements />
+
+            <div className="home-content-grid">
+              <div className="widgets-section">
+                <HomePageWidgets homePageLayout={getHomePageWidgets()} />
+              </div>
+
+              {announcementsEnabled() && (
+                <div className="announcements-section">
+                  <Announcements />
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </main>
     );

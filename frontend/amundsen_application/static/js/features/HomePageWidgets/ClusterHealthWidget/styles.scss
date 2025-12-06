@@ -1,0 +1,404 @@
+@import 'variables';
+
+.cluster-health-widget {
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  min-height: 380px;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  // Header Section
+  .widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f3f4f6;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+        .widget-icon {
+          font-size: 24px;
+          filter: brightness(0) invert(1);
+        }
+      }
+
+      .header-text {
+        h3 {
+          margin: 0;
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #1f2937;
+          letter-spacing: -0.01em;
+        }
+
+        .subtitle {
+          margin: 2px 0 0;
+          font-size: 0.75rem;
+          color: #6b7280;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      &.status-healthy {
+        background: #d1fae5;
+        color: #065f46;
+
+        .status-dot {
+          background: #10b981;
+        }
+      }
+
+      &.status-degraded {
+        background: #fef3c7;
+        color: #92400e;
+
+        .status-dot {
+          background: #f59e0b;
+        }
+      }
+
+      &.status-offline {
+        background: #fee2e2;
+        color: #991b1b;
+
+        .status-dot {
+          background: #ef4444;
+        }
+      }
+    }
+  }
+
+  // Body Section
+  .widget-body {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    // Primary Metric (Circular Progress)
+    .primary-metric {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #f3f4f6;
+
+      .metric-visual {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+
+        .progress-ring {
+          transform: rotate(-90deg);
+
+          .progress-ring-bg {
+            fill: none;
+            stroke: #e5e7eb;
+            stroke-width: 8;
+          }
+
+          .progress-ring-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.5s ease;
+
+            &.healthy {
+              stroke: #10b981;
+            }
+
+            &.degraded {
+              stroke: #f59e0b;
+            }
+          }
+        }
+
+        .metric-value {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+
+          .nodes-count {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1;
+          }
+
+          .nodes-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+            font-weight: 500;
+          }
+        }
+      }
+
+      .metric-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .info-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 16px;
+          background: #f9fafb;
+          border-radius: 8px;
+
+          .info-label {
+            font-size: 0.8125rem;
+            color: #6b7280;
+            font-weight: 500;
+          }
+
+          .info-value {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #1f2937;
+          }
+        }
+      }
+    }
+
+    // Secondary Metrics
+    .secondary-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+
+      .metric-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: #667eea;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .metric-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.125rem;
+          color: white;
+          flex-shrink: 0;
+        }
+
+        .metric-details {
+          flex: 1;
+          min-width: 0;
+
+          .metric-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            margin-bottom: 2px;
+          }
+
+          .metric-status {
+            font-size: 0.875rem;
+            font-weight: 600;
+
+            &.active {
+              color: #10b981;
+            }
+
+            &.inactive {
+              color: #ef4444;
+            }
+          }
+
+          .metric-value-large {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+          }
+        }
+      }
+    }
+  }
+
+  // Footer Section
+  .widget-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #f3f4f6;
+    background: #f9fafb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .footer-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #6b7280;
+
+      .footer-icon {
+        font-size: 0.875rem;
+      }
+    }
+
+    .view-details-btn {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #4338ca;
+        gap: 8px;
+      }
+    }
+  }
+
+  // Loading State
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+  }
+
+  // Error State
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 12px;
+
+    .error-icon {
+      font-size: 3rem;
+      opacity: 0.5;
+    }
+
+    p {
+      margin: 0;
+      color: #ef4444;
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    .error-hint {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+  }
+}
+
+// Animations
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .cluster-health-widget {
+    .primary-metric {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .secondary-metrics {
+      grid-template-columns: 1fr;
+    }
+  }
+}

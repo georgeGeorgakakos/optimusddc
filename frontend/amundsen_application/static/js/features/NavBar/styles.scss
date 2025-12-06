@@ -187,3 +187,17 @@ $link-border-size: 2px;
   width: $shimmer-loader-circle-size;
   border-radius: $shimmer-loader-circle-size;
 }
+
+// ================================
+// Home Icon Styling
+// ================================
+.nav-bar-link {
+  .home-icon {
+    color: inherit;  // ← Icon inherits nav color
+    transition: transform 0.2s ease;
+    vertical-align: middle;
+  }
+  &:hover .home-icon {
+    transform: scale(1.1);
+  }
+}

@@ -14,7 +14,7 @@
     "noResolve": false,
     "removeComments": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["jest"],
+    "skipLibCheck": true,
     "baseUrl": "js",
     "paths": {
       "components/*": ["components/*"],
@@ -26,7 +26,6 @@
     }
   },
   "exclude": [
-    "node_modules",
     "**/__tests__",
     "**/*.spec.ts",
     "**/*.spec.tsx",
