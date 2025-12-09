@@ -21,6 +21,7 @@ import AnnouncementPage from '../AnnouncementPage';
 import ClusterTopologyPage from '../ClusterTopologyPage';
 import QueryWorkbenchPage from '../QueryWorkbenchPage';
 import LogAnalyticsPage from '../LogAnalyticsPage';
+import PersistedDataPage from '../PersistedDataPage';
 /**
  * Central route configuration for Amundsen with OptimusDB support.
  *
@@ -96,7 +97,7 @@ const AppRoutes: React.FC = () => (
     {/* Alternative route alias for consistency */}
     <Route exact path="/query-workbench" component={QueryWorkbenchPage} />
     <Route exact path="/logs" component={LogAnalyticsPage} />
-
+      <Route exact path="/persisted-data" component={PersistedDataPage} />
     {/* ====================================================================
         ERROR HANDLING - 404 and fallback routes
         ==================================================================== */}

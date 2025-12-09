@@ -63,6 +63,12 @@ const configDefault: AppConfig = {
         },
       },
       {
+        name: 'PersistedDataWidget',
+        options: {
+          path: 'PersistedDataWidget/index',
+        },
+      },
+      {
         name: 'BadgesWidget',
         options: {
           additionalProps: {

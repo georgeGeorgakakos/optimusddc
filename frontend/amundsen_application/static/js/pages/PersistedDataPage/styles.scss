@@ -1,0 +1,972 @@
+// ==============================================================================
+// PersistedDataWidget Styles
+// ==============================================================================
+// Sophisticated visualizations matching Amundsen/OptimusDB design system
+// ==============================================================================
+
+@import '../../../css/variables';
+@import '../../../css/colors';
+
+// ==============================================================================
+// MAIN WIDGET CONTAINER
+// ==============================================================================
+
+.persisted-data-widget {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  }
+}
+
+// ==============================================================================
+// WIDGET HEADER
+// ==============================================================================
+
+.widget-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+
+    .icon-wrapper {
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+
+      .widget-icon {
+        font-size: 28px;
+      }
+    }
+
+    .header-text {
+      h3 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: white;
+      }
+
+      .subtitle {
+        margin: 4px 0 0 0;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+  }
+
+  .header-metrics {
+    display: flex;
+    gap: 24px;
+
+    .header-metric {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 12px 20px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+
+      .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: white;
+      }
+
+      .metric-label {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.9);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 4px;
+      }
+    }
+  }
+}
+
+// ==============================================================================
+// VIEW TABS
+// ==============================================================================
+
+.view-tabs {
+  display: flex;
+  gap: 0;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+
+    .tab-icon {
+      font-size: 18px;
+    }
+
+    &:hover {
+      background: rgba(102, 126, 234, 0.05);
+      color: #667eea;
+    }
+
+    &.active {
+      background: white;
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+  }
+}
+
+// ==============================================================================
+// WIDGET BODY
+// ==============================================================================
+
+.widget-body {
+  padding: 32px;
+  min-height: 500px;
+
+  // Loading State
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #666;
+      font-size: 14px;
+    }
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  // Error State
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #666;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .retry-btn {
+      padding: 10px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+// ==============================================================================
+// OVERVIEW CONTENT
+// ==============================================================================
+
+.overview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+
+  .key-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+
+    .metric-card {
+      display: flex;
+      gap: 20px;
+      padding: 24px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      .metric-icon-large {
+        font-size: 48px;
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .metric-details-large {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .metric-value-xl {
+          font-size: 40px;
+          font-weight: 700;
+          color: #333;
+          line-height: 1;
+        }
+
+        .metric-label-large {
+          font-size: 14px;
+          color: #666;
+          margin-top: 8px;
+          font-weight: 600;
+        }
+
+        .metric-subtext {
+          font-size: 12px;
+          color: #999;
+          margin-top: 4px;
+        }
+      }
+    }
+  }
+
+  .visualization-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 24px;
+
+    .viz-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+      &.full-width {
+        grid-column: 1 / -1;
+      }
+
+      h4 {
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #333;
+      }
+    }
+  }
+}
+
+// ==============================================================================
+// DATABASE DISTRIBUTION
+// ==============================================================================
+
+.database-distribution {
+  .db-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .db-bar-item {
+      .db-bar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+
+        .db-name {
+          font-weight: 600;
+          color: #333;
+          font-size: 14px;
+        }
+
+        .db-count {
+          font-size: 12px;
+          color: #666;
+        }
+      }
+
+      .db-bar-track {
+        height: 12px;
+        background: #f0f0f0;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 6px;
+
+        .db-bar-fill {
+          height: 100%;
+          border-radius: 6px;
+          transition: width 0.6s ease;
+        }
+      }
+
+      .db-bar-footer {
+        display: flex;
+        justify-content: flex-end;
+
+        .db-rows {
+          font-size: 11px;
+          color: #999;
+        }
+      }
+    }
+  }
+}
+
+// ==============================================================================
+// ORBITDB SYNC STATUS
+// ==============================================================================
+
+.orbitdb-sync-status {
+  .sync-visual {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 24px;
+
+    .sync-donut {
+      flex-shrink: 0;
+
+      .donut-bg {
+        opacity: 0.3;
+      }
+
+      .donut-fill {
+        transition: stroke-dasharray 0.6s ease;
+      }
+
+      .donut-percentage {
+        font-size: 24px;
+        font-weight: 700;
+        fill: #333;
+      }
+
+      .donut-label {
+        font-size: 12px;
+        fill: #666;
+      }
+    }
+
+    .sync-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+
+      .sync-stat {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .stat-indicator {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+
+          &.synced {
+            background: #00C49F;
+          }
+
+          &.out-of-sync {
+            background: #FF8042;
+          }
+        }
+
+        .stat-info {
+          display: flex;
+          flex-direction: column;
+
+          .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+          }
+
+          .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+          }
+        }
+      }
+    }
+  }
+
+  .store-types {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .store-type-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+
+      .store-type-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+
+        &.docstore {
+          background: #e3f2fd;
+          color: #1976d2;
+        }
+
+        &.eventlog {
+          background: #f3e5f5;
+          color: #7b1fa2;
+        }
+      }
+
+      .store-name {
+        flex: 1;
+        font-size: 13px;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .sync-badge {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+
+        &.synced {
+          background: #d4edda;
+          color: #155724;
+        }
+
+        &.out-of-sync {
+          background: #fff3cd;
+          color: #856404;
+        }
+      }
+    }
+
+    .more-stores {
+      text-align: center;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #666;
+      font-weight: 500;
+    }
+  }
+}
+
+// ==============================================================================
+// REPLICATION HEATMAP MINI
+// ==============================================================================
+
+.replication-heatmap-mini {
+  .heatmap-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+
+    .heatmap-row {
+      display: flex;
+      gap: 4px;
+
+      &.heatmap-header {
+        .row-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #666;
+          text-transform: uppercase;
+        }
+
+        .agent-cell {
+          font-size: 10px;
+          font-weight: 600;
+          color: #666;
+          text-align: center;
+        }
+      }
+
+      .row-label {
+        min-width: 180px;
+        max-width: 180px;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .table-name-short {
+          font-size: 13px;
+          font-weight: 600;
+          color: #333;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .database-badge-mini {
+          font-size: 10px;
+          color: #666;
+        }
+      }
+
+      .agent-cell,
+      .data-cell {
+        min-width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+
+      .data-cell {
+        background: #fff;
+        border: 1px solid #e9ecef;
+
+        &.replicated {
+          background: #667eea;
+          border-color: #667eea;
+
+          .replication-indicator {
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+          }
+        }
+
+        &:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+      }
+    }
+  }
+
+  .heatmap-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .legend-square {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+
+        &.replicated {
+          background: #667eea;
+        }
+
+        &.not-replicated {
+          background: #fff;
+          border: 1px solid #e9ecef;
+        }
+      }
+
+      span {
+        font-size: 12px;
+        color: #666;
+      }
+    }
+  }
+}
+
+// ==============================================================================
+// TABLES CONTENT
+// ==============================================================================
+
+.tables-content {
+  .content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h4 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .total-rows {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+  }
+
+  .tables-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .table-item {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 16px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #e9ecef;
+        transform: translateX(4px);
+      }
+
+      .table-item-header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .table-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .table-database {
+          padding: 4px 10px;
+          background: white;
+          border-radius: 12px;
+          font-size: 11px;
+          color: #666;
+          font-weight: 600;
+        }
+      }
+
+      .table-item-metrics {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 12px;
+
+        .item-metric {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          color: #666;
+
+          .metric-icon-sm {
+            font-size: 14px;
+          }
+        }
+      }
+
+      .replication-bar {
+        height: 6px;
+        background: #d0d0d0;
+        border-radius: 3px;
+        overflow: hidden;
+
+        .replication-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #00C49F, #00a080);
+          transition: width 0.6s ease;
+        }
+      }
+    }
+  }
+
+  .view-more {
+    margin-top: 20px;
+    text-align: center;
+
+    a {
+      color: #667eea;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: #5568d3;
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// ==============================================================================
+// STORES CONTENT
+// ==============================================================================
+
+.stores-content {
+  .content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h4 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .sync-summary {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+  }
+
+  .stores-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .store-item {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 16px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #e9ecef;
+      }
+
+      .store-item-header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+
+        .store-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: #333;
+          flex: 1;
+        }
+
+        .store-type-badge {
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+
+          &.docstore {
+            background: #e3f2fd;
+            color: #1976d2;
+          }
+
+          &.eventlog {
+            background: #f3e5f5;
+            color: #7b1fa2;
+          }
+        }
+
+        .sync-indicator {
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+
+          &.synced {
+            background: #d4edda;
+            color: #155724;
+          }
+
+          &.out-of-sync {
+            background: #fff3cd;
+            color: #856404;
+          }
+        }
+      }
+
+      .store-item-details {
+        display: flex;
+        gap: 20px;
+
+        .detail-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .detail-label {
+            font-size: 11px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .detail-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ==============================================================================
+// WIDGET FOOTER
+// ==============================================================================
+
+.widget-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+
+  .footer-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .footer-icon {
+      font-size: 14px;
+      color: #999;
+    }
+
+    .footer-text {
+      font-size: 13px;
+      color: #666;
+    }
+  }
+
+  .view-details-btn {
+    padding: 10px 20px;
+    background: #667eea;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+  }
+}
+
+// ==============================================================================
+// RESPONSIVE DESIGN
+// ==============================================================================
+
+@media (max-width: 768px) {
+  .widget-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .header-metrics {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+
+  .view-tabs {
+    .tab-btn {
+      font-size: 12px;
+      padding: 12px 8px;
+
+      span:not(.tab-icon) {
+        display: none;
+      }
+    }
+  }
+
+  .overview-content {
+    .visualization-grid {
+      grid-template-columns: 1fr;
+
+      .viz-card.full-width {
+        grid-column: 1;
+      }
+    }
+  }
+
+  .replication-heatmap-mini {
+    .heatmap-grid {
+      overflow-x: auto;
+
+      .heatmap-row {
+        min-width: 600px;
+      }
+    }
+  }
+}
