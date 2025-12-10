@@ -8,7 +8,7 @@ Write-Host "🚀 Starting full rebuild of OptimusDDC stack..." -ForegroundColor 
 
 # Always resolve docker-compose file relative to this script
 $scriptRoot  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$composeFile = Join-Path $scriptRoot "..\dockerDDC.yml"
+$composeFile = Join-Path $scriptRoot "..\Dockerfile.yml"
 
 Write-Host "📄 Using compose file: $composeFile" -ForegroundColor DarkGray
 
