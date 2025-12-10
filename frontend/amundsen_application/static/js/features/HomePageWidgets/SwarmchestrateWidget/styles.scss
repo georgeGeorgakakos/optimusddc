@@ -1,8 +1,5 @@
 // ==============================================================================
 // SwarmchestrateWidget Styles - Swarm Operations Dashboard
-// ==============================================================================
-// Matches the purple gradient theme of ClusterHealthWidget and PersistedDataWidget
-// ==============================================================================
 
 .swarm-operations-widget {
   background: white;
@@ -691,7 +688,8 @@
 
   .heatmap-grid {
     display: grid;
-    grid-template-columns: 80px repeat(8, 1fr);
+    // Grid columns set dynamically via inline style based on NUM_AGENTS
+    // Default fallback: grid-template-columns: 80px repeat(8, 1fr);
     gap: 2px;
     margin-bottom: 16px;
   }
@@ -812,7 +810,9 @@
     overflow-x: auto;
 
     .heatmap-grid {
-      min-width: 600px;
+      // Dynamic min-width based on agent count
+      // Formula: 80px (label column) + (NUM_AGENTS * 50px per cell)
+      min-width: calc(80px + (var(--num-agents, 8) * 50px));
     }
   }
 
