@@ -528,7 +528,7 @@ const PersistedDataWidget: React.FC = () => {
               <span className="widget-icon">💾</span>
             </div>
             <div className="header-text">
-              <h3>Persisted Data</h3>
+              <h3>Agent Data Overview</h3>
               <p className="subtitle">Cluster Inventory & Replication</p>
             </div>
           </div>
@@ -552,7 +552,7 @@ const PersistedDataWidget: React.FC = () => {
               <span className="widget-icon">💾</span>
             </div>
             <div className="header-text">
-              <h3>Persisted Data</h3>
+              <h3>Agent Data Overview</h3>
               <p className="subtitle">Cluster Inventory & Replication</p>
             </div>
           </div>
@@ -579,7 +579,7 @@ const PersistedDataWidget: React.FC = () => {
             <span className="widget-icon">💾</span>
           </div>
           <div className="header-text">
-            <h3>Persisted Data</h3>
+            <h3>Agent Data Overview</h3>
             <p className="subtitle">Cluster Inventory & Replication</p>
           </div>
         </div>
@@ -636,7 +636,7 @@ const PersistedDataWidget: React.FC = () => {
                 <div className="metric-icon-large">🗄️</div>
                 <div className="metric-details-large">
                   <span className="metric-value-xl">{data.tables.length}</span>
-                  <span className="metric-label-large">SQLite Tables</span>
+                  <span className="metric-label-large">CRUD Data Tables</span>
                   <span className="metric-subtext">
                     {(data.totalRows / 1000).toFixed(2)}K total rows
                   </span>
@@ -646,7 +646,7 @@ const PersistedDataWidget: React.FC = () => {
                 <div className="metric-icon-large">📦</div>
                 <div className="metric-details-large">
                   <span className="metric-value-xl">{data.stores.length}</span>
-                  <span className="metric-label-large">OrbitDB Stores</span>
+                  <span className="metric-label-large">CRUD Data Stores</span>
                   <span className="metric-subtext">
                     {data.stores.filter((s) => s.isSynced).length} synchronized
                   </span>
@@ -673,7 +673,7 @@ const PersistedDataWidget: React.FC = () => {
         {activeView === 'tables' && (
           <div className="tables-content">
             <div className="content-header">
-              <h4>SQLite Tables ({data.tables.length})</h4>
+              <h4>RDBMS Tables ({data.tables.length})</h4>
               <span className="total-rows">
                 {(data.totalRows / 1000).toFixed(2)}K total rows
               </span>
@@ -724,7 +724,7 @@ const PersistedDataWidget: React.FC = () => {
         {activeView === 'stores' && (
           <div className="stores-content">
             <div className="content-header">
-              <h4>OrbitDB Stores ({data.stores.length})</h4>
+              <h4>CRUD Data Stores ({data.stores.length})</h4>
               <span className="sync-summary">
                 {data.stores.filter((s) => s.isSynced).length} synced,{' '}
                 {data.stores.filter((s) => !s.isSynced).length} out of sync
