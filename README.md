@@ -165,7 +165,7 @@ curl http://localhost:18001/swarmkb/agentstatus
 
 ```bash
 # Build and start all services
-docker-compose -f Dockerfile.yml up --build
+docker-compose -f Dockerfile up --build
 
 # Or start individually:
 docker-compose up amundsen-frontend

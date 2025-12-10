@@ -7,7 +7,7 @@
 # Resolve paths
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot   = Resolve-Path (Join-Path $scriptRoot "..")
-$composeFile = "../Dockerfile.yml"
+$composeFile = "../Dockerfile"
 
 Write-Host "📂 Script root : $scriptRoot" -ForegroundColor DarkGray
 Write-Host "📁 Repo root   : $repoRoot"   -ForegroundColor DarkGray
