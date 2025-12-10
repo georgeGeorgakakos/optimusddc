@@ -45,9 +45,9 @@ const configDefault: AppConfig = {
   homePageWidgets: {
     widgets: [
       {
-        name: 'SearchBarWidget',
+        name: 'PersistedDataWidget',
         options: {
-          path: 'SearchBarWidget/index',
+          path: 'PersistedDataWidget/index',
         },
       },
       {
@@ -63,9 +63,21 @@ const configDefault: AppConfig = {
         },
       },
       {
-        name: 'PersistedDataWidget',
+        name: 'SearchBarWidget',
         options: {
-          path: 'PersistedDataWidget/index',
+          path: 'SearchBarWidget/index',
+        },
+      },
+      {
+        name: 'MyBookmarksWidget',
+        options: {
+          path: 'MyBookmarksWidget/index',
+        },
+      },
+      {
+        name: 'PopularResourcesWidget',
+        options: {
+          path: 'PopularResourcesWidget/index',
         },
       },
       {
@@ -84,18 +96,6 @@ const configDefault: AppConfig = {
             shortTagsList: true,
           },
           path: 'TagsWidget/index',
-        },
-      },
-      {
-        name: 'MyBookmarksWidget',
-        options: {
-          path: 'MyBookmarksWidget/index',
-        },
-      },
-      {
-        name: 'PopularResourcesWidget',
-        options: {
-          path: 'PopularResourcesWidget/index',
         },
       },
     ],

@@ -72,14 +72,54 @@ type InventoryFetchResult = InventoryFetchSuccess | InventoryFetchFailure;
 // ==============================================================================
 
 const AGENTS: AgentConfig[] = [
-  { id: 'agent-1', name: 'Agent 1', url: 'http://localhost:8089', port: 8089 },
-  { id: 'agent-2', name: 'Agent 2', url: 'http://localhost:8090', port: 8090 },
-  { id: 'agent-3', name: 'Agent 3', url: 'http://localhost:8091', port: 8091 },
-  { id: 'agent-4', name: 'Agent 4', url: 'http://localhost:8092', port: 8092 },
-  { id: 'agent-5', name: 'Agent 5', url: 'http://localhost:8093', port: 8093 },
-  { id: 'agent-6', name: 'Agent 6', url: 'http://localhost:8094', port: 8094 },
-  { id: 'agent-7', name: 'Agent 7', url: 'http://localhost:8095', port: 8095 },
-  { id: 'agent-8', name: 'Agent 8', url: 'http://localhost:8096', port: 8096 },
+  {
+    id: 'agent-1',
+    name: 'Agent 1',
+    url: 'http://localhost:18001',
+    port: 18001,
+  },
+  {
+    id: 'agent-2',
+    name: 'Agent 2',
+    url: 'http://localhost:18002',
+    port: 18002,
+  },
+  {
+    id: 'agent-3',
+    name: 'Agent 3',
+    url: 'http://localhost:18003',
+    port: 18003,
+  },
+  {
+    id: 'agent-4',
+    name: 'Agent 4',
+    url: 'http://localhost:18004',
+    port: 18004,
+  },
+  {
+    id: 'agent-5',
+    name: 'Agent 5',
+    url: 'http://localhost:18005',
+    port: 18005,
+  },
+  {
+    id: 'agent-6',
+    name: 'Agent 6',
+    url: 'http://localhost:18006',
+    port: 18006,
+  },
+  {
+    id: 'agent-7',
+    name: 'Agent 7',
+    url: 'http://localhost:18007',
+    port: 18007,
+  },
+  {
+    id: 'agent-8',
+    name: 'Agent 8',
+    url: 'http://localhost:18008',
+    port: 18008,
+  },
 ];
 
 // ==============================================================================
@@ -358,38 +398,45 @@ const PersistedDataWidget: React.FC = () => {
         onlineCount++;
         const { agentId, data } = result;
 
-        // Process SQLite tables
-        if (data.sqlite_databases) {
-          Object.entries(data.sqlite_databases).forEach(
+        // Process SQLite tables - FIXED: Use data.databases instead of data.sqlite_databases
+        if (data.databases) {
+          Object.entries(data.databases).forEach(
             ([dbName, dbData]: [string, any]) => {
-              dbData.tables.forEach((table: any) => {
-                const key = `${dbName}.${table.table_name}`;
+              // FIXED: Tables are an object with keys, not an array
+              if (dbData.tables) {
+                Object.entries(dbData.tables).forEach(
+                  ([tableName, tableInfo]: [string, any]) => {
+                    const key = `${dbName}.${tableName}`;
 
-                if (tablesMap.has(key)) {
-                  const existing = tablesMap.get(key)!;
+                    if (tablesMap.has(key)) {
+                      const existing = tablesMap.get(key)!;
 
-                  existing.rowCount += table.row_count;
-                  existing.agents.push(agentId);
-                  existing.agentCount++;
-                } else {
-                  tablesMap.set(key, {
-                    database: dbName,
-                    tableName: table.table_name,
-                    rowCount: table.row_count,
-                    agentCount: 1,
-                    agents: [agentId],
-                  });
-                }
-                totalRows += table.row_count;
-              });
+                      existing.rowCount += tableInfo.row_count || 0;
+                      existing.agents.push(agentId);
+                      existing.agentCount++;
+                    } else {
+                      tablesMap.set(key, {
+                        database: dbName,
+                        tableName,
+                        rowCount: tableInfo.row_count || 0,
+                        agentCount: 1,
+                        agents: [agentId],
+                      });
+                    }
+                    totalRows += tableInfo.row_count || 0;
+                  }
+                );
+              }
             }
           );
         }
 
-        // Process OrbitDB stores
-        if (data.orbitdb_stores) {
-          data.orbitdb_stores.forEach((store: any) => {
+        // Process OrbitDB stores - FIXED: Use data.orbitdb_stores.active_stores
+        if (data.orbitdb_stores && data.orbitdb_stores.active_stores) {
+          data.orbitdb_stores.active_stores.forEach((store: any) => {
             const key = store.name;
+            // FIXED: Use event_count instead of entry_count
+            const entryCount = store.event_count || 0;
 
             if (storesMap.has(key)) {
               const existing = storesMap.get(key)!;
@@ -398,24 +445,24 @@ const PersistedDataWidget: React.FC = () => {
               existing.agentCount++;
               existing.entryCount.min = Math.min(
                 existing.entryCount.min,
-                store.entry_count || 0
+                entryCount
               );
               existing.entryCount.max = Math.max(
                 existing.entryCount.max,
-                store.entry_count || 0
+                entryCount
               );
               existing.entryCount.avg =
                 (existing.entryCount.avg * (existing.agentCount - 1) +
-                  (store.entry_count || 0)) /
+                  entryCount) /
                 existing.agentCount;
             } else {
               storesMap.set(key, {
                 storeName: store.name,
                 storeType: store.type === 'docstore' ? 'docstore' : 'eventlog',
                 entryCount: {
-                  min: store.entry_count || 0,
-                  max: store.entry_count || 0,
-                  avg: store.entry_count || 0,
+                  min: entryCount,
+                  max: entryCount,
+                  avg: entryCount,
                 },
                 isSynced: true,
                 agentCount: 1,
@@ -425,14 +472,17 @@ const PersistedDataWidget: React.FC = () => {
           });
         }
 
+        // FIXED: Use correct paths for agent health
         agentHealthMap.set(agentId, {
           agentId,
-          nodeType: data.node_type || 'follower',
+          nodeType: data.agent_info?.node_type || 'follower',
           isOnline: true,
-          databaseCount: data.sqlite_databases
-            ? Object.keys(data.sqlite_databases).length
+          databaseCount: data.databases
+            ? Object.keys(data.databases).length
             : 0,
-          storeCount: data.orbitdb_stores ? data.orbitdb_stores.length : 0,
+          storeCount: data.orbitdb_stores?.active_stores
+            ? data.orbitdb_stores.active_stores.length
+            : 0,
         });
       });
 
@@ -588,7 +638,7 @@ const PersistedDataWidget: React.FC = () => {
                   <span className="metric-value-xl">{data.tables.length}</span>
                   <span className="metric-label-large">SQLite Tables</span>
                   <span className="metric-subtext">
-                    {(data.totalRows / 1000000).toFixed(2)}M total rows
+                    {(data.totalRows / 1000).toFixed(2)}K total rows
                   </span>
                 </div>
               </div>
@@ -625,7 +675,7 @@ const PersistedDataWidget: React.FC = () => {
             <div className="content-header">
               <h4>SQLite Tables ({data.tables.length})</h4>
               <span className="total-rows">
-                {(data.totalRows / 1000000).toFixed(2)}M total rows
+                {(data.totalRows / 1000).toFixed(2)}K total rows
               </span>
             </div>
             <div className="tables-list">
