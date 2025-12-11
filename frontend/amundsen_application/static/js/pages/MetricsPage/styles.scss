@@ -1,0 +1,26 @@
+.metrics-page {
+  padding: 24px;
+  max-width: 1800px;
+  margin: 0 auto;
+
+  .page-header {
+    margin-bottom: 32px;
+
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+    }
+
+    .page-description {
+      font-size: 16px;
+      color: #666;
+      margin: 0;
+    }
+  }
+
+  .metrics-content {
+    width: 100%;
+  }
+}

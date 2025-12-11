@@ -39,6 +39,7 @@ import LogAnalyticsPage from './pages/LogAnalyticsPage';
 import Preloader from './components/Preloader';
 import Footer from './features/Footer';
 import NavBar from './features/NavBar';
+import metricsPage from './pages/MetricsPage';
 
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
@@ -79,6 +80,7 @@ const Routes: React.FC = () => {
         <Route path="/dashboard/:uri" component={DashboardPage} />
         <Route path="/feature/:group/:name/:version" component={FeaturePage} />
         <Route path="/search" component={SearchPage} />
+        <Route path="/metrics" component={metricsPage} />
         <Route
           path="/table_detail/:cluster/:database/:schema/:table"
           component={TableDetail}

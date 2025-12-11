@@ -1,0 +1,420 @@
+// ==============================================================================
+// AgentMetricsWidget Styles - LIGHT THEME with HIGH CONTRAST
+// ==============================================================================
+
+.agent-metrics-widget {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e1e4e8;
+
+  // Header
+  .widget-header {
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e1e4e8;
+    padding-bottom: 16px;
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+
+      h2 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin: 0;
+      }
+
+      .header-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        color: #586069;
+        font-weight: 500;
+
+        .agent-count {
+          color: #28a745;
+          font-weight: 700;
+        }
+
+        .warning-count {
+          color: #f39c12;
+          font-weight: 700;
+        }
+
+        .critical-count {
+          color: #dc3545;
+          font-weight: 700;
+        }
+
+        .separator {
+          color: #d1d5da;
+        }
+      }
+    }
+  }
+
+  // Body - Agents Grid
+  .widget-body {
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+      gap: 24px;
+
+      @media (max-width: 1400px) {
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      }
+
+      @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
+  // Individual Agent Card
+  .agent-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #e1e4e8;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-color: #d1d5da;
+    }
+
+    // Status-based border colors
+    &.healthy {
+      border-left: 4px solid #28a745;
+
+      &:hover {
+        border-color: #28a745;
+      }
+    }
+
+    &.warning {
+      border-left: 4px solid #f39c12;
+      background: #fffbf0;
+
+      &:hover {
+        border-color: #f39c12;
+      }
+    }
+
+    &.critical {
+      border-left: 4px solid #dc3545;
+      background: #fff5f5;
+      animation: pulse-critical 2s ease-in-out infinite;
+
+      &:hover {
+        border-color: #dc3545;
+      }
+    }
+
+    @keyframes pulse-critical {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+      }
+    }
+
+    // Card Header
+    .agent-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e1e4e8;
+
+      .agent-title {
+        h3 {
+          font-size: 20px;
+          font-weight: 700;
+          color: #24292e;
+          margin: 0 0 4px 0;
+        }
+
+        .agent-role {
+          font-size: 13px;
+          color: #586069;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          font-weight: 600;
+        }
+      }
+
+      .agent-peer-id {
+        font-size: 11px;
+        color: #959da5;
+        font-family: 'Courier New', monospace;
+        background: #f6f8fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+    }
+
+    // Prediction Alert
+    .prediction-alert {
+      margin-bottom: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      animation: fadeIn 0.5s ease-in;
+      border: 2px solid;
+
+      &.warning {
+        background: #fff8e1;
+        border-color: #f39c12;
+
+        .alert-header {
+          .alert-title {
+            color: #e67e22;
+          }
+        }
+      }
+
+      &.critical {
+        background: #ffebee;
+        border-color: #dc3545;
+        animation: pulse-alert 1.5s ease-in-out infinite;
+
+        .alert-header {
+          .alert-title {
+            color: #c82333;
+          }
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse-alert {
+        0%, 100% {
+          background: #ffebee;
+        }
+        50% {
+          background: #ffcdd2;
+        }
+      }
+
+      .alert-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+
+        .alert-icon {
+          font-size: 20px;
+        }
+
+        .alert-title {
+          font-weight: 700;
+          font-size: 14px;
+          letter-spacing: 0.5px;
+        }
+      }
+
+      .prediction-detail {
+        font-size: 13px;
+        color: #24292e;
+        margin-bottom: 8px;
+        line-height: 1.5;
+
+        strong {
+          color: #1a1a2e;
+          font-weight: 700;
+        }
+      }
+
+      .issues-list {
+        margin: 12px 0;
+
+        strong {
+          display: block;
+          color: #24292e;
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+
+          li {
+            padding: 6px 0;
+            font-size: 13px;
+            color: #24292e;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+
+            .severity-badge {
+              display: inline-block;
+              padding: 2px 8px;
+              border-radius: 3px;
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.3px;
+              flex-shrink: 0;
+
+              &.high {
+                background: #dc3545;
+                color: #ffffff;
+              }
+
+              &.medium {
+                background: #f39c12;
+                color: #ffffff;
+              }
+
+              &.low {
+                background: #28a745;
+                color: #ffffff;
+              }
+            }
+          }
+        }
+      }
+
+      .recommendation {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        font-size: 13px;
+        color: #24292e;
+        line-height: 1.5;
+
+        strong {
+          color: #1a1a2e;
+          font-weight: 700;
+        }
+      }
+    }
+
+    // Health Gauge
+    .health-gauge {
+      margin-bottom: 20px;
+      background: #f6f8fa;
+      border-radius: 8px;
+      padding: 8px;
+
+      .health-label {
+        text-align: center;
+        font-size: 14px;
+        color: #24292e;
+        font-weight: 600;
+        margin-top: -10px;
+      }
+    }
+
+    // Metrics Charts
+    .metrics-charts {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+
+      .chart-container {
+        background: #f6f8fa;
+        border-radius: 8px;
+        padding: 8px;
+        border: 1px solid #e1e4e8;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #ffffff;
+          border-color: #d1d5da;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+      }
+    }
+
+    // Anomaly Badge
+    .anomaly-badge {
+      text-align: center;
+      padding: 8px;
+      background: #fff8e1;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #e67e22;
+      font-weight: 700;
+      border: 1px solid #f39c12;
+    }
+  }
+
+  // Footer
+  .widget-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 2px solid #e1e4e8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .footer-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #586069;
+      font-weight: 500;
+
+      .footer-icon {
+        font-size: 16px;
+      }
+    }
+  }
+
+  // Loading State
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #fff;
+      border-top-color: #f2f0f0;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    p {
+      margin-top: 20px;
+      color: #586069;
+      font-size: 16px;
+      font-weight: 500;
+    }
+  }
+}

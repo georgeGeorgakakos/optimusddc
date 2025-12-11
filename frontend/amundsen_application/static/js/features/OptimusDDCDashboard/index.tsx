@@ -43,25 +43,33 @@ interface HealthRibbonProps {
 // SPARKLINE COMPONENT
 // ============================================
 
-const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({
-                                                                                   data,
-                                                                                   color,
-                                                                                   height = 40
-                                                                                 }) => {
+const Sparkline: React.FC<{
+  data: number[];
+  color: string;
+  height?: number;
+}> = ({ data, color, height = 40 }) => {
   if (!data || data.length === 0) return null;
 
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
 
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * 100;
-    const y = height - ((value - min) / range) * height;
-    return `${x},${y}`;
-  }).join(' ');
+  const points = data
+    .map((value, index) => {
+      const x = (index / (data.length - 1)) * 100;
+      const y = height - ((value - min) / range) * height;
+
+      return `${x},${y}`;
+    })
+    .join(' ');
 
   return (
-    <svg className="sparkline" width="100%" height={height} preserveAspectRatio="none">
+    <svg
+      className="sparkline"
+      width="100%"
+      height={height}
+      preserveAspectRatio="none"
+    >
       <polyline
         points={points}
         fill="none"
@@ -84,21 +92,26 @@ const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = 
 // ============================================
 
 const MetricCard: React.FC<MetricCardProps> = ({
-                                                 title,
-                                                 value,
-                                                 subtitle,
-                                                 icon,
-                                                 trend,
-                                                 trendLabel,
-                                                 color = 'primary'
-                                               }) => {
+  title,
+  value,
+  subtitle,
+  icon,
+  trend,
+  trendLabel,
+  color = 'primary',
+}) => {
   const getColorClass = () => {
     switch (color) {
-      case 'accent': return 'metric-card-accent';
-      case 'success': return 'metric-card-success';
-      case 'warning': return 'metric-card-warning';
-      case 'secondary': return 'metric-card-secondary';
-      default: return 'metric-card-primary';
+      case 'accent':
+        return 'metric-card-accent';
+      case 'success':
+        return 'metric-card-success';
+      case 'warning':
+        return 'metric-card-warning';
+      case 'secondary':
+        return 'metric-card-secondary';
+      default:
+        return 'metric-card-primary';
     }
   };
 
@@ -118,7 +131,13 @@ const MetricCard: React.FC<MetricCardProps> = ({
         <div className="metric-trend">
           <Sparkline
             data={trend}
-            color={color === 'accent' ? '#00897b' : color === 'success' ? '#43a047' : '#1a4d7a'}
+            color={
+              color === 'accent'
+                ? '#00897b'
+                : color === 'success'
+                ? '#43a047'
+                : '#1a4d7a'
+            }
           />
           {trendLabel && <span className="trend-label">{trendLabel}</span>}
         </div>
@@ -131,12 +150,22 @@ const MetricCard: React.FC<MetricCardProps> = ({
 // HEALTH RIBBON COMPONENT
 // ============================================
 
-const HealthRibbon: React.FC<HealthRibbonProps> = ({ totalNodes, healthyNodes, avgLatency }) => {
-  const healthPercentage = totalNodes > 0 ? (healthyNodes / totalNodes) * 100 : 0;
+const HealthRibbon: React.FC<HealthRibbonProps> = ({
+  totalNodes,
+  healthyNodes,
+  avgLatency,
+}) => {
+  const healthPercentage =
+    totalNodes > 0 ? (healthyNodes / totalNodes) * 100 : 0;
 
   const getHealthStatus = () => {
-    if (healthPercentage >= 90) return { status: 'healthy', label: 'Healthy', class: 'health-healthy' };
-    if (healthPercentage >= 70) return { status: 'warning', label: 'Degraded', class: 'health-warning' };
+    if (healthPercentage >= 90) {
+      return { status: 'healthy', label: 'Healthy', class: 'health-healthy' };
+    }
+    if (healthPercentage >= 70) {
+      return { status: 'warning', label: 'Degraded', class: 'health-warning' };
+    }
+
     return { status: 'error', label: 'Critical', class: 'health-error' };
   };
 
@@ -149,9 +178,12 @@ const HealthRibbon: React.FC<HealthRibbonProps> = ({ totalNodes, healthyNodes, a
           {health.status === 'healthy' ? '✅' : '⚠️'}
         </div>
         <div className="health-info">
-          <span className="health-label">Swarm Status: <strong>{health.label}</strong></span>
+          <span className="health-label">
+            Swarm Status: <strong>{health.label}</strong>
+          </span>
           <span className="health-details">
-            {healthyNodes}/{totalNodes} nodes operational · Avg latency {avgLatency}ms
+            {healthyNodes}/{totalNodes} nodes operational · Avg latency{' '}
+            {avgLatency}ms
           </span>
         </div>
       </div>
@@ -166,15 +198,29 @@ const HealthRibbon: React.FC<HealthRibbonProps> = ({ totalNodes, healthyNodes, a
 const QuickAccessTiles: React.FC = () => {
   const tiles = [
     { title: 'Browse Catalog', icon: '📚', path: '/browse', color: 'primary' },
-    { title: 'Agents Topology', icon: '🔗', path: '/cluster/topology', color: 'accent' },
-    { title: 'Query Workbench', icon: '⚡', path: '/queryengine', color: 'secondary' },
-    { title: 'Visualizations', icon: '📊', path: '/visualization', color: 'success' },
+    {
+      title: 'Agents Topology',
+      icon: '🔗',
+      path: '/cluster/topology',
+      color: 'accent',
+    },
+    {
+      title: 'Query Workbench',
+      icon: '⚡',
+      path: '/queryengine',
+      color: 'secondary',
+    },
+    { title: 'Metrics', icon: '📊', path: '/metrics', color: 'success' },
   ];
 
   return (
     <div className="quick-access-tiles">
       {tiles.map((tile, index) => (
-        <a key={index} href={tile.path} className={`quick-tile quick-tile-${tile.color}`}>
+        <a
+          key={index}
+          href={tile.path}
+          className={`quick-tile quick-tile-${tile.color}`}
+        >
           <div className="quick-tile-icon">{tile.icon}</div>
           <div className="quick-tile-title">{tile.title}</div>
         </a>
@@ -201,7 +247,10 @@ const OptimusDDCDashboard: React.FC = () => {
       // YOUR BACKEND ENDPOINT - Update this to your actual metrics endpoint
       // Current: http://localhost:5015/operations shows the page
       // You probably need: http://localhost:5015/api/operations/metrics or similar
-      const response = await axios.get('http://localhost:5015/api/operations/metrics');
+      const response = await axios.get(
+        'http://localhost:5015/api/operations/metrics'
+      );
+
       setMetrics(response.data);
     } catch (err) {
       console.error('Failed to fetch operations metrics:', err);
@@ -216,9 +265,12 @@ const OptimusDDCDashboard: React.FC = () => {
         dashboards: 89,
         recentElections: 2,
         avgLatency: 35,
-        queriesLast24h: [45, 52, 48, 61, 55, 67, 72, 69, 58, 63, 71, 75, 82, 78, 85, 91, 88, 95, 102, 98, 105, 110, 108, 115],
+        queriesLast24h: [
+          45, 52, 48, 61, 55, 67, 72, 69, 58, 63, 71, 75, 82, 78, 85, 91, 88,
+          95, 102, 98, 105, 110, 108, 115,
+        ],
         metadataChangesLast7d: [12, 15, 18, 22, 19, 24, 21],
-        nodeHealthTrend: [100, 100, 100, 90, 100, 100, 100]
+        nodeHealthTrend: [100, 100, 100, 90, 100, 100, 100],
       });
     } finally {
       setLoading(false);
@@ -230,13 +282,14 @@ const OptimusDDCDashboard: React.FC = () => {
 
     // Refresh metrics every 30 seconds
     const interval = setInterval(fetchMetrics, 30000);
+
     return () => clearInterval(interval);
   }, []);
 
   if (loading && !metrics) {
     return (
       <div className="operations-dashboard-loading">
-        <div className="loading-spinner"></div>
+        <div className="loading-spinner" />
         <p>Loading swarmchestrate operations...</p>
       </div>
     );
@@ -247,7 +300,9 @@ const OptimusDDCDashboard: React.FC = () => {
       <div className="operations-dashboard-error">
         <span className="error-icon">🛑</span>
         <p>{error}</p>
-        <button onClick={fetchMetrics} className="retry-button">Retry</button>
+        <button onClick={fetchMetrics} className="retry-button">
+          Retry
+        </button>
       </div>
     );
   }
@@ -306,54 +361,71 @@ const OptimusDDCDashboard: React.FC = () => {
           trendLabel="Growing"
         />
         <MetricCard
-          title="Dashboards"
+          title="Metrics"
           value={metrics.dashboards}
-          subtitle="Visualizations"
+          subtitle="Metrics"
           icon="📊"
           color="success"
         />
       </div>
 
       {/* Activity Charts - only show if data available */}
-      {metrics.queriesLast24h && metrics.metadataChangesLast7d && metrics.nodeHealthTrend && (
-        <div className="activity-section">
-          <div className="activity-card">
-            <h3 className="activity-title">
-              <span>📈</span> Queries (Last 24h)
-            </h3>
-            <div className="activity-chart">
-              <Sparkline data={metrics.queriesLast24h} color="#00897b" height={60} />
+      {metrics.queriesLast24h &&
+        metrics.metadataChangesLast7d &&
+        metrics.nodeHealthTrend && (
+          <div className="activity-section">
+            <div className="activity-card">
+              <h3 className="activity-title">
+                <span>📈</span> Queries (Last 24h)
+              </h3>
+              <div className="activity-chart">
+                <Sparkline
+                  data={metrics.queriesLast24h}
+                  color="#00897b"
+                  height={60}
+                />
+              </div>
+              <p className="activity-summary">
+                {metrics.queriesLast24h[metrics.queriesLast24h.length - 1]}{' '}
+                queries in the last hour
+              </p>
             </div>
-            <p className="activity-summary">
-              {metrics.queriesLast24h[metrics.queriesLast24h.length - 1]} queries in the last hour
-            </p>
-          </div>
 
-          <div className="activity-card">
-            <h3 className="activity-title">
-              <span>✏️</span> Metadata Changes (Last 7d)
-            </h3>
-            <div className="activity-chart">
-              <Sparkline data={metrics.metadataChangesLast7d} color="#5e35b1" height={60} />
+            <div className="activity-card">
+              <h3 className="activity-title">
+                <span>✏️</span> Metadata Changes (Last 7d)
+              </h3>
+              <div className="activity-chart">
+                <Sparkline
+                  data={metrics.metadataChangesLast7d}
+                  color="#5e35b1"
+                  height={60}
+                />
+              </div>
+              <p className="activity-summary">
+                {metrics.metadataChangesLast7d.reduce((a, b) => a + b, 0)} total
+                changes this week
+              </p>
             </div>
-            <p className="activity-summary">
-              {metrics.metadataChangesLast7d.reduce((a, b) => a + b, 0)} total changes this week
-            </p>
-          </div>
 
-          <div className="activity-card">
-            <h3 className="activity-title">
-              <span>❤️</span> Node Health Trend
-            </h3>
-            <div className="activity-chart">
-              <Sparkline data={metrics.nodeHealthTrend} color="#43a047" height={60} />
+            <div className="activity-card">
+              <h3 className="activity-title">
+                <span>❤️</span> Node Health Trend
+              </h3>
+              <div className="activity-chart">
+                <Sparkline
+                  data={metrics.nodeHealthTrend}
+                  color="#43a047"
+                  height={60}
+                />
+              </div>
+              <p className="activity-summary">
+                {metrics.nodeHealthTrend[metrics.nodeHealthTrend.length - 1]}%
+                average health
+              </p>
             </div>
-            <p className="activity-summary">
-              {metrics.nodeHealthTrend[metrics.nodeHealthTrend.length - 1]}% average health
-            </p>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Quick Access */}
       <div className="quick-access-section">
@@ -365,7 +437,9 @@ const OptimusDDCDashboard: React.FC = () => {
       {metrics.recentElections > 0 && (
         <div className="elections-summary">
           <span>⚡</span>
-          <span>{metrics.recentElections} leader elections in the last hour</span>
+          <span>
+            {metrics.recentElections} leader elections in the last hour
+          </span>
           <a href="/console/elections" className="elections-link">
             View details →
           </a>

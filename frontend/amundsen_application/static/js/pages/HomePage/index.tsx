@@ -5,14 +5,10 @@ import * as React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { RouteComponentProps } from 'react-router';
-
 import { resetSearchState } from 'ducks/search/reducer';
 import { UpdateSearchStateReset } from 'ducks/search/types';
-
 import Announcements from 'features/AnnouncementsWidget';
-
 import { announcementsEnabled, getHomePageWidgets } from 'config/config-utils';
-
 import { HomePageWidgetsConfig } from 'config/config-types';
 import { HOMEPAGE_TITLE } from './constants';
 

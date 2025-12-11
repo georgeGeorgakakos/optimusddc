@@ -158,9 +158,9 @@ const configDefault: AppConfig = {
       use_router: true,
     },
     {
-      href: '/visualization',
-      id: 'nav::visualization',
-      label: 'Visualizations',
+      href: '/metrics',
+      id: 'nav::metrics',
+      label: 'Metrics',
       use_router: true,
     },
     {

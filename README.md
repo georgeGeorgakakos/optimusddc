@@ -85,10 +85,10 @@ Traditional data catalogs rely on centralized databases and monitoring infrastru
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     OptimusDDC Frontend                         │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
-│  │  Search  │  │  Query   │  │   Log    │  │  Operations  │   │
-│  │Discovery │  │Workbench │  │Analytics │  │  Dashboard   │   │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────────┘   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐     │
+│  │  Search  │  │  Query   │  │   Log    │  │  Operations  │     │
+│  │Discovery │  │Workbench │  │Analytics │  │  Dashboard   │     │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────┘     │
 └──────────────────────┬──────────────────────────────────────────┘
                        │ REST API
                        ▼
@@ -101,18 +101,18 @@ Traditional data catalogs rely on centralized databases and monitoring infrastru
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                      OptimusDB Layer                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
-│  │ Node 1   │  │ Node 2   │  │ Node 3   │  │  ...     │       │
-│  │ :18001   │  │ :18002   │  │ :18003   │  │ :18008   │       │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐         │
+│  │ Node 1   │  │ Node 2   │  │ Node 3   │  │  ...     │         │
+│  │ :18001   │  │ :18002   │  │ :18003   │  │ :18008   │         │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘         │
 │       │             │             │             │               │
 │       └─────────────┴─────────────┴─────────────┘               │
 │              LibP2P P2P Network (GossipSub)                     │
 │                                                                 │
 │  Storage Layer:                                                 │
-│  • OrbitDB (Distributed K-V Store over IPFS)                   │
-│  • SQLite (Local Cache per Node)                               │
-│  • TinyLlama AI (Autonomous Metadata Generation)               │
+│  • OrbitDB (Distributed K-V Store over IPFS)                    │
+│  • SQLite (Local Cache per Node)                                │
+│  • TinyLlama AI (Autonomous Metadata Generation)                │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

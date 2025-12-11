@@ -11,7 +11,7 @@ export const ROUTES = {
   USER_PROFILE: '/user/:userId',
   ANNOUNCEMENTS: '/announcements',
   CLUSTER_TOPOLOGY: '/cluster/topology',
-  OPTIMUSDDC_DASHBOARD: '/operations',  // NEW ROUTE
+  OPTIMUSDDC_DASHBOARD: '/operations',
   NOT_FOUND: '/404',
 };
 export const QUERY_WORKBENCH = '/queryworkbench';

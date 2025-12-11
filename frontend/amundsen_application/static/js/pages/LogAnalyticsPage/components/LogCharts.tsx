@@ -135,7 +135,7 @@ const LogCharts: React.FC<LogChartsProps> = ({ logs, statistics }) => {
   return (
     <div className="log-charts">
       <div className="charts-header">
-        <h3>📈 Visualizations</h3>
+        <h3>📈 Metrics</h3>
         <div className="chart-tabs">
           <button
             className={`chart-tab ${selectedChart === 'timeline' ? 'active' : ''}`}

@@ -126,6 +126,8 @@
     "d3-hierarchy": "^2.0.0",
     "d3-selection": "^2.0.0",
     "d3-zoom": "^2.0.0",
+    "echarts": "^6.0.0",
+    "echarts-for-react": "^3.0.5",
     "form-serialize": "^0.7.2",
     "jquery": "^3.5.0",
     "json-bigint": "^1.0.0",
