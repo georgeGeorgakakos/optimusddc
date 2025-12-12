@@ -40,6 +40,7 @@ import Preloader from './components/Preloader';
 import Footer from './features/Footer';
 import NavBar from './features/NavBar';
 import metricsPage from './pages/MetricsPage';
+import DataCatalogAssistant from './components/DataCatalogAssistant';
 
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
@@ -104,6 +105,7 @@ ReactDOM.render(
         <div id="main">
           <Preloader />
           <Routes />
+          <DataCatalogAssistant />
           <Footer />
         </div>
       </Router>
