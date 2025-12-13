@@ -38,7 +38,7 @@ const DataCatalogAssistant: React.FC = () => {
 
   // Backend configuration
   const BACKEND_URL =
-    process.env.REACT_APP_OPTIMUSDB_URL || 'http://localhost:5002/chat';
+    process.env.REACT_APP_OPTIMUSDB_URL || 'http://localhost:18001/api/v1/chat';
 
   // Avatar configuration
   const AVATAR_URL =
