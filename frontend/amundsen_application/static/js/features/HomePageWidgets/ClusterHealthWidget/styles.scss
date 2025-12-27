@@ -1,16 +1,15 @@
-// styles.scss - MINIMAL CLEAN REDESIGN
-//  15% WIDER
-//  Minimal design (smaller fonts, less padding)
-//  No colored borders
-//  Visible sparkline
-//  Compact layout
+// styles.scss - CONCEPT 1: MINIMAL DASHBOARD
+// 2x2 GRID LAYOUT
+// CLEAN STATUS BADGES
+// HORIZONTAL HEALTH BARS
+// PROFESSIONAL MINIMAL DESIGN
 
 .cluster-health-widget {
   box-sizing: border-box;
-  width: 115%; //  15% WIDER
-  max-width: 1600px; //  Increased from ~1400px
+  width: 100%;
+  max-width: 1600px;
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   transition: all 0.3s ease;
@@ -20,7 +19,7 @@
   }
 
   // ==================================================
-  // HEADER - MINIMAL
+  // HEADER
   // ==================================================
   .widget-header {
     padding: 24px 32px;
@@ -48,14 +47,14 @@
       .header-text {
         h1 {
           margin: 0;
-          font-size: 22px; //  MINIMAL (was 32px)
+          font-size: 22px;
           font-weight: 700;
           color: #ffffff;
         }
 
         p {
           margin: 4px 0 0 0;
-          font-size: 14px; //  MINIMAL (was 18px)
+          font-size: 14px;
           color: rgba(255, 255, 255, 0.9);
           font-weight: 600;
         }
@@ -68,7 +67,7 @@
       gap: 8px;
       padding: 8px 20px;
       border-radius: 20px;
-      font-size: 14px; //  MINIMAL (was 18px)
+      font-size: 14px;
       font-weight: 700;
       text-transform: uppercase;
       background: rgba(255, 255, 255, 0.25);
@@ -78,7 +77,6 @@
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        //  NO ANIMATION
       }
 
       &.status-optimal .status-dot {
@@ -96,675 +94,235 @@
   }
 
   // ==================================================
-  // BODY - MINIMAL SPACING
+  // BODY
   // ==================================================
   .widget-body {
-    padding: 24px; //  REDUCED (was 32px)
+    padding: 32px;
     display: flex;
     flex-direction: column;
-    gap: 20px; //  REDUCED (was 28px)
+    gap: 32px;
     background: #fafbfc;
   }
 
   // ==================================================
-  // TOP METRICS ROW - 4 COLUMNS
+  // METRICS GRID - 2x2 LAYOUT
   // ==================================================
-  .top-metrics-row {
+  .metrics-grid-2x2 {
     display: grid;
-    grid-template-columns: 180px 1fr 1fr 1fr;
-    gap: 16px; //  REDUCED (was 24px)
+    grid-template-columns: repeat(2, 1fr); // 2 COLUMNS
+    gap: 24px;
 
     .metric-card {
       background: white;
-      border: 1px solid #e5e7eb; //  MINIMAL (was 2-3px)
-      border-radius: 12px; //  REDUCED (was 16-18px)
-      padding: 20px; //  REDUCED (was 24px)
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      border: 2px solid transparent;
       transition: all 0.3s ease;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 
       &:hover {
         border-color: #667eea;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-        transform: translateY(-2px);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(102, 126, 234, 0.2);
       }
 
-      //  AGENT CIRCLE - COMPACT
-      &.agents-circle {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-
-        .circle-chart {
-          position: relative;
-          width: 120px;
-          height: 120px;
-
-          .progress-ring {
-            transform: rotate(-90deg);
-
-            .progress-ring-bg {
-              fill: none;
-              stroke: #e5e7eb;
-              stroke-width: 10;
-            }
-
-            .progress-ring-fill {
-              fill: none;
-              stroke-width: 10;
-              stroke-linecap: round;
-              transition: all 0.6s ease;
-
-              &.optimal {
-                stroke: #10b981;
-              }
-
-              &.warning {
-                stroke: #f59e0b;
-              }
-
-              &.offline {
-                stroke: #ef4444;
-              }
-            }
-          }
-
-          .circle-value {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-
-            .value-large {
-              font-size: 36px; //  REDUCED (was 56px)
-              font-weight: 900;
-              color: #1f2937;
-            }
-
-            .value-small {
-              font-size: 20px; //  REDUCED (was 32px)
-              font-weight: 700;
-              color: #6b7280;
-            }
-
-            .value-label {
-              display: block;
-              font-size: 11px; //  REDUCED (was 16px)
-              color: #6b7280;
-              margin-top: 6px;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            }
-          }
-        }
-
-        .metric-footer {
-          font-size: 12px; //  REDUCED (was 17px)
-          color: #6b7280;
-          font-weight: 600;
-        }
-      }
-
-      //  OTHER METRICS - MINIMAL
-      .metric-header {
-        font-size: 12px; //  REDUCED (was 20px)
+      // METRIC LABEL WITH ICON
+      .metric-label {
+        font-size: 13px;
         color: #6b7280;
         font-weight: 700;
         text-transform: uppercase;
-        margin-bottom: 12px;
-        letter-spacing: 0.5px;
-      }
-
-      .metric-value {
-        font-size: 32px; //  REDUCED (was 60px)
-        font-weight: 900;
-        color: #1f2937;
-        margin-bottom: 8px;
-
-        .value-small {
-          font-size: 20px; //  REDUCED (was 24px)
-          font-weight: 700;
-          color: #6b7280;
-        }
-      }
-
-      .metric-bar {
-        height: 8px; //  REDUCED (was 16-18px)
-        background: #e5e7eb;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-bottom: 8px;
-
-        .metric-bar-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: all 0.6s ease;
-
-          &.healthy {
-            background: linear-gradient(90deg, #10b981, #34d399);
-          }
-
-          &.warning {
-            background: linear-gradient(90deg, #f59e0b, #fbbf24);
-          }
-
-          &.critical {
-            background: linear-gradient(90deg, #ef4444, #f87171);
-          }
-
-          &.p2p {
-            background: linear-gradient(90deg, #667eea, #764ba2);
-          }
-        }
-      }
-
-      .metric-subtext {
-        font-size: 11px; //  REDUCED (was 18px)
-        color: #6b7280;
-        font-weight: 600;
-      }
-
-      //  CONSENSUS COMPACT
-      &.consensus-compact {
-        .consensus-status {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 8px;
-
-          .consensus-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 900;
-
-            &.active {
-              background: #10b981;
-              color: white;
-            }
-
-            &.inactive {
-              background: #ef4444;
-              color: white;
-            }
-          }
-
-          .consensus-label {
-            font-size: 16px;
-            font-weight: 800;
-            color: #1f2937;
-          }
-        }
-
-        .consensus-badge {
-          padding: 6px 16px;
-          background: #ecfdf5;
-          border: 2px solid #86efac;
-          border-radius: 16px;
-          text-align: center;
-
-          span {
-            font-size: 11px;
-            font-weight: 700;
-            color: #065f46;
-          }
-        }
-      }
-    }
-  }
-
-  // ==================================================
-  // DISTRIBUTION - MINIMAL
-  // ==================================================
-  .distribution-section {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-
-    .section-title {
-      font-size: 14px; //  REDUCED (was 22px)
-      font-weight: 700;
-      color: #374151;
-      margin-bottom: 4px;
-    }
-
-    .section-subtitle {
-      font-size: 12px; //  REDUCED (was 17px)
-      color: #9ca3af;
-      margin-bottom: 16px;
-    }
-
-    .dist-cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-
-      .dist-card {
-        padding: 16px;
-        border-radius: 10px;
-        border: 2px solid;
+        letter-spacing: 1px;
+        margin-bottom: 20px;
         display: flex;
         align-items: center;
-        gap: 12px;
-        transition: all 0.3s ease;
+        gap: 8px;
 
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        &.healthy {
-          background: #f0fdf4;
-          border-color: #86efac;
-
-          .dist-icon {
-            background: #10b981;
-            color: white;
-          }
-
-          .dist-count {
-            color: #065f46;
-          }
-        }
-
-        &.warning {
-          background: #fffbeb;
-          border-color: #fde047;
-
-          .dist-icon {
-            background: #f59e0b;
-            color: white;
-          }
-
-          .dist-count {
-            color: #92400e;
-          }
-        }
-
-        &.critical {
-          background: #fef2f2;
-          border-color: #fca5a5;
-
-          .dist-icon {
-            background: #ef4444;
-            color: white;
-          }
-
-          .dist-count {
-            color: #991b1b;
-          }
-        }
-
-        .dist-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          font-weight: 900;
-          flex-shrink: 0;
-        }
-
-        .dist-details {
-          flex: 1;
-
-          .dist-label {
-            font-size: 13px; //  REDUCED (was 20px)
-            font-weight: 700;
-            color: #374151;
-            margin-bottom: 2px;
-          }
-
-          .dist-range {
-            font-size: 11px; //  REDUCED (was 16px)
-            font-weight: 600;
-            color: #6b7280;
-            font-family: 'Courier New', monospace;
-          }
-        }
-
-        .dist-count {
-          font-size: 28px; //  REDUCED (was 40px)
-          font-weight: 900;
+        .metric-icon {
+          font-size: 18px;
         }
       }
-    }
-  }
 
-  // ==================================================
-  // TREND - SPARKLINE BELOW PREDICTION
-  // ==================================================
-  .trend-section {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      // LARGE VALUE DISPLAY
+      .metric-value-wrapper {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 20px;
 
-    .trend-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
+        .metric-value {
+          font-size: 56px;
+          font-weight: 900;
+          color: #1f2937;
+          line-height: 1;
+        }
 
-      .section-title {
+        .metric-unit {
+          font-size: 28px;
+          font-weight: 700;
+          color: #9ca3af;
+        }
+      }
+
+      // CLEAN STATUS BADGE (NO CLUTTERED TEXT!)
+      .metric-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 20px;
         font-size: 14px;
         font-weight: 700;
-        color: #374151;
-      }
+        transition: all 0.3s ease;
 
-      .trend-indicator {
-        padding: 6px 16px;
-        border-radius: 16px;
-        font-size: 12px;
-        font-weight: 700;
-        text-transform: uppercase;
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: currentColor;
+        }
 
-        &.trend-improving {
-          background: #ecfdf5;
+        // OPTIMAL (GREEN)
+        &.optimal {
+          background: #d1fae5;
           color: #065f46;
           border: 2px solid #10b981;
         }
 
-        &.trend-stable {
-          background: #eff6ff;
-          color: #1e40af;
-          border: 2px solid #3b82f6;
+        // HEALTHY (GREEN)
+        &.healthy {
+          background: #d1fae5;
+          color: #065f46;
+          border: 2px solid #10b981;
         }
 
-        &.trend-degrading {
-          background: #fef2f2;
+        // WARNING (ORANGE)
+        &.warning {
+          background: #fef3c7;
+          color: #92400e;
+          border: 2px solid #f59e0b;
+        }
+
+        // CRITICAL (RED)
+        &.critical {
+          background: #fee2e2;
           color: #991b1b;
           border: 2px solid #ef4444;
         }
       }
     }
-
-    .trend-content {
-      display: flex;
-      flex-direction: column; //  VERTICAL STACK
-      gap: 16px;
-
-      //  PREDICTION ON TOP
-      .prediction-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        padding: 16px 24px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border-radius: 12px;
-        align-self: center;
-
-        .prediction-label {
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.9);
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-
-        .prediction-value {
-          font-size: 36px; //  REDUCED (was 56px)
-          font-weight: 900;
-          color: #ffffff;
-        }
-      }
-
-      //  SPARKLINE BELOW (VISIBLE!)
-      .sparkline-container {
-        height: 80px;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .sparkline {
-          display: block;
-          width: 100%;
-          height: 100%;
-        }
-
-        .no-data {
-          font-size: 13px;
-          color: #9ca3af;
-          font-weight: 600;
-          font-style: italic;
-        }
-      }
-    }
   }
 
   // ==================================================
-  // AGENTS PANEL - COLLAPSED
+  // HEALTH DISTRIBUTION - HORIZONTAL BARS
   // ==================================================
-  .agents-panel {
+  .health-distribution {
     background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 
-    .agents-header {
-      padding: 16px 20px;
-      background: #f9fafb;
-      border-bottom: 1px solid #e5e7eb;
-      cursor: pointer;
-      user-select: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.3s ease;
+    .distribution-header {
+      margin-bottom: 24px;
 
-      &:hover {
-        background: #f3f4f6;
-      }
-
-      .agents-title {
-        font-size: 14px;
+      .distribution-title {
+        font-size: 18px;
         font-weight: 700;
-        color: #374151;
+        color: #1f2937;
+        margin-bottom: 4px;
       }
 
-      .chevron {
-        transition: transform 0.4s ease;
-        color: #9ca3af;
+      .distribution-subtitle {
+        font-size: 14px;
+        color: #6b7280;
       }
     }
 
-    &[open] .agents-header .chevron {
-      transform: rotate(180deg);
-    }
-
-    .agents-grid {
+    .distribution-bars {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-      padding: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
 
-      .agent-card {
-        background: #fafbfc;
-        border: 1px solid #e5e7eb; //  NO COLORED BORDER
-        border-radius: 10px;
-        padding: 16px;
-        transition: all 0.3s ease;
+      .health-bar-item {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
 
-        &.online:hover {
-          border-color: #10b981;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-          transform: translateY(-2px);
-        }
-
-        &.offline {
-          opacity: 0.7;
-
-          &:hover {
-            opacity: 1;
-          }
-        }
-
-        .agent-header {
+        // LABEL WITH COUNT
+        .health-bar-label {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 12px;
+          align-items: center;
 
-          .agent-info {
-            .agent-name {
-              font-size: 14px;
-              font-weight: 700;
-              color: #1f2937;
-              margin-bottom: 4px;
-            }
-
-            .agent-role {
-              font-size: 11px;
-              font-weight: 600;
-              color: #6b7280;
-              text-transform: uppercase;
-            }
+          .health-bar-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #374151;
           }
 
-          .agent-status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            //  NO ANIMATION
+          .health-bar-count {
+            font-size: 28px;
+            font-weight: 900;
+            line-height: 1;
 
-            &.online {
-              background: #10b981;
+            &.healthy {
+              color: #065f46;
             }
 
-            &.offline {
-              background: #ef4444;
+            &.warning {
+              color: #92400e;
+            }
+
+            &.critical {
+              color: #991b1b;
             }
           }
         }
 
-        .agent-body {
-          .agent-usage {
-            .agent-usage-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 6px;
+        // HORIZONTAL PROGRESS BAR
+        .health-bar-track {
+          height: 12px;
+          background: #e5e7eb;
+          border-radius: 6px;
+          overflow: hidden;
+          position: relative;
 
-              .agent-usage-label {
-                font-size: 10px;
-                font-weight: 700;
-                color: #6b7280;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-              }
-
-              .agent-usage-value {
-                font-size: 18px;
-                font-weight: 900;
-                color: #1f2937;
-              }
-            }
-
-            .agent-bar-container {
-              height: 6px;
-              background: #e5e7eb;
-              border-radius: 3px;
-              overflow: hidden;
-              margin-bottom: 6px;
-
-              .agent-bar {
-                height: 100%;
-                border-radius: 3px;
-                transition: all 0.6s ease;
-
-                &.healthy {
-                  background: linear-gradient(90deg, #10b981, #34d399);
-                }
-
-                &.warning {
-                  background: linear-gradient(90deg, #f59e0b, #fbbf24);
-                }
-
-                &.critical {
-                  background: linear-gradient(90deg, #ef4444, #f87171);
-                }
-              }
-            }
-
-            .agent-status-text {
-              text-align: center;
-              font-size: 11px;
-              font-weight: 700;
-              color: #374151;
-            }
-          }
-
-          .agent-response {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-            padding: 8px 12px;
-            background: #f9fafb;
+          .health-bar-fill {
+            height: 100%;
             border-radius: 6px;
+            transition: width 0.6s ease;
 
-            .response-label {
-              font-size: 10px;
-              font-weight: 700;
-              color: #6b7280;
-              text-transform: uppercase;
+            &.healthy {
+              background: linear-gradient(90deg, #10b981, #34d399);
             }
 
-            .response-value {
-              font-size: 14px;
-              font-weight: 800;
-              color: #667eea;
-              font-family: 'Courier New', monospace;
-            }
-          }
-
-          &.offline {
-            text-align: center;
-            padding: 20px 0;
-
-            .offline-message {
-              display: block;
-              font-size: 14px;
-              font-weight: 800;
-              color: #dc2626;
-              margin-bottom: 6px;
+            &.warning {
+              background: linear-gradient(90deg, #f59e0b, #fbbf24);
             }
 
-            .error-message {
-              display: block;
-              font-size: 11px;
-              color: #6b7280;
-              font-weight: 600;
+            &.critical {
+              background: linear-gradient(90deg, #ef4444, #f87171);
             }
           }
+        }
+
+        // RANGE TEXT (CLEAN!)
+        .health-bar-range {
+          font-size: 13px;
+          color: #6b7280;
+          font-weight: 600;
+          margin-top: 4px;
         }
       }
     }
   }
 
   // ==================================================
-  // FOOTER - MINIMAL
+  // FOOTER
   // ==================================================
   .widget-footer {
-    padding: 16px 24px;
-    background: #f9fafb;
+    padding: 20px 32px;
+    background: white;
     border-top: 1px solid #e5e7eb;
     display: flex;
     justify-content: space-between;
@@ -773,14 +331,14 @@
     .footer-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
 
       .footer-icon {
-        font-size: 16px;
+        font-size: 18px;
       }
 
       .footer-text {
-        font-size: 12px;
+        font-size: 13px;
         color: #6b7280;
         font-weight: 600;
       }
@@ -790,15 +348,15 @@
       .footer-link {
         color: #667eea;
         text-decoration: none;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 700;
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 8px 16px;
+        padding: 10px 18px;
         background: #ede9fe;
         border: 1px solid #667eea;
-        border-radius: 8px;
+        border-radius: 10px;
         transition: all 0.3s ease;
 
         &:hover {
@@ -811,7 +369,7 @@
   }
 
   // ==================================================
-  // LOADING STATE - MINIMAL
+  // LOADING STATE
   // ==================================================
   .loading-state {
     display: flex;
@@ -839,7 +397,7 @@
   }
 
   // ==================================================
-  // ERROR STATE - MINIMAL
+  // ERROR STATE
   // ==================================================
   .error-state {
     display: flex;
@@ -875,28 +433,34 @@
 // ==================================================
 // RESPONSIVE
 // ==================================================
-@media (max-width: 1400px) {
+@media (max-width: 1024px) {
   .cluster-health-widget {
-    width: 100%; // Reset to 100% on smaller screens
+    .metrics-grid-2x2 {
+      grid-template-columns: 1fr; // Stack on smaller screens
+    }
 
-    .top-metrics-row {
-      grid-template-columns: 1fr 1fr;
+    .health-distribution .distribution-bars {
+      grid-template-columns: 1fr; // Stack bars vertically
     }
   }
 }
 
 @media (max-width: 768px) {
   .cluster-health-widget {
-    .top-metrics-row {
-      grid-template-columns: 1fr;
+    .widget-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
     }
 
-    .distribution-section .dist-cards {
-      grid-template-columns: 1fr;
+    .widget-body {
+      padding: 20px;
     }
 
-    .agents-panel .agents-grid {
-      grid-template-columns: 1fr;
+    .widget-footer {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
     }
   }
 }
