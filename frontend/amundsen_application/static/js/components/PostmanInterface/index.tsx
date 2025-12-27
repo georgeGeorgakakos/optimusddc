@@ -9,6 +9,7 @@ import RequestTree from './RequestTree';
 import RequestPanel from './RequestPanel';
 import ResponsePanel from './ResponsePanel';
 import VariablesModal from './VariablesModal';
+import ToscaUploadModal from './ToscaUploadModal';
 
 interface PostmanCollection {
   info: {
@@ -52,6 +53,11 @@ interface FlatRequest {
   request: PostmanRequest;
 }
 
+interface ToscaFile {
+  name: string;
+  content: string;
+}
+
 const PostmanInterface: React.FC = () => {
   const [collection, setCollection] = useState<PostmanCollection | null>(null);
   const [requests, setRequests] = useState<FlatRequest[]>([]);
@@ -61,12 +67,16 @@ const PostmanInterface: React.FC = () => {
   const [response, setResponse] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ Variables management
+  // Variables management
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [showVariablesModal, setShowVariablesModal] = useState(false);
   const [detectedVariables, setDetectedVariables] = useState<string[]>([]);
 
-  // Flatten collection structure for easier access
+  // ✅ NEW: TOSCA file management
+  const [toscaFiles, setToscaFiles] = useState<ToscaFile[]>([]);
+  const [showToscaUploadModal, setShowToscaUploadModal] = useState(false);
+
+  // Flatten collection structure
   const flattenCollection = (
     items: PostmanItem[],
     path: string[] = []
@@ -93,7 +103,7 @@ const PostmanInterface: React.FC = () => {
     return result;
   };
 
-  // ✅ Extract variables from collection
+  // Extract variables from collection
   const extractVariables = (collectionData: PostmanCollection): string[] => {
     const variablePattern = /\{\{([^}]+)\}\}/g;
     const foundVariables = new Set<string>();
@@ -137,7 +147,7 @@ const PostmanInterface: React.FC = () => {
     return Array.from(foundVariables).sort();
   };
 
-  // ✅ Replace variables in string
+  // Replace variables in string
   const replaceVariables = (str: string): string => {
     let result = str;
 
@@ -161,7 +171,7 @@ const PostmanInterface: React.FC = () => {
     return result;
   };
 
-  // Handle file import
+  // Handle collection file import
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -179,7 +189,6 @@ const PostmanInterface: React.FC = () => {
 
         setRequests(flatRequests);
 
-        // ✅ Extract and prompt for variables
         const vars = extractVariables(json);
 
         setDetectedVariables(vars);
@@ -190,7 +199,6 @@ const PostmanInterface: React.FC = () => {
           initialVars[v.key] = v.value || '';
         });
 
-        // ✅ SMART DEFAULTS
         if (vars.includes('base_url') && !initialVars.base_url) {
           initialVars.base_url = `${window.location.protocol}//${window.location.host}`;
         }
@@ -205,7 +213,6 @@ const PostmanInterface: React.FC = () => {
         }
 
         console.log('Collection loaded:', json);
-        console.log('Variables detected:', vars);
       } catch (error) {
         console.error('Error parsing collection:', error);
         alert(
@@ -216,7 +223,38 @@ const PostmanInterface: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // Handle request selection from tree
+  // ✅ NEW: Handle TOSCA file upload
+  const handleToscaUpload = (
+    files: ToscaFile[],
+    fileVariables: Record<string, string>
+  ) => {
+    setToscaFiles(files);
+
+    // Merge TOSCA-derived variables with existing variables
+    setVariables((prev) => ({
+      ...prev,
+      ...fileVariables,
+    }));
+
+    // Add new variables to detected list
+    const newVars = Object.keys(fileVariables).filter(
+      (v) => !detectedVariables.includes(v)
+    );
+
+    if (newVars.length > 0) {
+      setDetectedVariables((prev) => [...prev, ...newVars].sort());
+    }
+
+    setShowToscaUploadModal(false);
+    console.log(
+      'TOSCA files uploaded:',
+      files.length,
+      'variables extracted:',
+      Object.keys(fileVariables)
+    );
+  };
+
+  // Handle request selection
   const handleRequestSelect = (requestId: string) => {
     const request = requests.find((r) => r.id === requestId);
 
@@ -226,7 +264,7 @@ const PostmanInterface: React.FC = () => {
     }
   };
 
-  // ✅ Execute the request with variable replacement
+  // Execute request
   const handleExecuteRequest = async (
     method: string,
     url: string,
@@ -239,15 +277,12 @@ const PostmanInterface: React.FC = () => {
     try {
       const startTime = Date.now();
 
-      // ✅ Replace variables
       const processedUrl = replaceVariables(url);
-
       const processedHeaders: Record<string, string> = {};
 
       Object.entries(headers).forEach(([key, value]) => {
         processedHeaders[replaceVariables(key)] = replaceVariables(value);
       });
-
       const processedBody = body ? replaceVariables(body) : undefined;
 
       console.log('Executing request:', {
@@ -305,7 +340,7 @@ const PostmanInterface: React.FC = () => {
     }
   };
 
-  // ✅ Handle variables update
+  // Handle variables update
   const handleVariablesUpdate = (newVariables: Record<string, string>) => {
     setVariables(newVariables);
     setShowVariablesModal(false);
@@ -332,17 +367,29 @@ const PostmanInterface: React.FC = () => {
             Import Collection
           </label>
 
+          {/* ✅ NEW: TOSCA Upload Button */}
+          <button
+            className="tosca-upload-button"
+            onClick={() => setShowToscaUploadModal(true)}
+            title="Upload TOSCA files and extract variables"
+          >
+            <i className="icon ion-ios-cloud-upload" />
+            Upload TOSCA
+            {toscaFiles.length > 0 && (
+              <span className="file-badge">{toscaFiles.length}</span>
+            )}
+          </button>
+
           <a
             href="/static/examples/OptimusDDC_Complete_Collection.json"
             download="OptimusDDC_Complete_Collection.json"
             className="download-sample-button"
-            title="Download sample collection for OptimusDDC APIs"
+            title="Download sample collection"
           >
             <i className="icon ion-ios-download" />
             Download Sample
           </a>
 
-          {/* ✅ Variables button */}
           {collection && detectedVariables.length > 0 && (
             <button
               className="variables-button"
@@ -366,7 +413,7 @@ const PostmanInterface: React.FC = () => {
         </div>
       </div>
 
-      {/* ✅ Variables Modal */}
+      {/* Modals */}
       {showVariablesModal && (
         <VariablesModal
           variables={variables}
@@ -376,10 +423,18 @@ const PostmanInterface: React.FC = () => {
         />
       )}
 
+      {/* ✅ NEW: TOSCA Upload Modal */}
+      {showToscaUploadModal && (
+        <ToscaUploadModal
+          onUpload={handleToscaUpload}
+          onClose={() => setShowToscaUploadModal(false)}
+          existingVariables={variables}
+        />
+      )}
+
       {/* Main Content */}
       {collection ? (
         <div className="postman-content">
-          {/* Left Sidebar - Request Tree */}
           <div className="postman-sidebar">
             <RequestTree
               collection={collection}
@@ -388,9 +443,7 @@ const PostmanInterface: React.FC = () => {
             />
           </div>
 
-          {/* ✅ Side-by-side panels */}
           <div className="postman-main">
-            {/* Left - Request Panel */}
             <div className="request-section">
               <RequestPanel
                 request={selectedRequest}
@@ -400,7 +453,6 @@ const PostmanInterface: React.FC = () => {
               />
             </div>
 
-            {/* Right - Response Panel */}
             <div className="response-section">
               <ResponsePanel response={response} isLoading={isLoading} />
             </div>
@@ -411,7 +463,9 @@ const PostmanInterface: React.FC = () => {
           <div className="empty-state">
             <i className="icon ion-ios-cloud-upload empty-icon" />
             <h2>No Collection Loaded</h2>
-            <p>Import a Postman collection to get started</p>
+            <p>
+              Import a Postman collection or upload TOSCA files to get started
+            </p>
 
             <div className="empty-state-actions">
               <label className="import-button-large">
@@ -425,11 +479,18 @@ const PostmanInterface: React.FC = () => {
                 Import Postman Collection
               </label>
 
+              <button
+                className="tosca-upload-button-large"
+                onClick={() => setShowToscaUploadModal(true)}
+              >
+                <i className="icon ion-ios-document" />
+                Upload TOSCA Files
+              </button>
+
               <a
                 href="/static/examples/OptimusDDC_Complete_Collection.json"
                 download="OptimusDDC_Complete_Collection.json"
                 className="download-sample-button-large"
-                title="Download sample collection for OptimusDDC APIs"
               >
                 <i className="icon ion-ios-download" />
                 Download Sample Collection
@@ -438,11 +499,10 @@ const PostmanInterface: React.FC = () => {
 
             <div className="empty-state-help">
               <p className="help-text">
-                <strong>Quick Start:</strong> Download the sample collection
-                above to test OptimusDB, CatalogSearch, and CatalogMetadata APIs
-                with 25+ pre-configured requests. Variables like{' '}
+                <strong>Quick Start:</strong> Download the sample collection or
+                upload TOSCA files to test OptimusDB APIs. Variables like{' '}
                 <code>{'{{base_url}}'}</code> will be automatically populated
-                from your current environment.
+                from your files and environment.
               </p>
             </div>
           </div>

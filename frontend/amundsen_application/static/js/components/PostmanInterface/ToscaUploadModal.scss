@@ -1,0 +1,334 @@
+// Copyright Contributors to the OptimusDDC project.
+// SPDX-License-Identifier: Apache-2.0
+
+// ==================== TOSCA UPLOAD MODAL STYLES ====================
+
+.tosca-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.tosca-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+// ==================== UPLOAD AREA ====================
+.upload-area {
+  margin-bottom: 24px;
+
+  .upload-zone {
+    display: block;
+    border: 3px dashed #667eea;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+
+    &:hover {
+      border-color: #764ba2;
+      background: linear-gradient(135deg, #e3f2fd 0%, #f0f4ff 100%);
+      transform: scale(1.02);
+    }
+
+    .upload-zone-content {
+      .upload-icon {
+        font-size: 64px;
+        color: #667eea;
+        margin-bottom: 16px;
+      }
+
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 20px;
+        color: #1a1a2e;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        color: #666;
+      }
+
+      .upload-hint {
+        display: inline-block;
+        padding: 6px 16px;
+        background: rgba(102, 126, 234, 0.15);
+        border-radius: 20px;
+        font-size: 12px;
+        color: #667eea;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+// ==================== FILES LIST ====================
+.files-list {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+
+  .files-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #065f46;
+
+    i {
+      font-size: 24px;
+      color: #10b981;
+    }
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    i {
+      font-size: 20px;
+      color: #667eea;
+    }
+
+    .file-name {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+      font-family: 'Courier New', monospace;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: #666;
+      font-family: 'Courier New', monospace;
+    }
+  }
+}
+
+// ==================== VARIABLES SECTION ====================
+.variables-section {
+  background: #fafafa;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+
+  .variables-header {
+    margin-bottom: 20px;
+
+    i {
+      font-size: 28px;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    h3 {
+      margin: 0 0 6px 0;
+      font-size: 18px;
+      color: #1a1a2e;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #666;
+    }
+  }
+
+  .variables-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 8px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+
+      &:hover {
+        background: #999;
+      }
+    }
+  }
+
+  .variable-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .variable-label {
+      display: flex;
+      align-items: center;
+
+      .variable-name {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        font-weight: 700;
+      }
+    }
+
+    .variable-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      transition: all 0.2s;
+
+      &::placeholder {
+        color: #999;
+        font-style: italic;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+    }
+  }
+}
+
+// ==================== PROCESSING STATE ====================
+.processing-state {
+  text-align: center;
+  padding: 40px 20px;
+
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 15px;
+    color: #666;
+    font-weight: 600;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// ==================== EMPTY STATE ====================
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+
+  i {
+    font-size: 48px;
+    color: #667eea;
+    margin-bottom: 16px;
+    opacity: 0.7;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+}
+
+// ==================== SHARED STYLES ====================
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ==================== RESPONSIVE ====================
+@media (max-width: 768px) {
+  .tosca-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .upload-area .upload-zone {
+    padding: 30px 15px;
+
+    .upload-zone-content {
+      .upload-icon {
+        font-size: 48px;
+      }
+
+      h3 {
+        font-size: 18px;
+      }
+    }
+  }
+
+  .variables-section .variables-list {
+    max-height: 200px;
+  }
+}

@@ -54,6 +54,68 @@ const RequestTree: React.FC<RequestTreeProps> = ({
       };
     });
 
+  // ✅ NEW: Format description for better readability
+  const formatDescription = (description: string) => {
+    if (!description) return null;
+
+    // Split into sections
+    const sections: Array<{ title?: string; content: string[] }> = [];
+    const lines = description.split('\n');
+
+    let currentSection: { title?: string; content: string[] } = { content: [] };
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+
+      // Check if line is a section header (contains ##)
+      if (trimmed.startsWith('##')) {
+        if (currentSection.content.length > 0) {
+          sections.push(currentSection);
+        }
+        currentSection = {
+          title: trimmed.replace(/^#+\s*/, ''),
+          content: [],
+        };
+      } else if (trimmed) {
+        currentSection.content.push(trimmed);
+      }
+    });
+
+    if (currentSection.content.length > 0) {
+      sections.push(currentSection);
+    }
+
+    return (
+      <div className="tree-description">
+        <div className="desc-title">
+          <i className="icon ion-ios-information-circle" />
+          Collection Information
+        </div>
+        <div className="desc-content">
+          {sections.map((section, index) => (
+            <div key={index} className="desc-section">
+              {section.title && (
+                <strong>
+                  <i className="icon ion-ios-arrow-forward" />
+                  {section.title}
+                </strong>
+              )}
+              {section.content.map((content, ci) => {
+                // Check if it's a list item
+                if (content.startsWith('-') || content.startsWith('•')) {
+                  return <p key={ci}>• {content.substring(1).trim()}</p>;
+                }
+
+                return <p key={ci}>{content}</p>;
+              })}
+              {index < sections.length - 1 && <div className="desc-divider" />}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const toggleNode = (nodeId: string) => {
     const newExpanded = new Set(expandedNodes);
 
@@ -130,9 +192,9 @@ const RequestTree: React.FC<RequestTreeProps> = ({
           <i className="icon ion-ios-folder" />
           {collection.info.name}
         </h3>
-        {collection.info.description && (
-          <p className="tree-description">{collection.info.description}</p>
-        )}
+        {/* ✅ BEAUTIFIED DESCRIPTION */}
+        {collection.info.description &&
+          formatDescription(collection.info.description)}
       </div>
 
       <div className="tree-content">

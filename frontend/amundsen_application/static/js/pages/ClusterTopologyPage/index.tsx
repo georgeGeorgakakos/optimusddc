@@ -1,7 +1,4 @@
 // ==============================================================================
-// FILE: amundsen_application/static/js/pages/ClusterTopologyPage/index.tsx
-// PHASE 3 COMPLETE VERSION WITH DYNAMIC API CONFIG + FULL TOPOLOGY VISUALIZATION
-// ✅ FIXED: UTILIZATION-BASED HEALTH (Lower is better!)
 // ==============================================================================
 
 import * as React from 'react';
