@@ -289,6 +289,10 @@ const ClusterHealthWidget: React.FC = () => {
     );
   }
 
+
+
+
+
   const nodeHealthPercentage = (health.activeNodes / health.totalNodes) * 100;
   const connectivityPercentage =
     health.maxP2pConnections > 0
