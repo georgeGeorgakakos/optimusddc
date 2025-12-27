@@ -1,0 +1,577 @@
+// Copyright Contributors to the swarmchestrate project.
+// SPDX-License-Identifier: Apache-2.0
+
+// Import your existing theme if you have one
+// @import 'css/theme-optimusddc';
+
+// If you don't have _theme-optimusddc.scss, these colors will work standalone
+$primary-color: #5e6ad2;
+$accent-color: #26b5ce;
+$success-color: #13ce66;
+$warning-color: #ffc82c;
+$error-color: #ff4949;
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-300: #d1d5db;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+
+// ============================================
+// DASHBOARD CONTAINER
+// ============================================
+
+.operations-dashboard {
+  padding: 2rem 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem 1rem;
+  }
+}
+
+// ============================================
+// HERO SECTION
+// ============================================
+
+.dashboard-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2.5rem 2rem;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid $gray-200;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem 1.5rem;
+  }
+}
+
+.hero-content {
+  flex: 1;
+}
+
+.hero-title {
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  @media (max-width: 768px) {
+    align-items: center;
+  }
+}
+
+.hero-brand {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, $primary-color 0%, $accent-color 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  @media (max-width: 768px) {
+    font-size: 1.75rem;
+  }
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  color: $gray-600;
+  font-weight: 500;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+}
+
+.hero-description {
+  margin: 0.5rem 0 0 0;
+  color: $gray-600;
+  font-size: 0.95rem;
+}
+
+.hero-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+
+  @media (max-width: 768px) {
+    margin-top: 1.5rem;
+  }
+}
+
+.badge-icon {
+  font-size: 1.25rem;
+}
+
+.badge-text {
+  font-weight: 600;
+  color: $primary-color;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// ============================================
+// HEALTH RIBBON
+// ============================================
+
+.health-ribbon {
+  padding: 1.25rem 1.75rem;
+  margin-bottom: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease;
+
+  &.health-healthy {
+    background: linear-gradient(135deg, #13ce66 0%, #00b894 100%);
+    color: white;
+  }
+
+  &.health-warning {
+    background: linear-gradient(135deg, #ffc82c 0%, #f39c12 100%);
+    color: white;
+  }
+
+  &.health-error {
+    background: linear-gradient(135deg, #ff4949 0%, #d63031 100%);
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem 1.25rem;
+  }
+}
+
+.health-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.health-icon {
+  font-size: 1.5rem;
+}
+
+.health-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.health-label {
+  font-size: 1rem;
+  font-weight: 500;
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.health-details {
+  font-size: 0.875rem;
+  opacity: 0.95;
+}
+
+// ============================================
+// METRICS GRID
+// ============================================
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+// ============================================
+// METRIC CARD
+// ============================================
+
+.metric-card {
+  background: white;
+  border: 1px solid $gray-200;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+}
+
+.metric-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+
+  .metric-card-primary & {
+    background: linear-gradient(135deg, #5e6ad2 0%, #8b95ee 100%);
+  }
+
+  .metric-card-accent & {
+    background: linear-gradient(135deg, #26b5ce 0%, #5dd1e7 100%);
+  }
+
+  .metric-card-success & {
+    background: linear-gradient(135deg, #13ce66 0%, #5be88c 100%);
+  }
+
+  .metric-card-warning & {
+    background: linear-gradient(135deg, #ffc82c 0%, #ffd766 100%);
+  }
+
+  .metric-card-secondary & {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  }
+
+  span {
+    filter: brightness(1.5);
+  }
+}
+
+.metric-info {
+  flex: 1;
+}
+
+.metric-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $gray-600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.75rem;
+  color: $gray-600;
+}
+
+.metric-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: $gray-800;
+  margin-bottom: 1rem;
+  line-height: 1;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+}
+
+.metric-trend {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid $gray-200;
+}
+
+.sparkline {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.trend-label {
+  font-size: 0.75rem;
+  color: $gray-600;
+  font-weight: 500;
+}
+
+// ============================================
+// ACTIVITY SECTION
+// ============================================
+
+.activity-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.activity-card {
+  background: white;
+  border: 1px solid $gray-200;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.activity-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: $gray-700;
+
+  span {
+    font-size: 1.25rem;
+  }
+}
+
+.activity-chart {
+  margin-bottom: 1rem;
+  min-height: 60px;
+}
+
+.activity-summary {
+  margin: 0;
+  font-size: 0.875rem;
+  color: $gray-600;
+  padding-top: 0.75rem;
+  border-top: 1px solid $gray-200;
+}
+
+// ============================================
+// QUICK ACCESS SECTION
+// ============================================
+
+.quick-access-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: $gray-800;
+  margin: 0 0 1.5rem 0;
+}
+
+.quick-access-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quick-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background: white;
+  border: 2px solid $gray-200;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    text-decoration: none;
+  }
+
+  &.quick-tile-primary {
+    border-color: lighten($primary-color, 30%);
+
+    &:hover {
+      border-color: $primary-color;
+      background: lighten($primary-color, 45%);
+    }
+  }
+
+  &.quick-tile-accent {
+    border-color: lighten($accent-color, 30%);
+
+    &:hover {
+      border-color: $accent-color;
+      background: lighten($accent-color, 45%);
+    }
+  }
+
+  &.quick-tile-secondary {
+    border-color: #ddd6fe;
+
+    &:hover {
+      border-color: #8b5cf6;
+      background: #f5f3ff;
+    }
+  }
+
+  &.quick-tile-success {
+    border-color: lighten($success-color, 35%);
+
+    &:hover {
+      border-color: $success-color;
+      background: lighten($success-color, 45%);
+    }
+  }
+}
+
+.quick-tile-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.quick-tile-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $gray-800;
+  text-align: center;
+}
+
+// ============================================
+// ELECTIONS SUMMARY
+// ============================================
+
+.elections-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: $gray-800;
+
+  span:first-child {
+    font-size: 1.25rem;
+  }
+
+  span:nth-child(2) {
+    flex: 1;
+  }
+}
+
+.elections-link {
+  color: #8b5cf6;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ============================================
+// LOADING & ERROR STATES
+// ============================================
+
+.operations-dashboard-loading,
+.operations-dashboard-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  min-height: 400px;
+
+  p {
+    margin: 1.5rem 0;
+    color: $gray-600;
+    font-size: 1rem;
+  }
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid $gray-200;
+  border-top-color: $accent-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.operations-dashboard-error {
+  .error-icon {
+    font-size: 3rem;
+  }
+}
+
+.retry-button {
+  padding: 0.75rem 1.5rem;
+  background: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 0.95rem;
+
+  &:hover {
+    background: darken($primary-color, 10%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(94, 106, 210, 0.3);
+  }
+}
+
+// ============================================
+// RESPONSIVE ADJUSTMENTS
+// ============================================
+
+@media (max-width: 768px) {
+  .operations-dashboard {
+    padding: 1.5rem 1rem;
+  }
+
+  .metric-card,
+  .activity-card {
+    padding: 1.25rem;
+  }
+
+  .quick-tile {
+    padding: 1.5rem 1rem;
+  }
+}

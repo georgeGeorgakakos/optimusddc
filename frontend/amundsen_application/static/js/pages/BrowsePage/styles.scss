@@ -1,0 +1,976 @@
+// BrowsePage/styles.scss
+// Metadata Manager Dashboard Styles with World Map
+// VERSION: WITH-MAP
+
+// ==================== VARIABLES ====================
+
+$primary: #667eea;
+$red: #E74C3C;
+$dark-red: #C0392B;
+$orange: #F39C12;
+$yellow: #F1C40F;
+$green: #2ECC71;
+$teal: #1ABC9C;
+$blue: #3498DB;
+$purple: #9B59B6;
+$dark: #2C3E50;
+$gray: #95A5A6;
+$light-gray: #ECF0F1;
+$white: #FFFFFF;
+
+$shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+$shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.2);
+$border-radius: 10px;
+$border-radius-sm: 6px;
+
+// ==================== LOADING STATE ====================
+
+.metadata-dashboard.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+
+  .loading-spinner {
+    text-align: center;
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid $light-gray;
+      border-top-color: $primary;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    p {
+      color: $gray;
+      font-size: 16px;
+      font-weight: 500;
+    }
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ==================== MAIN CONTAINER ====================
+
+.metadata-dashboard {
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  min-height: calc(100vh - 60px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+// ==================== HEADER ====================
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, $dark 0%, darken($dark, 8%) 100%);
+  border-radius: $border-radius;
+  color: $white;
+  box-shadow: $shadow-xl;
+
+  .header-left {
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 26px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.75;
+      font-weight: 400;
+    }
+  }
+
+  .header-center {
+    .last-updated {
+      font-size: 12px;
+      opacity: 0.7;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    gap: 12px;
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: $border-radius-sm;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &.refresh-btn {
+        background: $blue;
+        color: $white;
+
+        &:hover {
+          background: darken($blue, 8%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba($blue, 0.4);
+        }
+      }
+
+      &.export-btn {
+        background: $green;
+        color: $white;
+
+        &:hover {
+          background: darken($green, 8%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba($green, 0.4);
+        }
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// ==================== WIDGET ROWS ====================
+
+.widget-row {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 20px;
+
+  &.summary-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  &.three-col {
+    grid-template-columns: 1fr 1.5fr 1fr;
+  }
+
+  &.two-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  &.full-width {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 1400px) {
+    &.three-col {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 1200px) {
+    &.summary-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    &.three-col,
+    &.two-col {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    &.summary-row {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// ==================== SUMMARY CARDS ====================
+
+.summary-card {
+  background: $white;
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: $shadow-lg;
+  }
+
+  .card-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: $white;
+    font-weight: 600;
+
+    .card-icon {
+      font-size: 22px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+
+  &.systems .card-header {
+    background: linear-gradient(135deg, $teal 0%, darken($teal, 12%) 100%);
+  }
+
+  &.environments .card-header {
+    background: linear-gradient(135deg, $purple 0%, darken($purple, 12%) 100%);
+  }
+
+  &.tables .card-header {
+    background: linear-gradient(135deg, $blue 0%, darken($blue, 12%) 100%);
+  }
+
+  &.columns .card-header {
+    background: linear-gradient(135deg, $orange 0%, darken($orange, 12%) 100%);
+  }
+
+  .card-body {
+    padding: 20px;
+    display: flex;
+    justify-content: space-around;
+    background: linear-gradient(180deg, rgba($light-gray, 0.3) 0%, $white 100%);
+
+    .stat {
+      text-align: center;
+
+      .label {
+        display: block;
+        font-size: 11px;
+        color: $gray;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+
+      .value {
+        display: block;
+        font-size: 32px;
+        font-weight: 800;
+        color: $dark;
+        line-height: 1;
+      }
+
+      &.sensitive .value {
+        color: $red;
+      }
+    }
+  }
+}
+
+// ==================== WIDGETS ====================
+
+.widget {
+  background: $white;
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+
+  .widget-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: $white;
+    font-weight: 600;
+
+    .widget-number {
+      width: 26px;
+      height: 26px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .widget-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    &.red { background: linear-gradient(135deg, $red 0%, darken($red, 10%) 100%); }
+    &.dark-red { background: linear-gradient(135deg, $dark-red 0%, darken($dark-red, 10%) 100%); }
+    &.orange { background: linear-gradient(135deg, $orange 0%, darken($orange, 10%) 100%); }
+    &.yellow { background: linear-gradient(135deg, $yellow 0%, darken($yellow, 15%) 100%); color: $dark; }
+    &.teal { background: linear-gradient(135deg, $teal 0%, darken($teal, 10%) 100%); }
+    &.purple { background: linear-gradient(135deg, $purple 0%, darken($purple, 10%) 100%); }
+    &.blue { background: linear-gradient(135deg, $blue 0%, darken($blue, 10%) 100%); }
+  }
+
+  .widget-content {
+    padding: 16px;
+    min-height: 200px;
+
+    &.list-content {
+      padding: 0;
+      min-height: auto;
+      max-height: 260px;
+      overflow-y: auto;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: $light-gray;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: $gray;
+        border-radius: 3px;
+
+        &:hover {
+          background: darken($gray, 10%);
+        }
+      }
+    }
+
+    &.map-content {
+      padding: 0;
+      min-height: 400px;
+    }
+  }
+}
+
+// ==================== WORLD MAP STYLES ====================
+
+.world-map-widget {
+  .widget-content.map-content {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+.world-map-container {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  background: linear-gradient(135deg, #1a2332 0%, #0f1722 100%);
+  border-radius: 0 0 $border-radius $border-radius;
+  overflow: hidden;
+
+  .world-map-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  // Marker animations
+  .map-marker {
+    transition: all 0.3s ease;
+
+    &:hover {
+      .marker-dot {
+        filter: drop-shadow(0 0 8px currentColor);
+      }
+    }
+  }
+
+  .pulse-ring {
+    animation: pulse-animation 2s ease-out infinite;
+  }
+
+  @keyframes pulse-animation {
+    0% {
+      opacity: 0.4;
+      r: 8;
+    }
+    50% {
+      opacity: 0.2;
+      r: 16;
+    }
+    100% {
+      opacity: 0;
+      r: 24;
+    }
+  }
+
+  // Map tooltip
+  .map-tooltip {
+    background: rgba(44, 62, 80, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 220px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    pointer-events: none;
+
+    .tooltip-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      .tooltip-icon {
+        font-size: 20px;
+      }
+
+      .tooltip-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: $white;
+      }
+    }
+
+    .tooltip-details {
+      .tooltip-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+
+        .tooltip-label {
+          font-size: 11px;
+          color: $gray;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .tooltip-value {
+          font-size: 12px;
+          color: $light-gray;
+          font-weight: 500;
+        }
+
+        .tooltip-status {
+          font-size: 12px;
+          font-weight: 600;
+
+          &.online { color: $green; }
+          &.warning { color: $orange; }
+          &.offline { color: $red; }
+        }
+      }
+    }
+  }
+
+  // Map legend
+  .map-legend {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(44, 62, 80, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 180px;
+
+    .legend-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: $gray;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .legend-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: $light-gray;
+
+      .legend-icon {
+        font-size: 14px;
+        width: 20px;
+        text-align: center;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+
+        &.online { background: $green; }
+        &.warning { background: $orange; }
+        &.offline { background: $red; }
+      }
+    }
+  }
+
+  // Map stats
+  .map-stats {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 12px;
+
+    .stat-item {
+      background: rgba(44, 62, 80, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 12px 18px;
+      text-align: center;
+      min-width: 80px;
+
+      .stat-value {
+        display: block;
+        font-size: 24px;
+        font-weight: 800;
+        color: $white;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+
+      .stat-label {
+        display: block;
+        font-size: 10px;
+        color: $gray;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+}
+
+// ==================== CHART WITH LEGEND ====================
+
+.chart-with-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .pie-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      padding: 4px 0;
+
+      .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      .legend-label {
+        flex: 1;
+        color: $dark;
+        font-weight: 500;
+      }
+
+      .legend-value {
+        color: $gray;
+        font-weight: 600;
+        font-size: 10px;
+      }
+    }
+  }
+}
+
+// ==================== LIST ITEMS ====================
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba($light-gray, 0.8);
+  transition: background 0.2s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: rgba($primary, 0.04);
+  }
+
+  .color-bar {
+    width: 4px;
+    height: 32px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .status-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .item-info {
+    flex: 1;
+    min-width: 0;
+
+    .item-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: $dark;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-source,
+    .item-time {
+      display: block;
+      font-size: 11px;
+      color: $gray;
+      margin-top: 2px;
+    }
+  }
+
+  .item-badge {
+    font-size: 10px;
+    color: $dark;
+    background: $light-gray;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .item-time {
+    font-size: 11px;
+    color: $gray;
+    white-space: nowrap;
+  }
+}
+
+// ==================== DATA TABLE ====================
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead {
+    tr {
+      background: linear-gradient(180deg, $light-gray 0%, darken($light-gray, 3%) 100%);
+    }
+
+    th {
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 700;
+      color: $dark;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid darken($light-gray, 8%);
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $light-gray;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: rgba($primary, 0.04);
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    td {
+      padding: 12px 14px;
+      vertical-align: middle;
+
+      &.rank {
+        font-weight: 700;
+        color: $gray;
+        width: 40px;
+        text-align: center;
+      }
+
+      &.table-name {
+        a {
+          color: $primary;
+          text-decoration: none;
+          font-weight: 600;
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: darken($primary, 15%);
+            text-decoration: underline;
+          }
+        }
+      }
+
+      &.associations {
+        .badge {
+          display: inline-block;
+          background: linear-gradient(135deg, $primary 0%, darken($primary, 10%) 100%);
+          color: $white;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 12px;
+        }
+      }
+
+      &.system {
+        color: $gray;
+        font-size: 12px;
+      }
+
+      &.owner {
+        color: $teal;
+        font-weight: 500;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+// ==================== FOOTER ====================
+
+.dashboard-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: $white;
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+  margin-top: 20px;
+  font-size: 12px;
+  color: $gray;
+
+  .footer-left {
+    font-weight: 600;
+    color: $dark;
+  }
+
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .separator {
+      opacity: 0.4;
+    }
+  }
+}
+
+// ==================== RECHARTS CUSTOMIZATION ====================
+
+.recharts-wrapper {
+  font-family: inherit;
+}
+
+.recharts-cartesian-axis-tick-value {
+  font-size: 11px;
+  fill: $gray;
+}
+
+.recharts-legend-item-text {
+  font-size: 11px !important;
+  color: $dark !important;
+}
+
+.recharts-tooltip-wrapper {
+  .recharts-default-tooltip {
+    background: $dark !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    box-shadow: $shadow-lg !important;
+
+    .recharts-tooltip-label {
+      color: $white !important;
+      font-weight: 700;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    .recharts-tooltip-item {
+      color: $light-gray !important;
+      font-size: 11px;
+      padding: 2px 0;
+    }
+  }
+}
+
+// ==================== ANIMATIONS ====================
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.summary-card,
+.widget {
+  animation: fadeInUp 0.5s ease;
+
+  @for $i from 1 through 12 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.05}s;
+      animation-fill-mode: backwards;
+    }
+  }
+}
+
+// ==================== RESPONSIVE ====================
+
+@media (max-width: 768px) {
+  .metadata-dashboard {
+    padding: 16px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+    padding: 20px;
+
+    .header-left h1 {
+      font-size: 20px;
+      justify-content: center;
+    }
+
+    .header-center {
+      order: 3;
+    }
+
+    .header-right {
+      flex-wrap: wrap;
+      justify-content: center;
+
+      .btn {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .summary-card .card-body .stat .value {
+    font-size: 26px;
+  }
+
+  .widget .widget-content {
+    min-height: 180px;
+  }
+
+  .world-map-container {
+    height: 350px;
+
+    .map-legend {
+      display: none;
+    }
+
+    .map-stats {
+      top: auto;
+      bottom: 16px;
+      right: 16px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+
+      .stat-item {
+        padding: 8px 12px;
+        min-width: 60px;
+
+        .stat-value {
+          font-size: 18px;
+        }
+
+        .stat-label {
+          font-size: 8px;
+        }
+      }
+    }
+  }
+
+  .dashboard-footer {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}
+
+// ==================== PRINT ====================
+
+@media print {
+  .metadata-dashboard {
+    background: white;
+    padding: 10px;
+  }
+
+  .dashboard-header .btn {
+    display: none;
+  }
+
+  .widget,
+  .summary-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid $light-gray;
+  }
+
+  .list-content {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .world-map-container {
+    .map-legend,
+    .map-stats {
+      position: static;
+      background: white;
+      border: 1px solid $light-gray;
+    }
+  }
+}

@@ -1,0 +1,25 @@
+// Copyright Contributors to the OptimusDDC project.
+// SPDX-License-Identifier: Apache-2.0
+
+// PostmanPage wrapper styles
+.postman-page {
+  padding: 0;
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+
+  .row {
+    margin: 0;
+    height: 100%;
+  }
+
+  .col-xs-12 {
+    padding: 0;
+    height: 100%;
+  }
+
+  // Override container-fluid padding for full-screen experience
+  &.container-fluid {
+    padding: 0;
+  }
+}

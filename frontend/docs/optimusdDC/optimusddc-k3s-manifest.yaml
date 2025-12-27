@@ -1,0 +1,582 @@
+
+---
+# OptimusDDC Kubernetes Manifest - K3s Optimized
+# Storage: Uses K3s default 'local-path' provisioner
+# LoadBalancer: Uses K3s built-in Klipper LoadBalancer
+# Ingress: Uses K3s default Traefik ingress controller
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: optimusddc
+---
+# ==================== ELASTICSEARCH ====================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-pvc
+  namespace: optimusddc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path  # K3s default storage class
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: optimusddc
+spec:
+  type: ClusterIP
+  selector:
+    app: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: optimusddc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: elasticsearch:8.0.0
+          ports:
+            - name: http
+              containerPort: 9200
+          env:
+            - name: discovery.type
+              value: "single-node"
+            - name: xpack.security.enabled
+              value: "false"
+            - name: ES_JAVA_OPTS
+              value: "-Xms512m -Xmx512m"
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: 9200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: 9200
+            initialDelaySeconds: 60
+            periodSeconds: 20
+      volumes:
+        - name: es-data
+          persistentVolumeClaim:
+            claimName: elasticsearch-pvc
+---
+# ==================== OPTIMUSDB CLUSTER (3 nodes) ====================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: optimusdb-config
+  namespace: optimusddc
+data:
+  OPTIMUSDB_API_PORT: "8089"
+  OPTIMUSDB_P2P_PORT: "4001"
+  OPTIMUSDB_GATEWAY_PORT: "5001"
+  OPTIMUSDB_LOG_LEVEL: "info"
+---
+# Headless service for stable pod DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb-headless
+  namespace: optimusddc
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true  # Important for peer discovery
+  selector:
+    app: optimusdb
+  ports:
+    - name: api
+      port: 8089
+      targetPort: 8089
+    - name: p2p
+      port: 4001
+      targetPort: 4001
+    - name: gateway
+      port: 5001
+      targetPort: 5001
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: optimusdb
+  namespace: optimusddc
+spec:
+  serviceName: optimusdb-headless
+  replicas: 3
+  podManagementPolicy: Parallel  # Start all pods simultaneously
+  selector:
+    matchLabels:
+      app: optimusdb
+  template:
+    metadata:
+      labels:
+        app: optimusdb
+    spec:
+      # No specific node affinity - let K3s scheduler decide
+      containers:
+        - name: optimusdb
+          image: ghcr.io/georgegeorgakakos/optimusdb:latest
+          imagePullPolicy: Always
+          ports:
+            - name: api
+              containerPort: 8089
+            - name: p2p
+              containerPort: 4001
+            - name: gateway
+              containerPort: 5001
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPTIMUSDB_API_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: optimusdb-config
+                  key: OPTIMUSDB_API_PORT
+            - name: OPTIMUSDB_P2P_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: optimusdb-config
+                  key: OPTIMUSDB_P2P_PORT
+            - name: OPTIMUSDB_GATEWAY_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: optimusdb-config
+                  key: OPTIMUSDB_GATEWAY_PORT
+            - name: OPTIMUSDB_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: optimusdb-config
+                  key: OPTIMUSDB_LOG_LEVEL
+          startupProbe:
+            tcpSocket:
+              port: 8089
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: 8089
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8089
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/optimusdb
+          resources:
+            limits:
+              memory: "768Mi"   # K3s optimized
+              cpu: "500m"
+            requests:
+              memory: "384Mi"
+              cpu: "100m"
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
+---
+# LoadBalancer Services using K3s Klipper LB
+# These will get IPs from your K3s node's IP pool
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb-0
+  namespace: optimusddc
+  labels:
+    app: optimusdb
+    pod: optimusdb-0
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local  # Better for K3s single-node
+  selector:
+    statefulset.kubernetes.io/pod-name: optimusdb-0
+    app: optimusdb
+  ports:
+    - name: api
+      port: 18001
+      targetPort: 8089
+      protocol: TCP
+    - name: p2p
+      port: 14001
+      targetPort: 4001
+      protocol: TCP
+    - name: gateway
+      port: 15001
+      targetPort: 5001
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb-1
+  namespace: optimusddc
+  labels:
+    app: optimusdb
+    pod: optimusdb-1
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    statefulset.kubernetes.io/pod-name: optimusdb-1
+    app: optimusdb
+  ports:
+    - name: api
+      port: 18002
+      targetPort: 8089
+      protocol: TCP
+    - name: p2p
+      port: 14002
+      targetPort: 4001
+      protocol: TCP
+    - name: gateway
+      port: 15002
+      targetPort: 5001
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb-2
+  namespace: optimusddc
+  labels:
+    app: optimusdb
+    pod: optimusdb-2
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    statefulset.kubernetes.io/pod-name: optimusdb-2
+    app: optimusdb
+  ports:
+    - name: api
+      port: 18003
+      targetPort: 8089
+      protocol: TCP
+    - name: p2p
+      port: 14003
+      targetPort: 4001
+      protocol: TCP
+    - name: gateway
+      port: 15003
+      targetPort: 5001
+      protocol: TCP
+---
+# Internal service for metadata to access first OptimusDB node
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb-internal
+  namespace: optimusddc
+spec:
+  type: ClusterIP
+  selector:
+    statefulset.kubernetes.io/pod-name: optimusdb-0
+    app: optimusdb
+  ports:
+    - name: api
+      port: 8089
+      targetPort: 8089
+---
+# ==================== CATALOG SEARCH ====================
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogsearch
+  namespace: optimusddc
+spec:
+  type: ClusterIP
+  selector:
+    app: catalogsearch
+  ports:
+    - name: http
+      port: 5013
+      targetPort: 5013
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogsearch
+  namespace: optimusddc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalogsearch
+  template:
+    metadata:
+      labels:
+        app: catalogsearch
+    spec:
+      containers:
+        - name: catalogsearch
+          image: amundsendev/amundsen-search:4.0.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5013
+          env:
+            - name: PROXY_ENDPOINT
+              value: "elasticsearch"
+          command:
+            - gunicorn
+            - "-w"
+            - "2"
+            - "--bind"
+            - ":5013"
+            - "search_service.search_wsgi"
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5013
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5013
+            initialDelaySeconds: 40
+            periodSeconds: 20
+---
+# ==================== CATALOG METADATA ====================
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogmetadata
+  namespace: optimusddc
+spec:
+  type: ClusterIP
+  selector:
+    app: catalogmetadata
+  ports:
+    - name: http
+      port: 5014
+      targetPort: 5014
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogmetadata
+  namespace: optimusddc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalogmetadata
+  template:
+    metadata:
+      labels:
+        app: catalogmetadata
+    spec:
+      containers:
+        - name: catalogmetadata
+          image: amundsendev/optimusddc-metadata:3.11.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5014
+          env:
+            - name: ES_PROXY_CLIENT
+              value: "OPTIMUSDB"
+            - name: OPTIMUSDB_API_URL
+              value: "http://optimusdb-internal:8089"
+            - name: PROXY_CLIENT
+              value: "metadata_service.proxy.optimusdb_proxy.OptimusDBProxy"
+            - name: METADATA_SVC_CONFIG_MODULE_CLASS
+              value: "metadata_service.config.LocalConfig"
+          command:
+            - gunicorn
+            - "-w"
+            - "2"
+            - "--bind"
+            - ":5014"
+            - "metadata_service.metadata_wsgi"
+          resources:
+            limits:
+              memory: "768Mi"
+              cpu: "500m"
+            requests:
+              memory: "384Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5014
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5014
+            initialDelaySeconds: 60
+            periodSeconds: 20
+---
+# ==================== CATALOG FRONTEND ====================
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogfrontend
+  namespace: optimusddc
+spec:
+  type: LoadBalancer  # K3s Klipper will handle this
+  externalTrafficPolicy: Local
+  selector:
+    app: catalogfrontend
+  ports:
+    - name: http
+      port: 5015
+      targetPort: 5015
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogfrontend
+  namespace: optimusddc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalogfrontend
+  template:
+    metadata:
+      labels:
+        app: catalogfrontend
+    spec:
+      containers:
+        - name: catalogfrontend
+          image: amundsendev/amundsen-frontend:4.2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5015
+          env:
+            - name: SEARCHSERVICE_BASE
+              value: "http://catalogsearch:5013"
+            - name: METADATASERVICE_BASE
+              value: "http://catalogmetadata:5014"
+            - name: FRONTEND_SVC_CONFIG_MODULE_CLASS
+              value: "amundsen_application.config.TestConfig"
+          command:
+            - gunicorn
+            - "-w"
+            - "2"
+            - "--bind"
+            - ":5015"
+            - "amundsen_application.wsgi"
+          resources:
+            limits:
+              memory: "768Mi"
+              cpu: "500m"
+            requests:
+              memory: "384Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5015
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5015
+            initialDelaySeconds: 40
+            periodSeconds: 20
+---
+# ==================== TRAEFIK INGRESS (K3s Default) ====================
+# Uncomment to use Ingress instead of LoadBalancer for frontend
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: optimusddc-ingress
+#   namespace: optimusddc
+#   annotations:
+#     kubernetes.io/ingress.class: traefik
+#     traefik.ingress.kubernetes.io/router.entrypoints: web
+# spec:
+#   rules:
+#     - host: optimusddc.local  # Add to /etc/hosts: <K3s-IP> optimusddc.local
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: catalogfrontend
+#                 port:
+#                   number: 5015
+---
+# ==================== NETWORK POLICY (Optional Security) ====================
+# Uncomment to enable network isolation
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: optimusddc-netpol
+#   namespace: optimusddc
+# spec:
+#   podSelector: {}
+#   policyTypes:
+#     - Ingress
+#   ingress:
+#     - from:
+#       - namespaceSelector:
+#           matchLabels:
+#             name: optimusddc

@@ -1,0 +1,48 @@
+# Copyright Contributors to the Amundsen project.
+# SPDX-License-Identifier: Apache-2.0
+
+Flask
+gunicorn
+requests
+werkzeug
+
+neo4j
+apache_atlas
+beaker
+overrides
+
+flask-swagger
+flask-cors
+flasgger
+flask_restful
+flask-script
+neo4j-driver
+pyyaml
+boto3
+
+# For Graph interaction and Gremlin proxy support
+gremlinpython
+neptune-client
+
+# For ORM support in some proxy implementations (e.g., MySQL)
+sqlalchemy
+
+# Amundsen Common dependencies (used in model serialization, etc.)
+amundsen_common
+amundsen_rds
+amundsen_gremlin
+
+# For CLI/command utilities
+click
+
+# For schema and model handling
+marshmallow==3.13.0
+marshmallow3-annotations
+attr
+typing-extensions
+
+# Optional but used in some flows
+statsd
+tornado
+elasticsearch>=7.0.0,<8.0.0
+requests>=2.25.0

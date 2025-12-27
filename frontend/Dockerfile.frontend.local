@@ -1,0 +1,52 @@
+ARG METADATASERVICE_BASE
+ARG SEARCHSERVICE_BASE
+
+############################
+# Stage 1: Node build
+############################
+#FROM node:12-slim AS node-stage
+FROM node:16-slim AS node-stage
+
+WORKDIR /app/amundsen_application/static
+
+# 1) Install JS deps
+COPY amundsen_application/static/package.json .
+COPY amundsen_application/static/package-lock.json .
+
+#RUN npm install
+RUN npm install --legacy-peer-deps
+
+COPY amundsen_application/static/ .
+
+RUN npm rebuild node-sass || npm rebuild node-sass --force
+RUN npm run dev-build
+
+############################
+# Stage 2: Python runtime
+############################
+FROM python:3.8-slim
+
+WORKDIR /app
+
+# Copy frontend source (build context is ./frontend)
+COPY . /app
+
+# Copy built static assets
+COPY --from=node-stage /app/amundsen_application/static /app/amundsen_application/static
+
+# 6) Install Python deps + gunicorn
+#    ⚠ Make sure requirements-common.txt / requirements-dev.txt
+#    do NOT contain a line like "../requirements-common.txt"
+RUN if [ -f requirements-common.txt ]; then \
+        pip3 install --no-cache-dir -r requirements-common.txt; \
+    fi && \
+    if [ -f requirements-dev.txt ]; then \
+        pip3 install --no-cache-dir -r requirements-dev.txt; \
+    fi && \
+    pip3 install --no-cache-dir gunicorn && \
+    pip3 install --no-cache-dir -e .
+
+EXPOSE 5015
+
+ENTRYPOINT ["gunicorn"]
+CMD ["-w", "2", "--bind", ":5015", "amundsen_application.wsgi"]

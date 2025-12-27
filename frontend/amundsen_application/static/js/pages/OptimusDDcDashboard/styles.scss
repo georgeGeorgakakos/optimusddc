@@ -1,0 +1,18 @@
+// Copyright Contributors to the OptimusDDC project.
+// SPDX-License-Identifier: Apache-2.0
+
+@import 'css/theme-optimusddc';
+
+.optimusddc-dashboard-page {
+  background: $bg-base-optimusddc;
+  min-height: 100vh;
+  padding: 0;
+
+  .row {
+    margin: 0;
+  }
+
+  .col-xs-12 {
+    padding: 0;
+  }
+}

@@ -1,0 +1,1098 @@
+// Copyright Contributors to the OptimusDDC project.
+// SPDX-License-Identifier: Apache-2.0
+
+// ==================== POSTMAN INTERFACE SCSS - CORRECTED ====================
+// ✅ Side-by-side layout (request left, response right)
+// ✅ Enhanced JSON beautification
+// ✅ Variable preview support
+
+// Variables
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$primary-color: #667eea;
+$primary-dark: #764ba2;
+$success-color: #2e7d32;
+$warning-color: #f57c00;
+$error-color: #c62828;
+$redirect-color: #f57c00;
+$bg-light: #f5f5f5;
+$bg-white: #ffffff;
+$text-dark: #333333;
+$text-medium: #666666;
+$text-light: #999999;
+$border-color: #e0e0e0;
+$border-light: #f0f0f0;
+
+// Spacing
+$spacing-xs: 5px;
+$spacing-sm: 10px;
+$spacing-md: 15px;
+$spacing-lg: 20px;
+$spacing-xl: 30px;
+
+// Border Radius
+$radius-sm: 4px;
+$radius-md: 6px;
+$radius-lg: 8px;
+$radius-xl: 10px;
+
+// Font Families
+$font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+$font-mono: 'Courier New', monospace;
+
+// ==================== MAIN CONTAINER ====================
+.postman-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: $bg-light;
+  font-family: $font-system;
+}
+
+// ==================== HEADER ====================
+.postman-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg $spacing-xl;
+  background: $primary-gradient;
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  .postman-title {
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    p {
+      margin: $spacing-xs 0 0 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+  }
+
+  .postman-actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+}
+
+.import-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: $spacing-sm $spacing-lg;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: $radius-lg;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  font-weight: 500;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+  }
+}
+
+.download-sample-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: $spacing-sm $spacing-lg;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: $radius-lg;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  font-weight: 500;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    text-decoration: none;
+    color: white;
+  }
+}
+
+// ✅ NEW: Variables button
+.variables-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: $spacing-sm $spacing-lg;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: $radius-lg;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  font-weight: 500;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+  }
+}
+
+.collection-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: $spacing-sm 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-lg;
+  font-size: 14px;
+
+  .request-count {
+    opacity: 0.8;
+    font-size: 12px;
+  }
+}
+
+// ==================== MAIN CONTENT - ✅ SIDE-BY-SIDE LAYOUT ====================
+.postman-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.postman-sidebar {
+  width: 300px;
+  background: $bg-white;
+  border-right: 1px solid $border-color;
+  overflow-y: auto;
+}
+
+.postman-main {
+  flex: 1;
+  display: flex; // ✅ CHANGED: horizontal flex for side-by-side
+  overflow: hidden;
+}
+
+// ✅ CHANGED: Side-by-side sections
+.request-section {
+  flex: 1; // ✅ Take up equal space
+  border-right: 1px solid $border-color;
+  background: $bg-white;
+  overflow-y: auto;
+}
+
+.response-section {
+  flex: 1; // ✅ Take up equal space
+  background: $bg-white;
+  overflow-y: auto;
+}
+
+// ==================== EMPTY STATES ====================
+.postman-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl;
+}
+
+.empty-state {
+  text-align: center;
+  color: $text-medium;
+  max-width: 600px;
+
+  .empty-icon {
+    font-size: 80px;
+    color: $primary-color;
+    margin-bottom: $spacing-lg;
+  }
+
+  h2 {
+    margin: 0 0 $spacing-sm 0;
+    font-size: 24px;
+    color: $text-dark;
+  }
+
+  p {
+    margin: 0 0 $spacing-xl 0;
+    font-size: 16px;
+    color: $text-medium;
+  }
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+}
+
+.empty-state-help {
+  margin-top: $spacing-lg;
+  padding: $spacing-md $spacing-lg;
+  background: #f0f4ff;
+  border-left: 4px solid $primary-color;
+  border-radius: $radius-md;
+
+  .help-text {
+    margin: 0;
+    font-size: 14px;
+    color: $text-dark;
+    text-align: left;
+    line-height: 1.6;
+
+    strong {
+      color: $primary-color;
+    }
+
+    code {
+      background: rgba(102, 126, 234, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: $font-mono;
+      font-size: 13px;
+      color: #667eea;
+      font-weight: 600;
+    }
+  }
+}
+
+.import-button-large {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-xl;
+  background: $primary-gradient;
+  color: white;
+  border: none;
+  border-radius: $radius-xl;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+  }
+}
+
+.download-sample-button-large {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-xl;
+  background: white;
+  color: $primary-color;
+  border: 2px solid $primary-color;
+  border-radius: $radius-xl;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: $primary-color;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    text-decoration: none;
+  }
+}
+
+.empty-state-small {
+  text-align: center;
+  padding: 60px $spacing-lg;
+  color: $text-light;
+
+  i {
+    font-size: 48px;
+    margin-bottom: $spacing-md;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+// ==================== REQUEST TREE ====================
+.request-tree {
+  padding: $spacing-lg;
+
+  .tree-header {
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+    border-bottom: 2px solid $border-light;
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: $text-dark;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tree-description {
+      margin: 0;
+      font-size: 13px;
+      color: $text-medium;
+      line-height: 1.5;
+    }
+  }
+
+  .tree-content {
+    font-size: 14px;
+  }
+}
+
+.tree-node {
+  margin: 2px 0;
+
+  &-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px $spacing-sm;
+    border-radius: $radius-md;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+
+    &:hover {
+      background: $bg-light;
+    }
+
+    &.selected {
+      background: $primary-gradient;
+      color: white;
+
+      .method-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+    }
+  }
+
+  .tree-toggle {
+    font-size: 14px;
+    transition: transform 0.2s;
+  }
+
+  .tree-icon {
+    font-size: 16px;
+    color: #ff9800;
+  }
+
+  &-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .folder-node {
+    font-weight: 600;
+  }
+
+  .request-node {
+    font-weight: 400;
+  }
+}
+
+// ==================== METHOD BADGES ====================
+.method-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: $radius-sm;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.method-get { background: #61affe; color: white; }
+.method-post { background: #49cc90; color: white; }
+.method-put { background: #fca130; color: white; }
+.method-patch { background: #50e3c2; color: white; }
+.method-delete { background: #f93e3e; color: white; }
+.method-head { background: #9012fe; color: white; }
+.method-options { background: #0d5aa7; color: white; }
+
+// ==================== REQUEST PANEL ====================
+.request-panel {
+  padding: $spacing-lg;
+
+  &-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .request-header {
+    margin-bottom: $spacing-lg;
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: $text-dark;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+    }
+
+    .request-path {
+      font-size: 12px;
+      color: $text-light;
+      font-weight: 500;
+    }
+  }
+}
+
+// Request Line
+.request-line {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  align-items: flex-start; // ✅ NEW: Align to top for preview
+}
+
+.method-select {
+  width: 130px;
+  padding: 12px $spacing-md;
+  border: 2px solid $border-color;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  font-weight: 600;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+}
+
+// ✅ NEW: URL input container for preview
+.url-input-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.url-input {
+  width: 100%; // ✅ CHANGED: Full width of container
+  padding: 12px $spacing-md;
+  border: 2px solid $border-color;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  font-family: $font-mono;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+}
+
+// ✅ NEW: URL Preview
+.url-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f4ff 100%);
+  border-left: 3px solid #667eea;
+  border-radius: 6px;
+  font-size: 13px;
+
+  i {
+    color: #667eea;
+    font-size: 18px;
+  }
+
+  .preview-label {
+    font-weight: 600;
+    color: #555;
+  }
+
+  .preview-url {
+    font-family: $font-mono;
+    color: #667eea;
+    font-weight: 600;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+}
+
+.send-button {
+  padding: 12px $spacing-xl;
+  background: $primary-gradient;
+  color: white;
+  border: none;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// ==================== TABS ====================
+.request-tabs,
+.response-tabs {
+  display: flex;
+  gap: $spacing-xs;
+  border-bottom: 2px solid $border-light;
+  margin-bottom: $spacing-lg;
+}
+
+.tab {
+  padding: $spacing-sm $spacing-lg;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-medium;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+
+    .badge {
+      background: white;
+      color: $primary-color;
+    }
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: $primary-color;
+  color: white;
+  border-radius: $radius-xl;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+// ==================== HEADERS PANEL ====================
+.headers-panel {
+  padding: $spacing-sm 0;
+
+  .headers-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 40px;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+    font-size: 12px;
+    font-weight: 600;
+    color: $text-medium;
+    text-transform: uppercase;
+  }
+
+  .headers-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+}
+
+.header-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 40px;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  align-items: center;
+  border-bottom: 1px solid $bg-light;
+
+  input[type="text"] {
+    padding: 8px 12px;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
+    font-size: 13px;
+    font-family: $font-mono;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+}
+
+.icon-button {
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: $text-medium;
+
+  &:hover {
+    background: $bg-light;
+    color: $primary-color;
+  }
+
+  &.delete:hover {
+    background: #ffebee;
+    color: $error-color;
+  }
+}
+
+.add-header-button {
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-lg;
+  background: $bg-light;
+  border: 2px dashed #ddd;
+  border-radius: $radius-lg;
+  color: $primary-color;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background: #ede7f6;
+    border-color: $primary-color;
+  }
+}
+
+// ==================== BODY PANEL ====================
+.body-panel {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+
+  .body-toolbar {
+    display: flex;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+  }
+}
+
+.toolbar-button {
+  padding: 8px 16px;
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    background: #ede7f6;
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+}
+
+.body-editor {
+  flex: 1;
+  padding: $spacing-md;
+  border: 2px solid $border-color;
+  border-radius: $radius-lg;
+  font-family: $font-mono;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  background: #fafafa;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    background: white;
+  }
+}
+
+// ==================== RESPONSE PANEL ====================
+.response-panel {
+  padding: $spacing-lg;
+
+  &.loading,
+  &.empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.loading-state {
+  text-align: center;
+  color: $text-medium;
+
+  p {
+    margin-top: $spacing-lg;
+  }
+}
+
+.spinner-large {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto $spacing-lg;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// ==================== STATUS BAR ====================
+.response-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  background: #f9f9f9;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-lg;
+
+  .status-info {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+  }
+
+  .status-code {
+    padding: 8px 16px;
+    border-radius: $radius-md;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .status-metrics {
+    display: flex;
+    gap: $spacing-md;
+  }
+
+  .metric {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: $text-medium;
+  }
+
+  .response-actions {
+    display: flex;
+    gap: $spacing-sm;
+  }
+}
+
+.status-success { background: #e8f5e9; color: $success-color; }
+.status-redirect { background: #fff3e0; color: $warning-color; }
+.status-client-error { background: #ffebee; color: $error-color; }
+.status-server-error { background: #fce4ec; color: #c2185b; }
+.status-unknown { background: $bg-light; color: $text-medium; }
+
+.view-mode-toggle {
+  margin-left: auto;
+  display: flex;
+  gap: $spacing-xs;
+  background: $bg-light;
+  padding: 4px;
+  border-radius: $radius-md;
+
+  .mode-button {
+    padding: 6px $spacing-md;
+    background: none;
+    border: none;
+    border-radius: $radius-sm;
+    font-size: 12px;
+    font-weight: 600;
+    color: $text-medium;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.active {
+      background: white;
+      color: $primary-color;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+// ==================== RESPONSE CONTENT ====================
+.response-content {
+  background: #fafafa;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  overflow: hidden;
+}
+
+.response-body {
+  padding: $spacing-lg;
+  max-height: calc(100vh - 400px); // ✅ Adjusted for side-by-side
+  overflow-y: auto;
+}
+
+// ==================== ✅ ENHANCED JSON VIEWER ====================
+.json-viewer {
+  font-family: $font-mono;
+  font-size: 14px; // ✅ Larger font
+  line-height: 1.8; // ✅ More spacing
+  background: white;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+
+  .json-key {
+    color: #881391;
+    font-weight: 700; // ✅ Bolder
+  }
+
+  .json-string {
+    color: #c41a16;
+    font-weight: 500; // ✅ Semi-bold
+  }
+
+  .json-number {
+    color: #1c00cf;
+    font-weight: 600; // ✅ Bold
+  }
+
+  .json-boolean {
+    color: #0d22aa;
+    font-weight: 700; // ✅ Bold
+  }
+
+  .json-null {
+    color: #808080;
+    font-style: italic;
+    font-weight: 600; // ✅ Bold
+  }
+
+  .json-bracket {
+    color: #000000;
+    font-weight: 800; // ✅ Extra bold
+    font-size: 16px; // ✅ Larger brackets
+  }
+
+  .json-colon {
+    color: #000000;
+    font-weight: 700;
+    margin: 0 6px; // ✅ More spacing
+  }
+
+  .json-comma {
+    color: #000000;
+    font-weight: 700;
+  }
+
+  .json-object,
+  .json-array {
+    margin-left: 0;
+  }
+
+  .json-indent {
+    margin-left: 24px; // ✅ Larger indentation
+    border-left: 2px solid #e0e0e0; // ✅ Thicker line
+    padding-left: 24px; // ✅ More padding
+  }
+
+  .json-property,
+  .json-array-item {
+    margin: 6px 0; // ✅ More vertical spacing
+  }
+}
+
+.raw-text {
+  margin: 0;
+  padding: $spacing-md;
+  background: white;
+  border-radius: $radius-md;
+  font-family: $font-mono;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+// ==================== HEADERS TABLE ====================
+.response-headers {
+  padding: $spacing-lg;
+}
+
+.headers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    text-align: left;
+    padding: 12px $spacing-md;
+    background: $bg-light;
+    font-weight: 600;
+    color: $text-medium;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 12px $spacing-md;
+    border-bottom: 1px solid $border-light;
+  }
+
+  .header-key {
+    font-weight: 600;
+    color: $text-dark;
+    font-family: $font-mono;
+  }
+
+  .header-value {
+    color: $text-medium;
+    font-family: $font-mono;
+  }
+}
+
+// ==================== SCROLLBAR STYLING ====================
+.postman-sidebar,
+.response-body,
+.headers-list,
+.request-section,
+.response-section {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: $radius-sm;
+
+    &:hover {
+      background: #999;
+    }
+  }
+}
+
+// ==================== RESPONSIVE ====================
+@media (max-width: 1400px) {
+  // ✅ Stack vertically on smaller screens
+  .postman-main {
+    flex-direction: column;
+  }
+
+  .request-section {
+    border-right: none;
+    border-bottom: 1px solid $border-color;
+    max-height: 50vh;
+  }
+
+  .response-section {
+    max-height: 50vh;
+  }
+}
+
+@media (max-width: 1024px) {
+  .postman-sidebar {
+    width: 250px;
+  }
+
+  .postman-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .postman-header {
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .postman-sidebar {
+    width: 200px;
+  }
+
+  .request-line {
+    flex-direction: column;
+
+    .method-select {
+      width: 100%;
+    }
+  }
+
+  .empty-state-actions {
+    width: 100%;
+
+    .import-button-large,
+    .download-sample-button-large {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
