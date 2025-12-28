@@ -29,6 +29,15 @@ const RequestPanel: React.FC<RequestPanelProps> = ({
   const [body, setBody] = useState('');
   const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
 
+  // ✅ NEW: File upload state
+  const [bodyMode, setBodyMode] = useState<'raw' | 'file'>('raw');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadOptions, setUploadOptions] = useState({
+    storeFullStructure: true,
+    enableLineage: false,
+  });
+  const [isDragging, setIsDragging] = useState(false);
+
   // ✅ Replace variables in string for preview
   const replaceVariables = (str: string): string => {
     let result = str;
@@ -73,11 +82,95 @@ const RequestPanel: React.FC<RequestPanelProps> = ({
       // Handle body
       if (request.request.body?.raw) {
         setBody(request.request.body.raw);
+        setBodyMode('raw'); // Default to raw mode
       } else {
         setBody('');
       }
+
+      // Reset file selection when switching requests
+      setSelectedFile(null);
     }
   }, [request]);
+
+  // ✅ NEW: Handle file selection
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const base64 = btoa(content);
+
+      // Auto-generate JSON body
+      const generatedBody = {
+        file: base64,
+        filename: file.name,
+        store_full_structure: uploadOptions.storeFullStructure,
+      };
+
+      setBody(JSON.stringify(generatedBody, null, 2));
+    };
+    reader.readAsText(file);
+  };
+
+  // ✅ NEW: Handle file input change
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  // ✅ NEW: Handle drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  // ✅ NEW: Remove selected file
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setBody('');
+  };
+
+  // ✅ NEW: Update body when upload options change
+  useEffect(() => {
+    if (selectedFile && bodyMode === 'file') {
+      // Re-read file and regenerate body
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const base64 = btoa(content);
+
+        const generatedBody = {
+          file: base64,
+          filename: selectedFile.name,
+          store_full_structure: uploadOptions.storeFullStructure,
+        };
+
+        setBody(JSON.stringify(generatedBody, null, 2));
+      };
+      reader.readAsText(selectedFile);
+    }
+  }, [uploadOptions, selectedFile, bodyMode]);
 
   const handleExecute = () => {
     const enabledHeaders = headers
@@ -213,6 +306,7 @@ const RequestPanel: React.FC<RequestPanelProps> = ({
           onClick={() => setActiveTab('body')}
         >
           Body
+          {selectedFile && <span className="badge">1 file</span>}
         </button>
       </div>
 
@@ -270,20 +364,140 @@ const RequestPanel: React.FC<RequestPanelProps> = ({
 
         {activeTab === 'body' && (
           <div className="body-panel">
-            <div className="body-toolbar">
-              <button className="toolbar-button" onClick={formatJson}>
-                <i className="icon ion-ios-code" />
-                Beautify JSON
-              </button>
+            {/* ✅ NEW: Body Mode Toggle */}
+            <div className="body-mode-selector">
+              <label className="mode-option">
+                <input
+                  type="radio"
+                  name="bodyMode"
+                  value="raw"
+                  checked={bodyMode === 'raw'}
+                  onChange={() => setBodyMode('raw')}
+                />
+                <span>Raw JSON</span>
+              </label>
+              <label className="mode-option">
+                <input
+                  type="radio"
+                  name="bodyMode"
+                  value="file"
+                  checked={bodyMode === 'file'}
+                  onChange={() => setBodyMode('file')}
+                />
+                <span>File Upload (Base64)</span>
+              </label>
             </div>
 
-            <textarea
-              className="body-editor"
-              placeholder="Request body (JSON, XML, etc.)"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              spellCheck={false}
-            />
+            {bodyMode === 'raw' ? (
+              <>
+                <div className="body-toolbar">
+                  <button className="toolbar-button" onClick={formatJson}>
+                    <i className="icon ion-ios-code" />
+                    Beautify JSON
+                  </button>
+                </div>
+
+                <textarea
+                  className="body-editor"
+                  placeholder="Request body (JSON, XML, etc.)"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  spellCheck={false}
+                />
+              </>
+            ) : (
+              <>
+                {/* ✅ NEW: File Upload Area */}
+                <div
+                  className={`file-upload-area ${isDragging ? 'dragging' : ''}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    id="file-input"
+                    accept=".yaml,.yml,.json,.tosca"
+                    onChange={handleFileInputChange}
+                    style={{ display: 'none' }}
+                  />
+
+                  {!selectedFile ? (
+                    <label htmlFor="file-input" className="upload-zone">
+                      <i className="icon ion-ios-cloud-upload upload-icon" />
+                      <h4>Select TOSCA File</h4>
+                      <p>or drag and drop here</p>
+                      <span className="upload-hint">
+                        Supports: .yaml, .yml, .json, .tosca
+                      </span>
+                    </label>
+                  ) : (
+                    <div className="selected-file">
+                      <div className="file-info">
+                        <i className="icon ion-ios-document file-icon" />
+                        <div className="file-details">
+                          <div className="file-name">{selectedFile.name}</div>
+                          <div className="file-size">
+                            {(selectedFile.size / 1024).toFixed(2)} KB
+                          </div>
+                        </div>
+                        <button
+                          className="remove-file-button"
+                          onClick={handleRemoveFile}
+                        >
+                          <i className="icon ion-ios-close-circle" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ✅ NEW: Upload Options */}
+                {selectedFile && (
+                  <div className="upload-options">
+                    <div className="options-header">
+                      <i className="icon ion-ios-settings" />
+                      <span>Upload Options</span>
+                    </div>
+                    <label className="option-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={uploadOptions.storeFullStructure}
+                        onChange={(e) =>
+                          setUploadOptions({
+                            ...uploadOptions,
+                            storeFullStructure: e.target.checked,
+                          })
+                        }
+                      />
+                      <span>
+                        Store Full Structure (enables lineage tracking)
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* ✅ NEW: Generated JSON Body Preview */}
+                {selectedFile && body && (
+                  <div className="generated-body-preview">
+                    <div className="preview-header">
+                      <i className="icon ion-ios-code" />
+                      <span>Generated JSON Body</span>
+                      <button className="toolbar-button" onClick={formatJson}>
+                        <i className="icon ion-ios-code" />
+                        Beautify
+                      </button>
+                    </div>
+                    <textarea
+                      className="body-editor compact"
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      spellCheck={false}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

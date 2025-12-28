@@ -33,6 +33,99 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
     return 'status-unknown';
   };
 
+  // ✅ NEW: Get status icon
+  const getStatusIcon = (status: number): string => {
+    if (status >= 200 && status < 300) return '✅';
+    if (status >= 300 && status < 400) return '🔄';
+    if (status >= 400 && status < 500) return '🔴';
+    if (status >= 500) return '💥';
+
+    return '⚪';
+  };
+
+  // ✅ NEW: Generate error suggestions
+  const getErrorSuggestions = (response: any): string[] => {
+    const suggestions: string[] = [];
+    const { status } = response;
+    const { data } = response;
+
+    if (status === 400) {
+      suggestions.push(
+        '• Check that all required fields are present in the request body'
+      );
+      if (
+        data?.message?.includes('Base64') ||
+        data?.message?.includes('base64')
+      ) {
+        suggestions.push('• Ensure file is selected in "File Upload" mode');
+        suggestions.push('• Verify the base64 encoding is valid');
+      }
+      if (data?.message?.includes('JSON') || data?.message?.includes('json')) {
+        suggestions.push('• Verify the JSON body is properly formatted');
+        suggestions.push('• Click "Beautify JSON" to check for syntax errors');
+      }
+      if (data?.error?.includes('file') || data?.message?.includes('file')) {
+        suggestions.push(
+          '• Switch to "File Upload (Base64)" mode in the Body tab'
+        );
+        suggestions.push('• Select a valid TOSCA file (.yaml, .yml, .json)');
+      }
+    }
+
+    if (status === 404) {
+      suggestions.push('• Verify the endpoint URL is correct');
+      suggestions.push('• Check that the server is running and accessible');
+      suggestions.push('• Ensure the {{base_url}} variable is set correctly');
+    }
+
+    if (status === 500) {
+      suggestions.push('• Server encountered an internal error');
+      suggestions.push('• Check server logs for detailed error information');
+      suggestions.push('• Verify OptimusDB service is running properly');
+    }
+
+    if (status === 0) {
+      suggestions.push('• Unable to connect to the server');
+      suggestions.push('• Verify the base_url variable is correct');
+      suggestions.push('• Check that OptimusDB is running and accessible');
+      suggestions.push('• Check for CORS issues in browser console (F12)');
+    }
+
+    return suggestions;
+  };
+
+  // ✅ NEW: Extract next steps from success response
+  const getNextSteps = (response: any): string[] => {
+    const steps: string[] = [];
+    const { data } = response;
+
+    if (data?.template_id) {
+      steps.push(
+        `• Query uploaded template: template_id="${data.template_id}"`
+      );
+    }
+
+    if (data?.storage_location === 'dsswres' && data?.queryable) {
+      steps.push('• View queryable fields in Query Workbench');
+      steps.push('• Check datacatalog table for metadata entries');
+    }
+
+    if (data?.message?.includes('lineage') || data?.query_info) {
+      steps.push('• View lineage graph in Browse section');
+      steps.push('• Search for template in catalog search');
+    }
+
+    if (
+      data?.message?.includes('full') &&
+      data?.message?.includes('structure')
+    ) {
+      steps.push('• Template stored with full queryable structure');
+      steps.push('• Lineage tracking is now active for this template');
+    }
+
+    return steps;
+  };
+
   const renderJson = (data: any, level: number = 0): React.ReactNode => {
     if (data === null) {
       return <span className="json-null">null</span>;
@@ -111,6 +204,7 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
           : JSON.stringify(response.data, null, 2);
 
       navigator.clipboard.writeText(text);
+      alert('Response copied to clipboard!');
     }
   };
 
@@ -136,13 +230,23 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
     );
   }
 
+  const isSuccess = response.status >= 200 && response.status < 300;
+  const isError = response.status >= 400 || response.status === 0;
+  const suggestions = isError ? getErrorSuggestions(response) : [];
+  const nextSteps = isSuccess ? getNextSteps(response) : [];
+
   return (
     <div className="response-panel">
-      {/* Status Bar */}
-      <div className="response-status-bar">
+      {/* ✅ ENHANCED: Status Bar */}
+      <div className={`response-status-bar ${getStatusClass(response.status)}`}>
         <div className="status-info">
-          <div className={`status-code ${getStatusClass(response.status)}`}>
-            {response.status} {response.statusText}
+          <div className="status-badge">
+            <span className="status-icon">
+              {getStatusIcon(response.status)}
+            </span>
+            <span className="status-text">
+              {response.status} {response.statusText}
+            </span>
           </div>
           <div className="status-metrics">
             <span className="metric">
@@ -207,6 +311,26 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
       <div className="response-content">
         {activeTab === 'body' && (
           <div className="response-body">
+            {/* ✅ NEW: Success/Error Banner */}
+            {isSuccess && (
+              <div className="response-banner success-banner">
+                <div className="banner-header">
+                  <i className="icon ion-ios-checkmark-circle" />
+                  <span>SUCCESS</span>
+                </div>
+              </div>
+            )}
+
+            {isError && (
+              <div className="response-banner error-banner">
+                <div className="banner-header">
+                  <i className="icon ion-ios-warning" />
+                  <span>ERROR DETAILS</span>
+                </div>
+              </div>
+            )}
+
+            {/* JSON Body */}
             {viewMode === 'pretty' ? (
               <div className="json-viewer">
                 {typeof response.data === 'object' ? (
@@ -221,6 +345,40 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
                   ? JSON.stringify(response.data, null, 2)
                   : String(response.data)}
               </pre>
+            )}
+
+            {/* ✅ NEW: Error Suggestions */}
+            {isError && suggestions.length > 0 && (
+              <div className="suggestions-section">
+                <div className="suggestions-header">
+                  <i className="icon ion-ios-bulb" />
+                  <span>TROUBLESHOOTING SUGGESTIONS</span>
+                </div>
+                <div className="suggestions-list">
+                  {suggestions.map((suggestion, index) => (
+                    <div key={index} className="suggestion-item">
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ✅ NEW: Next Steps */}
+            {isSuccess && nextSteps.length > 0 && (
+              <div className="next-steps-section">
+                <div className="next-steps-header">
+                  <i className="icon ion-ios-arrow-forward" />
+                  <span>NEXT STEPS</span>
+                </div>
+                <div className="next-steps-list">
+                  {nextSteps.map((step, index) => (
+                    <div key={index} className="next-step-item">
+                      {step}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}
