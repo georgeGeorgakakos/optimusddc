@@ -3,7 +3,6 @@
 
 import os
 from typing import Any, Optional
-from search_service.proxy.optimusdb_search import OptimusDBSearchProxy
 
 STATS_FEATURE_KEY = 'STATS'
 
@@ -12,6 +11,7 @@ PROXY_ENDPOINT = 'PROXY_ENDPOINT'
 PROXY_USER = 'PROXY_USER'
 PROXY_PASSWORD = 'PROXY_PASSWORD'
 ELASTICSEARCH_CLIENT = 'ELASTICSEARCH_CLIENT'
+ES_PROXY_CLIENT = 'ES_PROXY_CLIENT'  # ⭐ ADD THIS LINE
 
 # Proxy client class mappings
 PROXY_CLIENTS = {
@@ -20,7 +20,7 @@ PROXY_CLIENTS = {
     'ELASTICSEARCH_V2_1': 'search_service.proxy.es_proxy_v2_1.ElasticsearchProxyV2_1',
     'OPTIMUSDB': 'search_service.proxy.optimusdb_search.OptimusDBSearchProxy'
 }
-PROXY_CLIENT = OptimusDBSearchProxy
+
 
 class Config:
     # Specify the alias string template under which the ES index exists for each resource
