@@ -18,8 +18,8 @@ const configDefault: AppConfig = {
     showBadgesInHome: true,
   },
   columnLineage: {
-    inAppListEnabled: false,
-    inAppPageEnabled: false,
+    inAppListEnabled: true,
+    inAppPageEnabled: true,
     urlGenerator: (
       database: string,
       cluster: string,
@@ -40,7 +40,7 @@ const configDefault: AppConfig = {
     tableDescLength: 750,
   },
   featureLineage: {
-    inAppListEnabled: false,
+    inAppListEnabled: true,
   },
   homePageWidgets: {
     widgets: [
@@ -480,8 +480,8 @@ const configDefault: AppConfig = {
     defaultLineageDepth: 5,
     externalEnabled: false,
     iconPath: 'PATH_TO_ICON',
-    inAppListEnabled: false,
-    inAppPageEnabled: false,
+    inAppListEnabled: true,
+    inAppPageEnabled: true,
     isBeta: false,
     urlGenerator: (
       database: string,

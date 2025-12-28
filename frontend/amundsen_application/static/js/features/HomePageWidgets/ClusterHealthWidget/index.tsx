@@ -85,8 +85,9 @@ const ClusterHealthWidget: React.FC = () => {
               healthScore: parseFloat(data.agent?.health?.score || '0'),
               role: data.agent?.role || 'unknown',
               isCoordinator:
-                data.agent?.role === 'coordinator' ||
-                data.agent?.is_current_leader === true,
+                // data.agent?.role === 'coordinator' ||
+                data.agent?.role === 'coordinator',
+              // data.agent?.is_current_leader === true,
               responseTime,
             } as NodeHealth;
           } catch (err) {
@@ -192,7 +193,7 @@ const ClusterHealthWidget: React.FC = () => {
     };
 
     fetchHealth();
-    const interval = setInterval(fetchHealth, 180000);
+    const interval = setInterval(fetchHealth, 360000);
 
     return () => clearInterval(interval);
   }, []);

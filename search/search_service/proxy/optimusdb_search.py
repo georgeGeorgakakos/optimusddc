@@ -336,6 +336,9 @@ class OptimusDBSearchProxy(BaseProxy):
                        OR LOWER(tags) LIKE '%{term}%'
                        OR LOWER(metadata_type) LIKE '%{term}%'
                        OR LOWER(component) LIKE '%{term}%'
+                       OR LOWER(owners) LIKE '%{term}%'
+                       OR LOWER(badges) LIKE '%{term}%'
+                       OR LOWER(ai_summary) LIKE '%{term}%'
                     ORDER BY 
                         CASE 
                             WHEN LOWER(name) LIKE '{term}%' THEN 1
