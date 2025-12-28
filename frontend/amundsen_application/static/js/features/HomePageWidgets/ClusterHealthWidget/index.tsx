@@ -86,7 +86,7 @@ const ClusterHealthWidget: React.FC = () => {
               role: data.agent?.role || 'unknown',
               isCoordinator:
                 // data.agent?.role === 'coordinator' ||
-                data.agent?.role === 'coordinator',
+                data.agent?.is_coordinator === true,
               // data.agent?.is_current_leader === true,
               responseTime,
             } as NodeHealth;
