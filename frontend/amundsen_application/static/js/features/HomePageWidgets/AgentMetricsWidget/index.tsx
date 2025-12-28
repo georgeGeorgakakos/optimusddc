@@ -180,7 +180,7 @@ const fetchAgentMetrics = async (node: OptimusDBNode): Promise<AgentMetrics[]> =
 };
 
 // ==============================================================================
-// PREDICTIVE ANALYTICS ENGINE - ✅ COLOR FIX: LOW UTILIZATION = HEALTHY
+// PREDICTIVE ANALYTICS ENGINE - COLOR FIX: LOW UTILIZATION = HEALTHY
 // ==============================================================================
 
 const predictHealth = (metrics: AgentMetrics[]): HealthPrediction => {
@@ -195,15 +195,63 @@ const predictHealth = (metrics: AgentMetrics[]): HealthPrediction => {
     };
   }
 
-  const recent = metrics.slice(-12);
+  const recent = metrics.slice(-12); // Last hour (12 × 5min intervals)
   const latest = metrics[metrics.length - 1];
   const issues: HealthIssue[] = [];
   let failureProbability = 0;
   let timeToFailureHours: number | null = null;
 
-  // Analyze CPU Trend
+  // ===========================================================================
+  // ✅ NEW: BASELINE RISK SCORE (based on current utilization)
+  // ===========================================================================
+  // Even healthy agents have some baseline risk based on load
+  const baselineRisk = Math.min(30, (latest.health_score / 100) * 30);
+  failureProbability += baselineRisk;
+
+  // ===========================================================================
+  // 1. CPU ANALYSIS - ✅ IMPROVED THRESHOLDS
+  // ===========================================================================
   const cpuTrend = calculateTrend(recent.map((m) => m.cpu_usage));
-  if (cpuTrend > 5 && latest.cpu_usage > 70) {
+  const cpuCurrent = latest.cpu_usage;
+
+  // ✅ EARLY WARNING: CPU >50% with upward trend
+  if (cpuTrend > 2 && cpuCurrent > 50) {
+    issues.push({
+      metric: 'cpu',
+      severity: 'low',
+      description: 'CPU usage trending upward (early warning)',
+      trend: 'degrading',
+      trendRate: `+${cpuTrend.toFixed(1)}% per hour`,
+    });
+    failureProbability += 10; // Lower risk for early warning
+
+    const hoursTo80 = (80 - cpuCurrent) / cpuTrend;
+    if (hoursTo80 < PREDICTION_THRESHOLD_HOURS) {
+      timeToFailureHours = hoursTo80;
+    }
+  }
+
+  // ✅ MODERATE RISK: CPU >60% with trend OR CPU >70% stable
+  if ((cpuTrend > 3 && cpuCurrent > 60) || cpuCurrent > 70) {
+    issues.push({
+      metric: 'cpu',
+      severity: 'medium',
+      description: cpuTrend > 3 ? 'CPU usage increasing rapidly' : 'CPU usage elevated',
+      trend: cpuTrend > 3 ? 'degrading' : 'stable',
+      trendRate: cpuTrend > 3 ? `+${cpuTrend.toFixed(1)}% per hour` : `${cpuCurrent.toFixed(1)}%`,
+    });
+    failureProbability += 20;
+
+    if (cpuTrend > 3) {
+      const hoursTo90 = (90 - cpuCurrent) / cpuTrend;
+      if (!timeToFailureHours || hoursTo90 < timeToFailureHours) {
+        timeToFailureHours = hoursTo90;
+      }
+    }
+  }
+
+  // ✅ HIGH RISK: CPU >80% OR rapid trend
+  if (cpuTrend > 5 && cpuCurrent > 70) {
     issues.push({
       metric: 'cpu',
       severity: 'high',
@@ -212,38 +260,76 @@ const predictHealth = (metrics: AgentMetrics[]): HealthPrediction => {
       trendRate: `+${cpuTrend.toFixed(1)}% per hour`,
     });
     failureProbability += 30;
-    const hoursTo100 = (100 - latest.cpu_usage) / cpuTrend;
+
+    const hoursTo100 = (100 - cpuCurrent) / cpuTrend;
     if (!timeToFailureHours || hoursTo100 < timeToFailureHours) {
       timeToFailureHours = hoursTo100;
     }
-  } else if (latest.cpu_usage > 85) {
+  } else if (cpuCurrent > 85) {
     issues.push({
       metric: 'cpu',
       severity: 'high',
       description: 'CPU usage critically high',
       trend: 'stable',
-      trendRate: `${latest.cpu_usage.toFixed(1)}%`,
+      trendRate: `${cpuCurrent.toFixed(1)}%`,
     });
-    failureProbability += 25;
+    failureProbability += 35;
   }
 
-  // Analyze Memory
+  // ===========================================================================
+  // 2. MEMORY ANALYSIS - ✅ IMPROVED THRESHOLDS
+  // ===========================================================================
   const memoryPercent = (latest.memory_used / latest.memory_total) * 100;
   const memoryTrend = calculateTrend(recent.map((m) => (m.memory_used / m.memory_total) * 100));
-  if (memoryTrend > 3 && memoryPercent > 70) {
+
+  // ✅ EARLY WARNING: Memory >50% with upward trend
+  if (memoryTrend > 1.5 && memoryPercent > 50) {
+    issues.push({
+      metric: 'memory',
+      severity: 'low',
+      description: 'Memory usage trending upward (early warning)',
+      trend: 'degrading',
+      trendRate: `+${memoryTrend.toFixed(1)}% per hour`,
+    });
+    failureProbability += 10;
+
+    const hoursTo80 = (80 - memoryPercent) / memoryTrend;
+    if (hoursTo80 < PREDICTION_THRESHOLD_HOURS) {
+      timeToFailureHours = timeToFailureHours ? Math.min(timeToFailureHours, hoursTo80) : hoursTo80;
+    }
+  }
+
+  // ✅ MODERATE RISK: Memory >60% with trend OR Memory >70% stable
+  if ((memoryTrend > 2 && memoryPercent > 60) || memoryPercent > 70) {
+    issues.push({
+      metric: 'memory',
+      severity: 'medium',
+      description: memoryTrend > 2 ? 'Memory usage increasing' : 'Memory usage elevated',
+      trend: memoryTrend > 2 ? 'degrading' : 'stable',
+      trendRate: memoryTrend > 2 ? `+${memoryTrend.toFixed(1)}% per hour` : `${memoryPercent.toFixed(1)}%`,
+    });
+    failureProbability += 20;
+
+    if (memoryTrend > 2) {
+      const hoursTo90 = (90 - memoryPercent) / memoryTrend;
+      timeToFailureHours = timeToFailureHours ? Math.min(timeToFailureHours, hoursTo90) : hoursTo90;
+    }
+  }
+
+  // ✅ HIGH RISK: Memory leak detection OR critically high
+  if (memoryTrend > 4 && memoryPercent > 60) {
     const isPossibleLeak = memoryTrend > 5;
     issues.push({
       metric: 'memory',
       severity: 'high',
-      description: isPossibleLeak ? 'Possible memory leak detected' : 'Memory usage trending up',
+      description: isPossibleLeak ? 'Possible memory leak detected' : 'Memory usage trending up rapidly',
       trend: 'degrading',
       trendRate: `+${memoryTrend.toFixed(1)}% per hour`,
     });
-    failureProbability += isPossibleLeak ? 35 : 25;
+    failureProbability += isPossibleLeak ? 35 : 30;
+
     const hoursTo100 = (100 - memoryPercent) / memoryTrend;
-    if (!timeToFailureHours || hoursTo100 < timeToFailureHours) {
-      timeToFailureHours = hoursTo100;
-    }
+    timeToFailureHours = timeToFailureHours ? Math.min(timeToFailureHours, hoursTo100) : hoursTo100;
   } else if (memoryPercent > 90) {
     issues.push({
       metric: 'memory',
@@ -252,53 +338,106 @@ const predictHealth = (metrics: AgentMetrics[]): HealthPrediction => {
       trend: 'stable',
       trendRate: `${memoryPercent.toFixed(1)}%`,
     });
-    failureProbability += 30;
+    failureProbability += 40;
   }
 
-  // Analyze Network Latency
+  // ===========================================================================
+  // 3. NETWORK LATENCY ANALYSIS - ✅ IMPROVED THRESHOLDS
+  // ===========================================================================
   const latencyTrend = calculateTrend(recent.map((m) => m.network_latency));
-  if (latencyTrend > 1 && latest.network_latency > 10) {
+  const latencyCurrent = latest.network_latency;
+
+  // ✅ EARLY WARNING: Latency >5ms with upward trend
+  if (latencyTrend > 0.5 && latencyCurrent > 5) {
+    issues.push({
+      metric: 'network',
+      severity: 'low',
+      description: 'Network latency trending upward',
+      trend: 'degrading',
+      trendRate: `+${latencyTrend.toFixed(2)}ms per hour`,
+    });
+    failureProbability += 5;
+  }
+
+  // ✅ MODERATE RISK: Latency >10ms with trend OR >15ms stable
+  if ((latencyTrend > 1 && latencyCurrent > 10) || latencyCurrent > 15) {
     issues.push({
       metric: 'network',
       severity: 'medium',
-      description: 'Network latency increasing',
-      trend: 'degrading',
-      trendRate: `+${latencyTrend.toFixed(2)}ms per hour`,
+      description: latencyTrend > 1 ? 'Network latency increasing' : 'Network latency elevated',
+      trend: latencyTrend > 1 ? 'degrading' : 'stable',
+      trendRate: latencyTrend > 1 ? `+${latencyTrend.toFixed(2)}ms per hour` : `${latencyCurrent.toFixed(2)}ms`,
     });
     failureProbability += 15;
   }
 
-  // ============================================================================
-  // ✅ COLOR FIX: Determine status based on UTILIZATION
-  // LOW utilization = HEALTHY (green)
-  // HIGH utilization = CRITICAL (red)
-  // ============================================================================
+  // ✅ HIGH RISK: Latency >25ms OR rapid increase
+  if (latencyTrend > 2 && latencyCurrent > 15) {
+    issues.push({
+      metric: 'network',
+      severity: 'high',
+      description: 'Network latency degrading rapidly',
+      trend: 'degrading',
+      trendRate: `+${latencyTrend.toFixed(2)}ms per hour`,
+    });
+    failureProbability += 20;
+  } else if (latencyCurrent > 25) {
+    issues.push({
+      metric: 'network',
+      severity: 'high',
+      description: 'Network latency critically high',
+      trend: 'stable',
+      trendRate: `${latencyCurrent.toFixed(2)}ms`,
+    });
+    failureProbability += 25;
+  }
+
+  // ===========================================================================
+  // ✅ NEW: MULTI-FACTOR RISK AMPLIFICATION
+  // ===========================================================================
+  // If multiple metrics are problematic simultaneously, increase risk
+  const highSeverityIssues = issues.filter(i => i.severity === 'high').length;
+  const mediumSeverityIssues = issues.filter(i => i.severity === 'medium').length;
+
+  if (highSeverityIssues >= 2) {
+    failureProbability += 20; // Multiple critical issues = compound risk
+  } else if (highSeverityIssues >= 1 && mediumSeverityIssues >= 1) {
+    failureProbability += 10; // Critical + moderate = increased risk
+  } else if (mediumSeverityIssues >= 2) {
+    failureProbability += 5; // Multiple moderate issues = slight increase
+  }
+
+  // ===========================================================================
+  // ✅ DETERMINE STATUS (based on utilization AND issues)
+  // ===========================================================================
   let status: 'healthy' | 'warning' | 'critical';
   let confidence = Math.min(95, issues.length * 15 + 40);
 
-  // ✅ FIXED: Low utilization (<50%) = healthy
-  if (latest.health_score < 50 && failureProbability < 30) {
+  if (failureProbability < 20) {
     status = 'healthy';
     confidence = Math.min(confidence, 70);
-  } else if (latest.health_score < 70 && failureProbability < 60) {
-    // ✅ FIXED: Moderate utilization (50-70%) = warning
+  } else if (failureProbability < 50) {
     status = 'warning';
   } else {
-    // ✅ FIXED: High utilization (>70%) = critical
     status = 'critical';
     confidence = Math.min(95, confidence + 10);
   }
 
+  // ===========================================================================
+  // RECOMMENDATION
+  // ===========================================================================
   const recommendation =
     status === 'critical'
-      ? '🚨 CRITICAL: Immediate action required!'
+      ? '🚨 CRITICAL: Immediate action required! Risk of service degradation.'
       : status === 'warning'
-        ? '⚠️ WARNING: Schedule maintenance soon.'
-        : '✅ Agent operating normally.';
+        ? '⚠️ WARNING: Schedule preventive maintenance. Monitor closely.'
+        : failureProbability > 10
+          ? '✅ Agent operating normally. Minor trends detected, continue monitoring.'
+          : '✅ Agent operating optimally. No concerns detected.';
 
   return {
     status,
-    failureProbability: Math.min(100, failureProbability),
+    failureProbability: Math.min(100, Math.round(failureProbability)),
     timeToFailure:
       !(timeToFailureHours && timeToFailureHours < PREDICTION_THRESHOLD_HOURS)
         ? null
@@ -309,14 +448,21 @@ const predictHealth = (metrics: AgentMetrics[]): HealthPrediction => {
   };
 };
 
+
+
 const calculateTrend = (values: number[]): number => {
   if (values.length < 2) return 0;
+
   const n = values.length;
   const xSum = (n * (n - 1)) / 2;
   const ySum = values.reduce((a, b) => a + b, 0);
   const xySum = values.reduce((sum, y, x) => sum + x * y, 0);
   const x2Sum = (n * (n - 1) * (2 * n - 1)) / 6;
+
+  // Linear regression slope
   const slope = (n * xySum - xSum * ySum) / (n * x2Sum - xSum * xSum);
+
+  // Convert to per-hour rate (12 data points = 1 hour at 5-min intervals)
   return slope * 12;
 };
 
@@ -325,6 +471,7 @@ const formatTimeToFailure = (hours: number): string => {
   if (hours < 24) return `~${hours.toFixed(1)} hours`;
   return `~${(hours / 24).toFixed(1)} days`;
 };
+
 
 // ==============================================================================
 // COMPONENT - CORRECTED
@@ -335,11 +482,11 @@ const AgentMetricsWidget: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [availableNodes, setAvailableNodes] = React.useState<OptimusDBNode[]>([]);
 
-  // ✅ FIXED: Use getAvailableNodes() instead of hardcoded 8
+  // FIXED: Use getAvailableNodes() instead of hardcoded 8
   React.useEffect(() => {
     const loadAgentMetrics = async () => {
       try {
-        // ✅ Get actual available nodes from apiConfig
+        // Get actual available nodes from apiConfig
         const nodes = await getAvailableNodes();
         setAvailableNodes(nodes);
 
@@ -401,7 +548,7 @@ const AgentMetricsWidget: React.FC = () => {
   }, []);
 
   // ==============================================================================
-  // ✅ NEW: CLUSTER OVERVIEW SECTION
+  // NEW: CLUSTER OVERVIEW SECTION
   // ==============================================================================
   const renderClusterOverview = () => {
     if (agents.length === 0) return null;
@@ -571,7 +718,7 @@ const AgentMetricsWidget: React.FC = () => {
   };
 
   // ==============================================================================
-  // ✅ CORRECTED: Individual Agent Card
+  // CORRECTED: Individual Agent Card
   // ==============================================================================
   const renderAgentCard = (agent: AgentInfo) => {
     const { prediction, metricsHistory } = agent;
@@ -583,7 +730,7 @@ const AgentMetricsWidget: React.FC = () => {
       m.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     );
 
-    // ✅ COLOR FIX: Gauge color based on utilization
+    // COLOR FIX: Gauge color based on utilization
     // LOW utilization (< 50%) = GREEN
     // MEDIUM utilization (50-70%) = ORANGE
     // HIGH utilization (> 70%) = RED
@@ -898,7 +1045,7 @@ const AgentMetricsWidget: React.FC = () => {
             Current Utilization: {agent.currentUtilization.toFixed(1)}%
           </div>
           <div className="health-status">
-            {agent.currentUtilization < 50 && <span className="status-healthy">✅ LOW LOAD - HEALTHY</span>}
+            {agent.currentUtilization < 50 && <span className="status-healthy">LOW LOAD - HEALTHY</span>}
             {agent.currentUtilization >= 50 && agent.currentUtilization < 70 && <span className="status-warning">⚠️ MODERATE LOAD</span>}
             {agent.currentUtilization >= 70 && <span className="status-critical">🚨 HIGH LOAD - CRITICAL</span>}
           </div>
@@ -984,7 +1131,7 @@ const AgentMetricsWidget: React.FC = () => {
       </div>
 
       <div className="widget-body">
-        {/* ✅ NEW: Cluster Overview Section */}
+        {/* NEW: Cluster Overview Section */}
         {renderClusterOverview()}
 
         {/* Individual Agent Cards */}

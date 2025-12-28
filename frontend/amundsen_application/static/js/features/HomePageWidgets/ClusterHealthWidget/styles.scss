@@ -1,4 +1,5 @@
 // styles.scss - CONCEPT 1: MINIMAL DASHBOARD
+// ✅ FIXED: Updated for fancy footer visualization
 // 2x2 GRID LAYOUT
 // CLEAN STATUS BADGES
 // HORIZONTAL HEALTH BARS
@@ -87,8 +88,12 @@
         background: #f59e0b;
       }
 
-      &.status-offline .status-dot {
+      &.status-critical .status-dot {
         background: #ef4444;
+      }
+
+      &.status-offline .status-dot {
+        background: #6b7280;
       }
     }
   }
@@ -109,7 +114,7 @@
   // ==================================================
   .metrics-grid-2x2 {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); // 2 COLUMNS
+    grid-template-columns: repeat(2, 1fr);
     gap: 24px;
 
     .metric-card {
@@ -126,7 +131,6 @@
         box-shadow: 0 12px 24px rgba(102, 126, 234, 0.2);
       }
 
-      // METRIC LABEL WITH ICON
       .metric-label {
         font-size: 13px;
         color: #6b7280;
@@ -143,7 +147,6 @@
         }
       }
 
-      // LARGE VALUE DISPLAY
       .metric-value-wrapper {
         display: flex;
         align-items: baseline;
@@ -164,7 +167,6 @@
         }
       }
 
-      // CLEAN STATUS BADGE (NO CLUTTERED TEXT!)
       .metric-status {
         display: inline-flex;
         align-items: center;
@@ -182,28 +184,24 @@
           background: currentColor;
         }
 
-        // OPTIMAL (GREEN)
         &.optimal {
           background: #d1fae5;
           color: #065f46;
           border: 2px solid #10b981;
         }
 
-        // HEALTHY (GREEN)
         &.healthy {
           background: #d1fae5;
           color: #065f46;
           border: 2px solid #10b981;
         }
 
-        // WARNING (ORANGE)
         &.warning {
           background: #fef3c7;
           color: #92400e;
           border: 2px solid #f59e0b;
         }
 
-        // CRITICAL (RED)
         &.critical {
           background: #fee2e2;
           color: #991b1b;
@@ -248,7 +246,6 @@
         flex-direction: column;
         gap: 12px;
 
-        // LABEL WITH COUNT
         .health-bar-label {
           display: flex;
           justify-content: space-between;
@@ -279,7 +276,6 @@
           }
         }
 
-        // HORIZONTAL PROGRESS BAR
         .health-bar-track {
           height: 12px;
           background: #e5e7eb;
@@ -306,7 +302,6 @@
           }
         }
 
-        // RANGE TEXT (CLEAN!)
         .health-bar-range {
           font-size: 13px;
           color: #6b7280;
@@ -318,53 +313,140 @@
   }
 
   // ==================================================
-  // FOOTER
+  // ✅ NEW: FANCY FOOTER VISUALIZATION
   // ==================================================
-  .widget-footer {
-    padding: 20px 32px;
+  .widget-footer-fancy {
     background: white;
-    border-top: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: space-between;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 28px;
     align-items: center;
 
-    .footer-left {
+    .footer-viz-section {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      flex-direction: column;
+      gap: 16px;
 
-      .footer-icon {
-        font-size: 18px;
+      .footer-viz-header {
+        .footer-viz-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 4px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .viz-icon {
+            font-size: 18px;
+          }
+        }
+
+        .footer-viz-subtitle {
+          font-size: 12px;
+          color: #6b7280;
+          font-weight: 600;
+        }
       }
 
-      .footer-text {
-        font-size: 13px;
-        color: #6b7280;
-        font-weight: 600;
+      // ✅ MINI NETWORK TOPOLOGY
+      .mini-topology {
+        width: 100%;
+        height: 120px;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        padding: 10px;
+
+        .pulse-ring {
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            r: 10;
+            opacity: 0.3;
+          }
+          50% {
+            r: 18;
+            opacity: 0;
+          }
+        }
+      }
+
+      // ✅ SPARKLINE CHART
+      .sparkline-container {
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        padding: 16px;
+
+        .sparkline-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+
+          .sparkline-label {
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 600;
+          }
+
+          .sparkline-value {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            .trend-arrow {
+              font-size: 16px;
+              font-weight: 700;
+
+              &.up {
+                color: #ef4444;
+              }
+
+              &.down {
+                color: #10b981;
+              }
+            }
+          }
+        }
+
+        .sparkline {
+          width: 100%;
+          height: 60px;
+        }
+
+        .sparkline-placeholder {
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9ca3af;
+          font-size: 13px;
+          font-weight: 600;
+        }
       }
     }
 
-    .footer-right {
-      .footer-link {
-        color: #667eea;
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 18px;
-        background: #ede9fe;
-        border: 1px solid #667eea;
-        border-radius: 10px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: #667eea;
-          color: white;
-          transform: translateX(4px);
-        }
-      }
+    .footer-viz-divider {
+      width: 1px;
+      height: 100px;
+      background: linear-gradient(
+                      180deg,
+                      transparent 0%,
+                      #e5e7eb 20%,
+                      #e5e7eb 80%,
+                      transparent 100%
+      );
     }
   }
 
@@ -433,14 +515,27 @@
 // ==================================================
 // RESPONSIVE
 // ==================================================
+@media (max-width: 1200px) {
+  .cluster-health-widget {
+    .widget-footer-fancy {
+      grid-template-columns: 1fr;
+      gap: 32px;
+
+      .footer-viz-divider {
+        display: none;
+      }
+    }
+  }
+}
+
 @media (max-width: 1024px) {
   .cluster-health-widget {
     .metrics-grid-2x2 {
-      grid-template-columns: 1fr; // Stack on smaller screens
+      grid-template-columns: 1fr;
     }
 
     .health-distribution .distribution-bars {
-      grid-template-columns: 1fr; // Stack bars vertically
+      grid-template-columns: 1fr;
     }
   }
 }
@@ -455,12 +550,6 @@
 
     .widget-body {
       padding: 20px;
-    }
-
-    .widget-footer {
-      flex-direction: column;
-      gap: 12px;
-      align-items: flex-start;
     }
   }
 }
