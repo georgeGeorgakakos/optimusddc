@@ -1,11 +1,11 @@
 // ==============================================================================
 // FILE: amundsen_application/static/js/pages/LogAnalyticsPage/index.tsx
-// PHASE 3 REFINED VERSION WITH DYNAMIC API CONFIG
+// EXACT REPLICA OF CURRENT UI + OPTIMUSDB LOGGER INTEGRATION
 // ==============================================================================
 
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { getAvailableNodes, buildApiUrl } from 'config/apiConfig'; // ← PHASE 3 IMPORT
+import { getAvailableNodes, buildApiUrl } from 'config/apiConfig';
 import LogFilters from './components/LogFilters';
 import LogViewer from './components/LogViewer';
 import LogStatistics from './components/LogStatistics';
@@ -15,27 +15,34 @@ import LogPagination from './components/LogPagination';
 import './styles.scss';
 
 // ==============================================================================
-// TYPES
+// TYPES - OPTIMUSDB INTEGRATION
 // ==============================================================================
 
-export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
-export type LogCategory =
-  | 'Query'
-  | 'Peer'
-  | 'Election'
-  | 'Database'
-  | 'Network'
-  | 'OrbitDB'
-  | 'System'
-  | 'API'
-  | 'Other';
+/**
+ * OptimusDB Log Types (replaces Level + Category dual system)
+ */
+export type LogType =
+  | 'DEBUG'
+  | 'INFO'
+  | 'QUERY'
+  | 'LINEAGE'
+  | 'MESH'
+  | 'REPLICATION'
+  | 'ELECTION'
+  | 'CACHE'
+  | 'AI'
+  | 'METRICS'
+  | 'PROC'
+  | 'DISCOVERY'
+  | 'WARN'
+  | 'ERROR';
 
 export interface LogEntry {
   id: string;
   timestamp: string;
-  level: LogLevel;
-  category: LogCategory;
+  type: LogType;  // ← Changed from 'level', removed 'category'
   nodeId: string;
+  source?: string;
   message: string;
   details?: string;
   traceId?: string;
@@ -48,22 +55,41 @@ export interface LogStatistics {
   totalLogs: number;
   logsPerMinute: number;
   errorRate: number;
-  fatalCount: number;
-  byLevel: Record<LogLevel, number>;
-  byCategory: Record<string, number>;
+  errorCount: number;
+  byType: Record<LogType, number>;  // ← Changed from byLevel + byCategory
   byNode: Record<string, number>;
   peakActivity: number;
   healthStatus: 'healthy' | 'warning' | 'critical';
 }
 
 export interface LogFiltersState {
-  level: LogLevel | 'ALL';
-  category: LogCategory | 'ALL';
+  types: LogType[];  // ← Multi-select instead of single 'level'
   nodeId: string;
   startTime: string;
   endTime: string;
   searchTerm: string;
 }
+
+// ==============================================================================
+// COLOR MAPPINGS
+// ==============================================================================
+
+export const LOG_TYPE_COLORS: Record<LogType, string> = {
+  DEBUG: '#6c757d',
+  INFO: '#0dcaf0',
+  QUERY: '#6f42c1',
+  LINEAGE: '#fd7e14',
+  MESH: '#20c997',
+  REPLICATION: '#0d6efd',
+  ELECTION: '#ffc107',
+  CACHE: '#17a2b8',
+  AI: '#e83e8c',
+  METRICS: '#6610f2',
+  PROC: '#6c757d',
+  DISCOVERY: '#198754',
+  WARN: '#ffc107',
+  ERROR: '#dc3545',
+};
 
 // ==============================================================================
 // MAIN COMPONENT
@@ -78,12 +104,11 @@ const LogAnalyticsPage: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [refreshInterval, setRefreshInterval] = useState<number>(60);
-  const [discoveredNodeCount, setDiscoveredNodeCount] = useState<number>(0); // ✅ PHASE 3: Track discovered nodes
+  const [discoveredNodeCount, setDiscoveredNodeCount] = useState<number>(0);
 
   // Filters
   const [filters, setFilters] = useState<LogFiltersState>({
-    level: 'ALL',
-    category: 'ALL',
+    types: [],  // Empty = show all
     nodeId: 'all',
     startTime: '',
     endTime: '',
@@ -94,19 +119,17 @@ const LogAnalyticsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [logsPerPage, setLogsPerPage] = useState<number>(25);
 
-  // Calculate pagination
   const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
   const startIndex = (currentPage - 1) * logsPerPage;
   const endIndex = startIndex + logsPerPage;
   const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
 
   // ===========================================================================
-  // HELPER: Get date and hour (2 hours before current time)
+  // HELPER: Get date and hour
   // ===========================================================================
 
   const getQueryDateTime = (): { date: string; hour: string } => {
     const now = new Date();
-    // Subtract 2 hours
     now.setHours(now.getHours() - 2);
 
     const year = now.getFullYear();
@@ -114,10 +137,7 @@ const LogAnalyticsPage: React.FC = () => {
     const day = String(now.getDate()).padStart(2, '0');
     const hour = String(now.getHours()).padStart(2, '0');
 
-    return {
-      date: `${year}-${month}-${day}`,
-      hour: hour,
-    };
+    return { date: `${year}-${month}-${day}`, hour: hour };
   };
 
   // ===========================================================================
@@ -126,15 +146,12 @@ const LogAnalyticsPage: React.FC = () => {
 
   const parseOptimusDBLog = (rawLog: any, nodeId: string): LogEntry | null => {
     try {
-      // OptimusDB log format may vary, adjust as needed
-      // Assuming format like: { timestamp, level, category, message, ... }
-
       return {
         id: rawLog.id || `${nodeId}-${rawLog.timestamp || Date.now()}`,
         timestamp: rawLog.timestamp || new Date().toISOString(),
-        level: (rawLog.level || 'INFO') as LogLevel,
-        category: (rawLog.category || 'System') as LogCategory,
+        type: (rawLog.type || rawLog.level || 'INFO') as LogType,
         nodeId: nodeId,
+        source: rawLog.source || rawLog.file || '',
         message: rawLog.message || rawLog.msg || 'No message',
         details: rawLog.details || rawLog.error || rawLog.stack || '',
         traceId: rawLog.traceId || rawLog.trace_id,
@@ -149,7 +166,7 @@ const LogAnalyticsPage: React.FC = () => {
   };
 
   // ===========================================================================
-  // DATA FETCHING - PHASE 3 UPDATED WITH DYNAMIC NODES
+  // DATA FETCHING
   // ===========================================================================
 
   const fetchLogs = useCallback(async () => {
@@ -158,235 +175,134 @@ const LogAnalyticsPage: React.FC = () => {
 
     try {
       const { date, hour } = getQueryDateTime();
-      console.log(`Fetching logs for date=${date}, hour=${hour} (2 hours before current time)`);
-
-      // ✅ PHASE 3: Dynamically discover all available nodes
       const nodes = await getAvailableNodes();
       setDiscoveredNodeCount(nodes.length);
-      console.log(`✅ Discovered ${nodes.length} OptimusDB nodes`);
 
       const allLogs: LogEntry[] = [];
       const fetchPromises: Promise<LogEntry[]>[] = [];
 
-      // ✅ PHASE 3: Fetch from all discovered nodes (not hardcoded 8)
       for (const node of nodes) {
         const nodeId = `optimusdb${node.id}`;
-
-        // ✅ PHASE 3: Build dynamic URL that works in Docker + K3s
         const baseUrl = buildApiUrl('optimusdb', '/swarmkb/log', node.id);
         const url = `${baseUrl}?date=${date}&hour=${hour}`;
 
-        console.log(`Fetching from ${nodeId}: ${url}`);
-
         const fetchPromise = fetch(url, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
         })
           .then(async (response): Promise<LogEntry[]> => {
-            if (!response.ok) {
-              console.warn(`${nodeId} returned status ${response.status}`);
-              return [];
-            }
-
+            if (!response.ok) return [];
             const data = await response.json();
-            console.log(`${nodeId} returned ${Array.isArray(data) ? data.length : 0} logs`);
 
-            // Parse logs from this node
             if (Array.isArray(data)) {
               return data
                 .map((rawLog: any) => parseOptimusDBLog(rawLog, nodeId))
                 .filter((log): log is LogEntry => log !== null);
             } else if (data.logs && Array.isArray(data.logs)) {
-              // Alternative format: { logs: [...] }
               return data.logs
                 .map((rawLog: any) => parseOptimusDBLog(rawLog, nodeId))
                 .filter((log): log is LogEntry => log !== null);
-            } else {
-              console.warn(`${nodeId} returned unexpected format:`, data);
-              return [];
             }
-          })
-          .catch((err): LogEntry[] => {
-            console.error(`Failed to fetch from ${nodeId}:`, err);
             return [];
-          });
+          })
+          .catch(() => []);
 
         fetchPromises.push(fetchPromise);
       }
 
-      // Wait for all nodes to respond
       const results = await Promise.all(fetchPromises);
-
-      // Flatten and combine logs from all nodes
       for (const nodeLogs of results) {
         allLogs.push(...nodeLogs);
       }
 
-      console.log(`Total logs fetched from all nodes: ${allLogs.length}`);
-
-      // Sort by timestamp (newest first)
       allLogs.sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
-      // If no logs found, generate mock data for demo
       if (allLogs.length === 0) {
-        console.log('No logs found from OptimusDB nodes, generating mock data for demo...');
-        const mockLogs = generateMockLogs(nodes.length); // ✅ PHASE 3: Pass node count to mock generator
+        const mockLogs = generateMockLogs(nodes.length);
         setLogs(mockLogs);
         setFilteredLogs(mockLogs);
-        setError(`No logs available from OptimusDB (${nodes.length} nodes checked). Showing mock data for demo.`);
+        setError(`No logs available from OptimusDB (${nodes.length} nodes). Showing mock data.`);
       } else {
         setLogs(allLogs);
         setFilteredLogs(allLogs);
-        setError(null);
       }
-
     } catch (err: any) {
-      console.error('Error fetching logs:', err);
-      setError(`Failed to fetch logs: ${err.message}. Using mock data for demo.`);
-
-      // Fallback to mock data with dynamic node count
+      setError(`Failed to fetch logs: ${err.message}`);
       const mockLogs = generateMockLogs(discoveredNodeCount || 8);
       setLogs(mockLogs);
       setFilteredLogs(mockLogs);
     } finally {
       setLoading(false);
     }
-  }, [discoveredNodeCount]); // ✅ PHASE 3: Add discoveredNodeCount to dependencies
+  }, [discoveredNodeCount]);
 
   // ===========================================================================
-  // MOCK DATA GENERATOR - PHASE 3 UPDATED TO ACCEPT NODE COUNT
+  // MOCK DATA GENERATOR
   // ===========================================================================
 
   const generateMockLogs = (nodeCount: number = 8): LogEntry[] => {
-    const levels: LogLevel[] = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
-    const categories: LogCategory[] = [
-      'Query', 'Peer', 'Election', 'Database', 'Network', 'OrbitDB', 'System', 'API'
+    const types: LogType[] = [
+      'DEBUG', 'INFO', 'QUERY', 'LINEAGE', 'MESH', 'REPLICATION',
+      'ELECTION', 'CACHE', 'AI', 'METRICS', 'PROC', 'DISCOVERY', 'WARN', 'ERROR'
     ];
-
-    // ✅ PHASE 3: Generate node array based on discovered count
     const nodes = Array.from({ length: nodeCount }, (_, i) => `optimusdb${i + 1}`);
-
-    const messages: Record<LogCategory, string[]> = {
-      Query: [
-        'Query executed successfully',
-        'SQL query parsed',
-        'Distributed query initiated',
-        'Query results aggregated',
-        'Query timeout occurred',
-      ],
-      Peer: [
-        'Peer connection established',
-        'Peer discovery completed',
-        'Peer disconnected',
-        'Gossipsub message received',
-        'DHT lookup completed',
-      ],
-      Election: [
-        'Leader election started',
-        'Vote received from peer',
-        'Became cluster leader',
-        'Leader heartbeat sent',
-        'Split-brain detected and resolved',
-      ],
-      Database: [
-        'SQLite query executed',
-        'OrbitDB sync completed',
-        'Database transaction committed',
-        'Index updated',
-        'Cache invalidated',
-      ],
-      Network: [
-        'LibP2P stream opened',
-        'Connection to peer established',
-        'Network latency measured',
-        'Bandwidth usage recorded',
-        'NAT traversal completed',
-      ],
-      OrbitDB: [
-        'OrbitDB instance initialized',
-        'Database replicated',
-        'IPFS content added',
-        'Document synchronized',
-        'Conflict resolved',
-      ],
-      System: [
-        'System startup completed',
-        'Configuration loaded',
-        'Health check passed',
-        'Resource usage monitored',
-        'Graceful shutdown initiated',
-      ],
-      API: [
-        'REST API request received',
-        'Authentication successful',
-        'Rate limit checked',
-        'Response sent to client',
-        'CORS headers added',
-      ],
-      Other: [
-        'General system message',
-        'Unknown event occurred',
-      ],
+    const messages: Record<LogType, string[]> = {
+      DEBUG: ['GossipSub heartbeat', 'Cache lookup'],
+      INFO: ['HTTP request received', 'Node started'],
+      QUERY: ['SQL query executed', 'Query aggregated'],
+      LINEAGE: ['Lineage tracked', 'Transformation recorded'],
+      MESH: ['GRAFT: Peer joined', 'PRUNE: Peer left'],
+      REPLICATION: ['OrbitDB sync', 'Replicated entries'],
+      ELECTION: ['Leader elected', 'Vote received'],
+      CACHE: ['Cache hit', 'Cache invalidated'],
+      AI: ['Enrichment completed', 'Quality score calculated'],
+      METRICS: ['Metrics collected', 'Health check passed'],
+      PROC: ['Task started', 'Cleanup completed'],
+      DISCOVERY: ['Peer found', 'DHT lookup'],
+      WARN: ['Slow query', 'High memory'],
+      ERROR: ['Connection failed', 'Query error'],
     };
 
     const mockLogs: LogEntry[] = [];
     const now = Date.now();
 
-    // Generate 150 logs over the past 2 hours
-    for (let i = 0; i < 150; i++) {
-      const timestamp = new Date(now - Math.random() * 2 * 60 * 60 * 1000);
-      const level = levels[Math.floor(Math.random() * levels.length)];
-      const category = categories[Math.floor(Math.random() * categories.length)];
-      const nodeId = nodes[Math.floor(Math.random() * nodes.length)];
-
-      const categoryMessages = messages[category] || ['Log message'];
-      const message = categoryMessages[Math.floor(Math.random() * categoryMessages.length)];
+    for (let i = 0; i < 100; i++) {
+      const type = types[Math.floor(Math.random() * types.length)];
+      const node = nodes[Math.floor(Math.random() * nodes.length)];
+      const messageList = messages[type];
+      const message = messageList[Math.floor(Math.random() * messageList.length)];
 
       mockLogs.push({
         id: `mock-${i}`,
-        timestamp: timestamp.toISOString(),
-        level,
-        category,
-        nodeId,
-        message,
-        details: `Detailed information for ${message}`,
-        traceId: `trace-${Math.random().toString(36).substring(2, 11)}`,
-        duration: Math.random() > 0.5 ? Math.floor(Math.random() * 1000) : undefined,
+        timestamp: new Date(now - i * 60000).toISOString(),
+        type: type,
+        nodeId: node,
+        source: `main.go:${Math.floor(Math.random() * 500) + 100}`,
+        message: message,
+        duration: type === 'QUERY' ? Math.floor(Math.random() * 500) : undefined,
       });
     }
 
-    return mockLogs.sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    return mockLogs;
   };
 
   // ===========================================================================
-  // FILTERING LOGIC
+  // FILTERING
   // ===========================================================================
 
   const applyFilters = useCallback(() => {
     let filtered = [...logs];
 
-    // Filter by level
-    if (filters.level !== 'ALL') {
-      filtered = filtered.filter(log => log.level === filters.level);
+    if (filters.types.length > 0) {
+      filtered = filtered.filter(log => filters.types.includes(log.type));
     }
 
-    // Filter by category
-    if (filters.category !== 'ALL') {
-      filtered = filtered.filter(log => log.category === filters.category);
-    }
-
-    // Filter by node
-    if (filters.nodeId && filters.nodeId !== 'all') {
+    if (filters.nodeId !== 'all') {
       filtered = filtered.filter(log => log.nodeId === filters.nodeId);
     }
 
-    // Filter by time range
     if (filters.startTime) {
       const startTime = new Date(filters.startTime).getTime();
       filtered = filtered.filter(log =>
@@ -401,7 +317,6 @@ const LogAnalyticsPage: React.FC = () => {
       );
     }
 
-    // Filter by search term
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
       filtered = filtered.filter(log =>
@@ -412,7 +327,7 @@ const LogAnalyticsPage: React.FC = () => {
     }
 
     setFilteredLogs(filtered);
-    setCurrentPage(1); // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [logs, filters]);
 
   // ===========================================================================
@@ -425,56 +340,42 @@ const LogAnalyticsPage: React.FC = () => {
         totalLogs: 0,
         logsPerMinute: 0,
         errorRate: 0,
-        fatalCount: 0,
-        byLevel: { DEBUG: 0, INFO: 0, WARN: 0, ERROR: 0, FATAL: 0 },
-        byCategory: {},
+        errorCount: 0,
+        byType: {} as Record<LogType, number>,
         byNode: {},
         peakActivity: 0,
         healthStatus: 'healthy',
       };
     }
 
-    // Count by level
-    const byLevel: Record<LogLevel, number> = {
-      DEBUG: 0,
-      INFO: 0,
-      WARN: 0,
-      ERROR: 0,
-      FATAL: 0,
+    const byType: Record<LogType, number> = {
+      DEBUG: 0, INFO: 0, QUERY: 0, LINEAGE: 0, MESH: 0, REPLICATION: 0,
+      ELECTION: 0, CACHE: 0, AI: 0, METRICS: 0, PROC: 0, DISCOVERY: 0,
+      WARN: 0, ERROR: 0,
     };
 
     filteredLogs.forEach(log => {
-      byLevel[log.level] = (byLevel[log.level] || 0) + 1;
+      byType[log.type] = (byType[log.type] || 0) + 1;
     });
 
-    // Count by category
-    const byCategory: Record<string, number> = {};
-    filteredLogs.forEach(log => {
-      byCategory[log.category] = (byCategory[log.category] || 0) + 1;
-    });
-
-    // Count by node
     const byNode: Record<string, number> = {};
     filteredLogs.forEach(log => {
       byNode[log.nodeId] = (byNode[log.nodeId] || 0) + 1;
     });
 
-    // Calculate time-based metrics
     const timestamps = filteredLogs.map(log => new Date(log.timestamp).getTime());
     const minTime = Math.min(...timestamps);
     const maxTime = Math.max(...timestamps);
     const durationMinutes = (maxTime - minTime) / (1000 * 60);
     const logsPerMinute = durationMinutes > 0 ? filteredLogs.length / durationMinutes : 0;
 
-    // Calculate error rate
-    const errorCount = (byLevel.ERROR || 0) + (byLevel.FATAL || 0);
+    const errorCount = (byType.ERROR || 0) + (byType.WARN || 0);
     const errorRate = (errorCount / filteredLogs.length) * 100;
 
-    // Determine health status
     let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
-    if (byLevel.FATAL > 0 || errorRate > 10) {
+    if (byType.ERROR > 10 || errorRate > 10) {
       healthStatus = 'critical';
-    } else if (errorRate > 5 || byLevel.ERROR > 10) {
+    } else if (errorRate > 5 || byType.WARN > 10) {
       healthStatus = 'warning';
     }
 
@@ -482,9 +383,8 @@ const LogAnalyticsPage: React.FC = () => {
       totalLogs: filteredLogs.length,
       logsPerMinute: Math.round(logsPerMinute * 10) / 10,
       errorRate: Math.round(errorRate * 10) / 10,
-      fatalCount: byLevel.FATAL || 0,
-      byLevel,
-      byCategory,
+      errorCount: byType.ERROR || 0,
+      byType,
       byNode,
       peakActivity: Math.max(...Object.values(byNode)),
       healthStatus,
@@ -497,25 +397,11 @@ const LogAnalyticsPage: React.FC = () => {
   // EFFECTS
   // ===========================================================================
 
-  // Initial fetch
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
-  // Apply filters when logs or filters change
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
-
-  // Auto-refresh
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  useEffect(() => { applyFilters(); }, [applyFilters]);
   useEffect(() => {
     if (!autoRefresh) return;
-
-    const intervalId = setInterval(() => {
-      console.log('Auto-refreshing logs...');
-      fetchLogs();
-    }, refreshInterval * 1000);
-
+    const intervalId = setInterval(() => fetchLogs(), refreshInterval * 1000);
     return () => clearInterval(intervalId);
   }, [autoRefresh, refreshInterval, fetchLogs]);
 
@@ -531,24 +417,29 @@ const LogAnalyticsPage: React.FC = () => {
     fetchLogs();
   };
 
+  /**
+   * EXPORT FUNCTIONALITY - PRESERVED EXACTLY
+   */
   const handleExport = (format: 'csv' | 'json') => {
+    const timestamp = new Date().toISOString().split('T')[0];
+
     if (format === 'json') {
       const dataStr = JSON.stringify(filteredLogs, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `logs-${Date.now()}.json`;
+      link.download = `optimusdb-logs-${timestamp}.json`;
       link.click();
       URL.revokeObjectURL(url);
     } else {
-      // CSV export
-      const headers = ['Timestamp', 'Level', 'Category', 'Node', 'Message', 'Details'];
+      // CSV export - Updated headers: Type instead of Level,Category
+      const headers = ['Timestamp', 'Type', 'Node', 'Source', 'Message', 'Details'];
       const rows = filteredLogs.map(log => [
         log.timestamp,
-        log.level,
-        log.category,
+        log.type,  // ← Single type field
         log.nodeId,
+        log.source || '',
         log.message,
         log.details || '',
       ]);
@@ -562,7 +453,7 @@ const LogAnalyticsPage: React.FC = () => {
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `logs-${Date.now()}.csv`;
+      link.download = `optimusdb-logs-${timestamp}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     }
@@ -578,150 +469,115 @@ const LogAnalyticsPage: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // Scroll to top of log viewer smoothly
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogsPerPageChange = (newLogsPerPage: number) => {
     setLogsPerPage(newLogsPerPage);
-    setCurrentPage(1); // Reset to first page when changing page size
+    setCurrentPage(1);
   };
 
   // ===========================================================================
-  // RENDER
+  // RENDER - EXACT LAYOUT FROM IMAGES
   // ===========================================================================
 
   return (
     <div className="log-analytics-page">
-      {/* Header */}
+      {/* HEADER WITH AUTO-REFRESH + EXPORT BUTTONS (EXACTLY AS IN IMAGE 2) */}
       <div className="log-analytics-header">
-        <div className="header-content">
-          <h1>📋 Log Analytics Dashboard</h1>
-          {/* ✅ PHASE 3: Show discovered node count */}
-          <p>
-            Distributed log aggregation across{' '}
-            {discoveredNodeCount > 0 ? discoveredNodeCount : '...'} node
-            {discoveredNodeCount !== 1 ? 's' : ''}
-          </p>
+        <div className="header-title-row">
+          <h1>Distributed log aggregation across {discoveredNodeCount} nodes</h1>
         </div>
 
-        <div className="header-actions">
-          <label className="auto-refresh-toggle">
+        <div className="header-controls-row">
+          {/* Auto-refresh control (EXACTLY AS IN IMAGE 2) */}
+          <label className="auto-refresh-checkbox">
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
             />
-            <span>Auto-refresh</span>
+            Auto-refresh {refreshInterval}s
           </label>
 
-          <select
-            value={refreshInterval}
-            onChange={(e) => setRefreshInterval(Number(e.target.value))}
-            disabled={!autoRefresh}
-            className="refresh-interval-select"
-          >
-            <option value={10}>10s</option>
-            <option value={30}>30s</option>
-            <option value={60}>60s</option>
-            <option value={120}>2m</option>
-            <option value={300}>5m</option>
-          </select>
-
+          {/* Refresh button */}
           <button
-            onClick={handleRefresh}
             className="btn-refresh"
+            onClick={handleRefresh}
             disabled={loading}
           >
             🔄 Refresh
           </button>
 
+          {/* CSV EXPORT BUTTON (EXACTLY AS IN IMAGE 2) */}
           <button
+            className="btn-csv"
             onClick={() => handleExport('csv')}
-            className="btn-export"
-            disabled={filteredLogs.length === 0}
+            disabled={loading}
           >
             📥 CSV
           </button>
 
+          {/* JSON EXPORT BUTTON (EXACTLY AS IN IMAGE 2) */}
           <button
+            className="btn-json"
             onClick={() => handleExport('json')}
-            className="btn-export"
-            disabled={filteredLogs.length === 0}
+            disabled={loading}
           >
             📥 JSON
           </button>
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Error Banner */}
       {error && (
         <div className="error-banner">
           ⚠️ {error}
         </div>
       )}
 
-      {/* Loading State */}
-      {loading && logs.length === 0 ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>
-            Loading logs from OptimusDB cluster
-            {discoveredNodeCount > 0 ? ` (${discoveredNodeCount} nodes)` : ''}...
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Statistics */}
-          <LogStatistics statistics={statistics} />
+      {/* METRICS CARDS (EXACTLY AS IN IMAGE 2) */}
+      <LogStatistics statistics={statistics} />
 
-          {/* Charts */}
-          <LogCharts logs={filteredLogs} statistics={statistics} />
+      {/* CHARTS SECTION (EXACTLY AS IN IMAGE 2) */}
+      {/* Includes: Log Levels (now Log Types), Top Active Nodes, Top Categories (now Top Types) */}
+      <LogCharts
+        statistics={statistics}
+        filteredLogs={filteredLogs}
+      />
 
-          {/* Filters */}
-          <LogFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            availableNodes={Object.keys(statistics.byNode)}
+      {/* MAIN CONTENT: Filters + Logs */}
+      <div className="log-analytics-content">
+        <LogFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          availableNodes={Array.from(new Set(logs.map(log => log.nodeId)))}
+        />
+
+        <div className="log-viewer-container">
+          <LogViewer
+            logs={paginatedLogs}
+            onLogClick={handleLogClick}
           />
 
-          {/* Log Viewer with Pagination */}
-          <div className="log-viewer">
-            <div className="viewer-header">
-              <h3>
-                📋 Log Entries
-                <span className="log-count">
-                  ({filteredLogs.length.toLocaleString()} logs)
-                </span>
-              </h3>
-            </div>
+          <LogPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            logsPerPage={logsPerPage}
+            totalLogs={filteredLogs.length}
+            onPageChange={handlePageChange}
+            onLogsPerPageChange={handleLogsPerPageChange}
+          />
+        </div>
+      </div>
 
-            <LogViewer
-              logs={paginatedLogs}
-              onLogClick={handleLogClick}
-              loading={loading}
-            />
-
-            {/* Pagination */}
-            {filteredLogs.length > 0 && (
-              <LogPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalLogs={filteredLogs.length}
-                logsPerPage={logsPerPage}
-                onPageChange={handlePageChange}
-                onLogsPerPageChange={handleLogsPerPageChange}
-              />
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Details Modal */}
+      {/* LOG DETAILS MODAL (EXACTLY AS IN IMAGE 1) */}
+      {/* Includes: Export Log, Share Log buttons */}
       {selectedLog && (
         <LogDetailsModal
           log={selectedLog}
           onClose={handleCloseModal}
+          onExport={handleExport}
         />
       )}
     </div>
@@ -729,21 +585,3 @@ const LogAnalyticsPage: React.FC = () => {
 };
 
 export default LogAnalyticsPage;
-
-// ==============================================================================
-// PHASE 3 CHANGES SUMMARY
-// ==============================================================================
-// 1. ✅ Added import: import { getAvailableNodes, buildApiUrl } from 'config/apiConfig';
-// 2. ✅ Added state: discoveredNodeCount to track number of nodes
-// 3. ✅ Updated fetchLogs(): Uses getAvailableNodes() instead of hardcoded loop
-// 4. ✅ Updated fetchLogs(): Uses buildApiUrl() for each node
-// 5. ✅ Updated generateMockLogs(): Accepts nodeCount parameter
-// 6. ✅ Updated header: Shows actual discovered node count
-// 7. ✅ Updated loading message: Shows node count
-//
-// RESULT:
-// - Docker Desktop: Fetches from localhost:18001, 18002, 18003, etc.
-// - K3s: Fetches from /swarmkb/log, /optimusdb2/swarmkb/log, etc.
-// - Works with ANY number of nodes (not hardcoded to 8)
-// - All existing features preserved (pagination, filters, charts, export, etc.)
-// ==============================================================================

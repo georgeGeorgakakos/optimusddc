@@ -1,204 +1,134 @@
 // ==============================================================================
 // FILE: amundsen_application/static/js/pages/LogAnalyticsPage/components/LogViewer.tsx
-// FIXED PROPS INTERFACE
+// UPDATED FOR OPTIMUSDB LOGGER INTEGRATION - COLOR-CODED TYPE BADGES
 // ==============================================================================
 
 import * as React from 'react';
-import { LogEntry } from '../index';
+import { LogEntry, LOG_TYPE_COLORS } from '../index';
 
-// ==============================================================================
-// PROPS INTERFACE - FIXED
-// ==============================================================================
-
-export interface LogViewerProps {
+interface LogViewerProps {
   logs: LogEntry[];
-  onLogClick: (log: LogEntry) => void; // ADDED
-  loading: boolean;
+  onLogClick: (log: LogEntry) => void;
 }
 
-// ==============================================================================
-// COMPONENT
-// ==============================================================================
-
-const LogViewer: React.FC<LogViewerProps> = ({ logs, onLogClick, loading }) => {
-  const [sortField, setSortField] = React.useState<keyof LogEntry>('timestamp');
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>(
-    'desc'
-  );
-
-  // ===========================================================================
-  // Sorting Logic
-  // ===========================================================================
-
-  const handleSort = (field: keyof LogEntry) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  const sortedLogs = React.useMemo(
-    () =>
-      [...logs].sort((a, b) => {
-        const aVal = a[sortField];
-        const bVal = b[sortField];
-
-        if (aVal === undefined || bVal === undefined) return 0;
-
-        let comparison = 0;
-
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          comparison = aVal.localeCompare(bVal);
-        } else if (typeof aVal === 'number' && typeof bVal === 'number') {
-          comparison = aVal - bVal;
-        }
-
-        return sortDirection === 'asc' ? comparison : -comparison;
-      }),
-    [logs, sortField, sortDirection]
-  );
-
-  // ===========================================================================
-  // Level Badge Styling
-  // ===========================================================================
-
-  const getLevelClass = (level: string): string => {
-    const levelMap: Record<string, string> = {
-      DEBUG: 'level-debug',
-      INFO: 'level-info',
-      WARN: 'level-warn',
-      ERROR: 'level-error',
-      FATAL: 'level-fatal',
-    };
-
-    return levelMap[level] || 'level-info';
-  };
-
-  // ===========================================================================
-  // Format Timestamp
-  // ===========================================================================
+const LogViewer: React.FC<LogViewerProps> = ({ logs, onLogClick }) => {
+  if (logs.length === 0) {
+    return (
+      <div className="log-viewer-empty">
+        <div className="empty-state">
+          <div className="empty-icon">📭</div>
+          <h3>No logs found</h3>
+          <p>Try adjusting your filters or time range</p>
+        </div>
+      </div>
+    );
+  }
 
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
-
     return date.toLocaleString('en-US', {
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false,
+      hour12: true
     });
   };
 
-  // ===========================================================================
-  // Render Sort Icon
-  // ===========================================================================
-
-  const renderSortIcon = (field: keyof LogEntry) => {
-    if (sortField !== field) return null;
-
-    return sortDirection === 'asc' ? ' ▲' : ' ▼';
+  const truncateMessage = (message: string, maxLength: number = 200): string => {
+    if (message.length <= maxLength) return message;
+    return message.substring(0, maxLength) + '...';
   };
-
-  // ===========================================================================
-  // Render
-  // ===========================================================================
-
-  if (loading && logs.length === 0) {
-    return (
-      <div className="log-viewer">
-        <div className="loading-spinner">Loading logs...</div>
-      </div>
-    );
-  }
-
-  if (logs.length === 0) {
-    return (
-      <div className="log-viewer">
-        <div className="no-logs">
-          <p>📭 No logs found</p>
-          <p className="hint">Try adjusting your filters or time range</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="log-viewer">
+      {/* Header */}
       <div className="log-viewer-header">
-        <h3>📋 Log Entries ({logs.length} logs)</h3>
+        <h3>Log Entries</h3>
+        <span className="log-count">
+          Showing {logs.length} log{logs.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      <div className="log-table-container">
-        <table className="log-table">
-          <thead>
-            <tr>
-              <th onClick={() => handleSort('timestamp')} className="sortable">
-                Timestamp{renderSortIcon('timestamp')}
-              </th>
-              <th onClick={() => handleSort('level')} className="sortable">
-                Level{renderSortIcon('level')}
-              </th>
-              <th onClick={() => handleSort('category')} className="sortable">
-                Category{renderSortIcon('category')}
-              </th>
-              <th onClick={() => handleSort('nodeId')} className="sortable">
-                Node{renderSortIcon('nodeId')}
-              </th>
-              <th>Message</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedLogs.map((log) => (
-              <tr
-                key={log.id}
-                className="log-row"
-                onClick={() => onLogClick(log)}
-              >
-                <td className="log-timestamp">
+      {/* Log Entries */}
+      <div className="log-entries">
+        {logs.map((log) => {
+          const typeColor = LOG_TYPE_COLORS[log.type];
+          const isDarkText = ['#ffc107', '#fd7e14'].includes(typeColor);
+
+          return (
+            <div
+              key={log.id}
+              className="log-entry"
+              onClick={() => onLogClick(log)}
+            >
+              {/* Log Entry Header */}
+              <div className="log-entry-header">
+                {/* Log Type Badge */}
+                <span
+                  className="log-type-badge"
+                  style={{
+                    background: typeColor,
+                    color: isDarkText ? '#000' : '#fff',
+                  }}
+                >
+                  {log.type}
+                </span>
+
+                {/* Timestamp */}
+                <span className="log-timestamp">
                   {formatTimestamp(log.timestamp)}
-                </td>
-                <td>
-                  <span
-                    className={`log-level-badge ${getLevelClass(log.level)}`}
-                  >
-                    {log.level}
-                  </span>
-                </td>
-                <td>
-                  <span className="log-category">{log.category}</span>
-                </td>
-                <td>
-                  <span className="log-node">{log.nodeId}</span>
-                </td>
-                <td className="log-message">{log.message}</td>
-                <td>
-                  <button
-                    className="btn-view-details"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onLogClick(log);
-                    }}
-                  >
-                    👁️ View
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </span>
 
-      {loading && (
-        <div className="loading-overlay">
-          <div className="spinner" />
-          <p>Refreshing logs...</p>
-        </div>
-      )}
+                {/* Node Badge */}
+                <span className="log-node-badge">
+                  {log.nodeId}
+                </span>
+
+                {/* Source (if available) */}
+                {log.source && (
+                  <span className="log-source">
+                    {log.source}
+                  </span>
+                )}
+
+                {/* Duration (if available) */}
+                {log.duration !== undefined && (
+                  <span className="log-duration">
+                    {log.duration}ms
+                  </span>
+                )}
+              </div>
+
+              {/* Log Message */}
+              <div className="log-message">
+                {truncateMessage(log.message)}
+              </div>
+
+              {/* Additional Info */}
+              <div className="log-meta">
+                {log.traceId && (
+                  <span className="log-meta-item">
+                    🔍 Trace: <code>{log.traceId.substring(0, 12)}...</code>
+                  </span>
+                )}
+                {log.error && (
+                  <span className="log-meta-item error">
+                    ⚠️ Has error details
+                  </span>
+                )}
+                {log.details && (
+                  <span className="log-meta-item">
+                    📋 Has details
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

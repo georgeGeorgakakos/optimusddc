@@ -1,417 +1,203 @@
 // ==============================================================================
 // FILE: amundsen_application/static/js/pages/LogAnalyticsPage/components/LogCharts.tsx
+// EXACT REPLICA WITH TOP ACTIVE NODES PRESERVED
 // ==============================================================================
 
 import * as React from 'react';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import { LogEntry, LogStatistics as LogStatisticsType } from '../index';
+import { useState } from 'react';
+import { LogStatistics, LogEntry, LogType, LOG_TYPE_COLORS } from '../index';
 
 interface LogChartsProps {
-  logs: LogEntry[];
-  statistics: LogStatisticsType;
+  statistics: LogStatistics;
+  filteredLogs: LogEntry[];
 }
 
-const LogCharts: React.FC<LogChartsProps> = ({ logs, statistics }) => {
-  const [selectedChart, setSelectedChart] = React.useState<'timeline' | 'levels' | 'categories' | 'nodes'>('timeline');
+type ChartTab = 'timeline' | 'levels' | 'categories' | 'nodes';
+
+const LogCharts: React.FC<LogChartsProps> = ({ statistics, filteredLogs }) => {
+  const [activeTab, setActiveTab] = useState<ChartTab>('timeline');
 
   // ===========================================================================
-  // Prepare Time-Series Data
+  // BAR CHART COMPONENT (EXACTLY AS IN IMAGE 2)
   // ===========================================================================
 
-  const timeSeriesData = React.useMemo(() => {
-    if (logs.length === 0) return [];
+  interface BarChartProps {
+    data: Array<{ label: string; value: number; color?: string }>;
+    maxValue?: number;
+  }
 
-    // Group logs by minute
-    const groupedByMinute: Record<string, any> = {};
+  const BarChart: React.FC<BarChartProps> = ({ data, maxValue }) => {
+    const max = maxValue || Math.max(...data.map(d => d.value), 1);
 
-    logs.forEach(log => {
-      const minute = new Date(log.timestamp);
-      minute.setSeconds(0, 0);
-      const key = minute.toISOString();
-
-      if (!groupedByMinute[key]) {
-        groupedByMinute[key] = {
-          timestamp: minute,
-          time: minute.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          total: 0,
-          DEBUG: 0,
-          INFO: 0,
-          WARN: 0,
-          ERROR: 0,
-          FATAL: 0,
-        };
-      }
-
-      groupedByMinute[key].total++;
-      groupedByMinute[key][log.level]++;
-    });
-
-    // Sort by time
-    return Object.values(groupedByMinute).sort((a, b) =>
-      a.timestamp.getTime() - b.timestamp.getTime()
+    return (
+      <div className="bar-chart">
+        {data.map((item, index) => (
+          <div key={index} className="bar-chart-item">
+            <div className="bar-label" style={item.color ? {
+              background: item.color,
+              color: ['#ffc107', '#fd7e14'].includes(item.color) ? '#000' : '#fff',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontWeight: 600,
+              fontSize: '11px',
+              minWidth: '80px',
+              textAlign: 'left',
+            } : { minWidth: '100px' }}>
+              {item.label}
+            </div>
+            <div className="bar-container">
+              <div
+                className="bar-fill"
+                style={{
+                  width: `${(item.value / max) * 100}%`,
+                  background: item.color || '#0d6efd',
+                  height: '20px',
+                  borderRadius: '4px',
+                }}
+              />
+            </div>
+            <div className="bar-value" style={{ minWidth: '60px', textAlign: 'right', fontWeight: 700 }}>
+              {item.value.toLocaleString()}
+            </div>
+          </div>
+        ))}
+      </div>
     );
-  }, [logs]);
-
-  // ===========================================================================
-  // Prepare Level Distribution Data
-  // ===========================================================================
-
-  const levelDistributionData = React.useMemo(() => {
-    return Object.entries(statistics.byLevel)
-      .filter(([, count]) => count > 0)
-      .map(([level, count]) => ({
-        name: level,
-        value: count,
-        percentage: ((count / statistics.totalLogs) * 100).toFixed(1),
-      }));
-  }, [statistics]);
-
-  // ===========================================================================
-  // Prepare Category Distribution Data
-  // ===========================================================================
-
-  const categoryDistributionData = React.useMemo(() => {
-    return Object.entries(statistics.byCategory)
-      .filter(([, count]) => count > 0)
-      .map(([category, count]) => ({
-        name: category,
-        value: count,
-        percentage: ((count / statistics.totalLogs) * 100).toFixed(1),
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [statistics]);
-
-  // ===========================================================================
-  // Prepare Node Distribution Data
-  // ===========================================================================
-
-  const nodeDistributionData = React.useMemo(() => {
-    return Object.entries(statistics.byNode)
-      .map(([nodeId, count]) => ({
-        name: nodeId,
-        value: count,
-        percentage: ((count / statistics.totalLogs) * 100).toFixed(1),
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [statistics]);
-
-  // ===========================================================================
-  // Colors
-  // ===========================================================================
-
-  const LEVEL_COLORS: Record<string, string> = {
-    DEBUG: '#858585',
-    INFO: '#4ec9b0',
-    WARN: '#ff9800',
-    ERROR: '#f48771',
-    FATAL: '#ff0000',
   };
 
-  const CATEGORY_COLORS = [
-    '#007acc', '#4ec9b0', '#ff9800', '#f48771', '#9cdcfe',
-    '#dcdcaa', '#c586c0', '#569cd6', '#ce9178',
-  ];
+  // ===========================================================================
+  // PREPARE CHART DATA (MATCHING IMAGE 2)
+  // ===========================================================================
+
+  // Log Types Distribution (replaces "Log Levels" from image)
+  // Shows: INFO (9,373), WARN (12), ERROR (4), etc.
+  const logTypesData = Object.entries(statistics.byType)
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([type, count]) => ({
+      label: type,
+      value: count,
+      color: LOG_TYPE_COLORS[type as LogType],
+    }));
+
+  // TOP ACTIVE NODES (EXACTLY AS IN IMAGE 2)
+  // Shows: optimusdb2 (3,351), optimusdb1 (3,303), optimusdb3 (2,735)
+  const topNodesData = Object.entries(statistics.byNode)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([node, count]) => ({
+      label: node,
+      value: count,
+    }));
+
+  // Top Log Types (replaces "Top Categories" from image)
+  // Categories now represented by Log Types
+  const topTypesData = Object.entries(statistics.byType)
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([type, count]) => ({
+      label: type,
+      value: count,
+      color: LOG_TYPE_COLORS[type as LogType],
+    }));
 
   // ===========================================================================
-  // Render Charts
+  // RENDER - THREE-PANEL LAYOUT (EXACTLY AS IN IMAGE 2)
   // ===========================================================================
 
   return (
-    <div className="log-charts">
-      <div className="charts-header">
-        <h3>📈 Metrics</h3>
-        <div className="chart-tabs">
-          <button
-            className={`chart-tab ${selectedChart === 'timeline' ? 'active' : ''}`}
-            onClick={() => setSelectedChart('timeline')}
-          >
-            📊 Timeline
-          </button>
-          <button
-            className={`chart-tab ${selectedChart === 'levels' ? 'active' : ''}`}
-            onClick={() => setSelectedChart('levels')}
-          >
-            🎯 Levels
-          </button>
-          <button
-            className={`chart-tab ${selectedChart === 'categories' ? 'active' : ''}`}
-            onClick={() => setSelectedChart('categories')}
-          >
-            🏷️ Categories
-          </button>
-          <button
-            className={`chart-tab ${selectedChart === 'nodes' ? 'active' : ''}`}
-            onClick={() => setSelectedChart('nodes')}
-          >
-            🖥️ Nodes
-          </button>
+    <div className="log-charts-section">
+      {/* THREE CHART PANELS (EXACTLY AS IN IMAGE 2) */}
+      <div className="charts-grid-three-panel">
+
+        {/* PANEL 1: Log Levels → Log Types */}
+        <div className="chart-panel">
+          <div className="chart-panel-header">
+            <span className="chart-icon">📊</span>
+            <h3>Log Types</h3>
+          </div>
+          <div className="chart-panel-content">
+            <BarChart data={logTypesData} />
+          </div>
         </div>
+
+        {/* PANEL 2: TOP ACTIVE NODES (PRESERVED EXACTLY) */}
+        <div className="chart-panel">
+          <div className="chart-panel-header">
+            <span className="chart-icon">💻</span>
+            <h3>Top Active Nodes</h3>
+          </div>
+          <div className="chart-panel-content">
+            <BarChart data={topNodesData} />
+          </div>
+        </div>
+
+        {/* PANEL 3: Top Categories → Top Log Types */}
+        <div className="chart-panel">
+          <div className="chart-panel-header">
+            <span className="chart-icon">📑</span>
+            <h3>Top Log Types</h3>
+          </div>
+          <div className="chart-panel-content">
+            <BarChart data={topTypesData} />
+          </div>
+        </div>
+
       </div>
 
-      <div className="charts-content">
-        {selectedChart === 'timeline' && (
-          <div className="chart-container">
-            <h4>Log Activity Over Time</h4>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={timeSeriesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis
-                  dataKey="time"
-                  stroke="#d4d4d4"
-                  tick={{ fill: '#d4d4d4' }}
-                />
-                <YAxis
-                  stroke="#d4d4d4"
-                  tick={{ fill: '#d4d4d4' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1e1e1e',
-                    border: '1px solid #333',
-                    borderRadius: '4px',
-                    color: '#d4d4d4',
-                  }}
-                />
-                <Legend wrapperStyle={{ color: '#d4d4d4' }} />
-                <Area
-                  type="monotone"
-                  dataKey="ERROR"
-                  stackId="1"
-                  stroke={LEVEL_COLORS.ERROR}
-                  fill={LEVEL_COLORS.ERROR}
-                  fillOpacity={0.8}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="WARN"
-                  stackId="1"
-                  stroke={LEVEL_COLORS.WARN}
-                  fill={LEVEL_COLORS.WARN}
-                  fillOpacity={0.8}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="INFO"
-                  stackId="1"
-                  stroke={LEVEL_COLORS.INFO}
-                  fill={LEVEL_COLORS.INFO}
-                  fillOpacity={0.8}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="DEBUG"
-                  stackId="1"
-                  stroke={LEVEL_COLORS.DEBUG}
-                  fill={LEVEL_COLORS.DEBUG}
-                  fillOpacity={0.8}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-
-            <div className="chart-insights">
-              <div className="insight">
-                <span className="insight-label">Peak Activity:</span>
-                <span className="insight-value">
-                  {Math.max(...timeSeriesData.map(d => d.total))} logs/min
-                </span>
-              </div>
-              <div className="insight">
-                <span className="insight-label">Time Range:</span>
-                <span className="insight-value">
-                  {timeSeriesData.length > 0 ? `${timeSeriesData.length} minutes` : '-'}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedChart === 'levels' && (
-          <div className="chart-container">
-            <div className="chart-split">
-              <div className="chart-half">
-                <h4>Log Levels Distribution (Pie Chart)</h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={levelDistributionData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={(entry) => `${entry.name}: ${((entry.percent || 0) * 100).toFixed(1)}%`}
-                    >
-                      {levelDistributionData.map((entry, index) => (
-                        <Cell key={index} fill={LEVEL_COLORS[entry.name]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1e1e1e',
-                        border: '1px solid #333',
-                        borderRadius: '4px',
-                        color: '#d4d4d4',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="chart-half">
-                <h4>Log Levels Distribution (Bar Chart)</h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={levelDistributionData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#d4d4d4"
-                      tick={{ fill: '#d4d4d4' }}
-                    />
-                    <YAxis
-                      stroke="#d4d4d4"
-                      tick={{ fill: '#d4d4d4' }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1e1e1e',
-                        border: '1px solid #333',
-                        borderRadius: '4px',
-                        color: '#d4d4d4',
-                      }}
-                    />
-                    <Bar dataKey="value">
-                      {levelDistributionData.map((entry, index) => (
-                        <Cell key={index} fill={LEVEL_COLORS[entry.name]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedChart === 'categories' && (
-          <div className="chart-container">
-            <h4>Log Categories Distribution</h4>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={categoryDistributionData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis
-                  type="number"
-                  stroke="#d4d4d4"
-                  tick={{ fill: '#d4d4d4' }}
-                />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  stroke="#d4d4d4"
-                  tick={{ fill: '#d4d4d4' }}
-                  width={100}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1e1e1e',
-                    border: '1px solid #333',
-                    borderRadius: '4px',
-                    color: '#d4d4d4',
-                  }}
-                  formatter={(value: any) => [`${value} logs`, 'Count']}
-                />
-                <Bar dataKey="value">
-                  {categoryDistributionData.map((entry, index) => (
-                    <Cell key={index} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-
-            <div className="chart-insights">
-              <div className="insight">
-                <span className="insight-label">Most Common:</span>
-                <span className="insight-value">
-                  {categoryDistributionData[0]?.name || '-'} ({categoryDistributionData[0]?.percentage || '0'}%)
-                </span>
-              </div>
-              <div className="insight">
-                <span className="insight-label">Total Categories:</span>
-                <span className="insight-value">
-                  {categoryDistributionData.length}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedChart === 'nodes' && (
-          <div className="chart-container">
-            <h4>Log Distribution Across Nodes</h4>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={nodeDistributionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis
-                  dataKey="name"
-                  stroke="#d4d4d4"
-                  tick={{ fill: '#d4d4d4' }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis stroke="#d4d4d4" tick={{ fill: '#d4d4d4' }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1e1e1e',
-                    border: '1px solid #333',
-                    borderRadius: '4px',
-                    color: '#d4d4d4',
-                  }}
-                  formatter={(value: any) => [`${value} logs`, 'Count']}
-                />
-                <Bar dataKey="value" fill="#007acc" />
-              </BarChart>
-            </ResponsiveContainer>
-
-            <div className="chart-insights">
-              <div className="insight">
-                <span className="insight-label">Most Active Node:</span>
-                <span className="insight-value">
-                  {nodeDistributionData[0]?.name || '-'} ({nodeDistributionData[0]?.percentage || '0'}%)
-                </span>
-              </div>
-              <div className="insight">
-                <span className="insight-label">Total Nodes:</span>
-                <span className="insight-value">{nodeDistributionData.length}</span>
-              </div>
-              <div className="insight">
-                <span className="insight-label">Avg Logs/Node:</span>
-                <span className="insight-value">
-                  {nodeDistributionData.length > 0
-                    ? Math.round(
-                      statistics.totalLogs / nodeDistributionData.length
-                    )
-                    : 0}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* METRICS TABS AT BOTTOM (EXACTLY AS IN IMAGE 2) */}
+      <div className="metrics-tabs">
+        <button
+          className={`metric-tab ${activeTab === 'timeline' ? 'active' : ''}`}
+          onClick={() => setActiveTab('timeline')}
+        >
+          📈 Timeline
+        </button>
+        <button
+          className={`metric-tab ${activeTab === 'levels' ? 'active' : ''}`}
+          onClick={() => setActiveTab('levels')}
+        >
+          📊 Levels
+        </button>
+        <button
+          className={`metric-tab ${activeTab === 'categories' ? 'active' : ''}`}
+          onClick={() => setActiveTab('categories')}
+        >
+          📑 Categories
+        </button>
+        <button
+          className={`metric-tab ${activeTab === 'nodes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('nodes')}
+        >
+          💻 Nodes
+        </button>
       </div>
+
+      {/* TAB CONTENT (Expandable detailed view) */}
+      {activeTab !== 'timeline' && (
+        <div className="metrics-tab-content">
+          {activeTab === 'levels' && (
+            <div className="chart-detail-view">
+              <h4>Detailed Log Types Distribution</h4>
+              <BarChart data={logTypesData} />
+            </div>
+          )}
+          {activeTab === 'categories' && (
+            <div className="chart-detail-view">
+              <h4>Top Log Types by Volume</h4>
+              <BarChart data={topTypesData} />
+            </div>
+          )}
+          {activeTab === 'nodes' && (
+            <div className="chart-detail-view">
+              <h4>Node Activity Distribution</h4>
+              <BarChart data={topNodesData} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

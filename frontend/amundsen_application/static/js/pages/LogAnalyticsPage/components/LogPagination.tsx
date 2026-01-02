@@ -14,13 +14,13 @@ interface LogPaginationProps {
 }
 
 const LogPagination: React.FC<LogPaginationProps> = ({
-                                                       currentPage,
-                                                       totalPages,
-                                                       totalLogs,
-                                                       logsPerPage,
-                                                       onPageChange,
-                                                       onLogsPerPageChange,
-                                                     }) => {
+  currentPage,
+  totalPages,
+  totalLogs,
+  logsPerPage,
+  onPageChange,
+  onLogsPerPageChange,
+}) => {
   const startLog = (currentPage - 1) * logsPerPage + 1;
   const endLog = Math.min(currentPage * logsPerPage, totalLogs);
 
@@ -142,7 +142,8 @@ const LogPagination: React.FC<LogPaginationProps> = ({
           placeholder={currentPage.toString()}
           onKeyPress={(e) => {
             if (e.key === 'Enter') {
-              const value = parseInt((e.target as HTMLInputElement).value);
+              const value = parseInt((e.target as HTMLInputElement).value, 10);
+
               if (value >= 1 && value <= totalPages) {
                 onPageChange(value);
                 (e.target as HTMLInputElement).value = '';
