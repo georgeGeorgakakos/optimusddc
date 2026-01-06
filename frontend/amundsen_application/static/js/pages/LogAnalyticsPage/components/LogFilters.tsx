@@ -105,17 +105,22 @@ const LogFilters: React.FC<LogFiltersProps> = ({
 
         <div className="log-type-pills">
           {allLogTypes.map((type) => {
-            const isActive = filters.types.length === 0 || filters.types.includes(type);
+            // Pill is active only if explicitly selected, OR if no filters are selected (showing all)
+            const isExplicitlySelected = filters.types.includes(type);
+            const noFiltersActive = filters.types.length === 0;
+            const isActive = isExplicitlySelected;
+
             return (
               <button
                 key={type}
-                className={`log-type-pill ${isActive ? 'active' : ''}`}
+                className={`log-type-pill ${isActive ? 'active' : ''} ${noFiltersActive ? 'show-all' : ''}`}
                 style={{
                   background: isActive ? LOG_TYPE_COLORS[type] : '#e9ecef',
                   color: isActive
                     ? (['#ffc107', '#fd7e14'].includes(LOG_TYPE_COLORS[type]) ? '#000' : '#fff')
                     : '#6c757d',
                   border: isActive ? '2px solid currentColor' : '2px solid transparent',
+                  opacity: noFiltersActive ? 0.6 : 1,
                 }}
                 onClick={() => toggleLogType(type)}
               >

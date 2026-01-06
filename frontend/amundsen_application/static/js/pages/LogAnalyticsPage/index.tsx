@@ -38,6 +38,7 @@ export interface LogStatistics {
   logsPerMinute: number;
   errorRate: number;
   errorCount: number;
+  warningCount: number;
   byType: Record<LogType, number>;
   byNode: Record<string, number>;
   peakActivity: number;
@@ -254,7 +255,7 @@ const LogAnalyticsPage: React.FC = () => {
   const calculateStatistics = useCallback((): LogStatistics => {
     if (filteredLogs.length === 0) {
       return {
-        totalLogs: 0, logsPerMinute: 0, errorRate: 0, errorCount: 0,
+        totalLogs: 0, logsPerMinute: 0, errorRate: 0, errorCount: 0, warningCount: 0,
         byType: {} as Record<LogType, number>, byNode: {}, peakActivity: 0, healthStatus: 'healthy',
       };
     }
@@ -274,13 +275,18 @@ const LogAnalyticsPage: React.FC = () => {
     const durationMinutes = (maxTime - minTime) / (1000 * 60);
     const logsPerMinute = durationMinutes > 0 ? filteredLogs.length / durationMinutes : 0;
 
-    const errorCount = (byType.ERROR || 0) + (byType.WARN || 0);
-    const errorRate = (errorCount / filteredLogs.length) * 100;
+    // Separate error and warning counts
+    const errorCount = byType.ERROR || 0;
+    const warningCount = byType.WARN || 0;
+    const combinedIssuesCount = errorCount + warningCount;
+
+    // Error rate includes both errors and warnings
+    const errorRate = (combinedIssuesCount / filteredLogs.length) * 100;
 
     let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
-    if (byType.ERROR > 10 || errorRate > 10) {
+    if (errorCount > 10 || errorRate > 10) {
       healthStatus = 'critical';
-    } else if (errorRate > 5 || byType.WARN > 10) {
+    } else if (errorRate > 5 || warningCount > 10) {
       healthStatus = 'warning';
     }
 
@@ -288,7 +294,8 @@ const LogAnalyticsPage: React.FC = () => {
       totalLogs: filteredLogs.length,
       logsPerMinute: Math.round(logsPerMinute * 10) / 10,
       errorRate: Math.round(errorRate * 10) / 10,
-      errorCount: byType.ERROR || 0,
+      errorCount: errorCount,
+      warningCount: warningCount,
       byType, byNode,
       peakActivity: Math.max(...Object.values(byNode)),
       healthStatus,
@@ -394,7 +401,7 @@ const LogAnalyticsPage: React.FC = () => {
       </div>
 
       {/* STATISTICS CARDS (4 CARDS - MATCHING IMAGE 2) */}
-      <LogStatistics statistics={statistics} />
+      <LogStatistics statistics={statistics} filters={filters} />
 
       {/* CHARTS (3-PANEL LAYOUT - MATCHING IMAGE 2) */}
       <LogCharts statistics={statistics} filteredLogs={filteredLogs} />

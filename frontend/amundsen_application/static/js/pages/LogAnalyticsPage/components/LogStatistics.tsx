@@ -1,18 +1,62 @@
 // ==============================================================================
 // FILE: amundsen_application/static/js/pages/LogAnalyticsPage/components/LogStatistics.tsx
 // CORRECTED TO MATCH IMAGE 2 - GRADIENT-BORDERED CARDS WITH TRENDS
+// UPDATED: Dynamic labels based on filtered log types
 // ==============================================================================
 
 import * as React from 'react';
-import { LogStatistics as LogStatsType } from '../index';
+import { LogStatistics as LogStatsType, LogFiltersState } from '../index';
 
 interface LogStatisticsProps {
   statistics: LogStatsType;
+  filters: LogFiltersState;
 }
 
-const LogStatistics: React.FC<LogStatisticsProps> = ({ statistics }) => {
-  const { totalLogs, logsPerMinute, errorRate, errorCount, healthStatus } =
-    statistics;
+const LogStatistics: React.FC<LogStatisticsProps> = ({
+  statistics,
+  filters,
+}) => {
+  const {
+    totalLogs,
+    logsPerMinute,
+    errorRate,
+    errorCount,
+    warningCount,
+    healthStatus,
+  } = statistics;
+
+  // Determine what types are being shown
+  const hasErrorFilter =
+    filters.types.length === 0 || filters.types.includes('ERROR');
+  const hasWarnFilter =
+    filters.types.length === 0 || filters.types.includes('WARN');
+  const onlyErrors =
+    filters.types.length === 1 && filters.types.includes('ERROR');
+  const onlyWarnings =
+    filters.types.length === 1 && filters.types.includes('WARN');
+
+  // Dynamic label for error rate card
+  let errorRateLabel = 'Error & Warning Rate';
+  let issueCount = errorCount + warningCount;
+  let issueLabel = 'Errors + Warnings';
+
+  if (onlyErrors) {
+    errorRateLabel = 'Error Rate';
+    issueCount = errorCount;
+    issueLabel = 'Errors';
+  } else if (onlyWarnings) {
+    errorRateLabel = 'Warning Rate';
+    issueCount = warningCount;
+    issueLabel = 'Warnings';
+  } else if (hasErrorFilter && !hasWarnFilter) {
+    errorRateLabel = 'Error Rate';
+    issueCount = errorCount;
+    issueLabel = 'Errors';
+  } else if (hasWarnFilter && !hasErrorFilter) {
+    errorRateLabel = 'Warning Rate';
+    issueCount = warningCount;
+    issueLabel = 'Warnings';
+  }
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
@@ -48,7 +92,7 @@ const LogStatistics: React.FC<LogStatisticsProps> = ({ statistics }) => {
           <div className="stat-label">Logs/Minute</div>
         </div>
 
-        {/* Card 3: Error Rate */}
+        {/* Card 3: Error/Warning Rate (Dynamic) */}
         <div className="stat-card">
           <div className="stat-header">
             <div className="stat-icon">
@@ -63,7 +107,7 @@ const LogStatistics: React.FC<LogStatisticsProps> = ({ statistics }) => {
             </div>
           </div>
           <div className="stat-value">{errorRate.toFixed(2)}%</div>
-          <div className="stat-label">Error Rate</div>
+          <div className="stat-label">{errorRateLabel}</div>
           <div className={`health-badge ${healthStatus}`}>
             {healthStatus === 'healthy'
               ? '✅ Healthy'
@@ -73,14 +117,14 @@ const LogStatistics: React.FC<LogStatisticsProps> = ({ statistics }) => {
           </div>
         </div>
 
-        {/* Card 4: Errors + Fatal */}
+        {/* Card 4: Issue Count (Dynamic) */}
         <div className="stat-card">
           <div className="stat-header">
-            <div className="stat-icon">❌</div>
+            <div className="stat-icon">{onlyWarnings ? '⚠️' : '❌'}</div>
             <div className="stat-trend">→ 0%</div>
           </div>
-          <div className="stat-value">{errorCount}</div>
-          <div className="stat-label">Errors + Fatal</div>
+          <div className="stat-value">{issueCount}</div>
+          <div className="stat-label">{issueLabel}</div>
         </div>
       </div>
     </div>

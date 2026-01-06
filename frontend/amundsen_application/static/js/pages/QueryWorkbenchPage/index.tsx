@@ -84,11 +84,12 @@ function getDefaultQuery(mode: QueryMode): string {
     );
   } else {
     return (
-      '-- CRUD Mode - Criteria-based Query\n' +
-      '-- Format: JSON criteria object\n\n' +
+      '-- CRUD Mode - Criteria-based Query (JSON format)\n' +
+      '-- Example: Find TOSCA templates by author\n' +
+      '-- Press F5 or Ctrl+Enter to execute\n\n' +
       '{\n' +
-      '  "cpu_capacity": { "$gte": 5 },\n' +
-      '  "memory_capacity": { "$gte": 16384 }\n' +
+      '  "document_type": "tosca_template",\n' +
+      '  "metadata.template_author": "Swarmchestrate Orchestrator"\n' +
       '}'
     );
   }
@@ -96,28 +97,48 @@ function getDefaultQuery(mode: QueryMode): string {
 
 function extractColumns(data: any): string[] {
   if (!data) return [];
-  if (Array.isArray(data) && data.length > 0) {
-    return Object.keys(data[0]);
+
+  // Handle array of objects
+  if (Array.isArray(data)) {
+    if (data.length === 0) return [];
+    if (data.length > 0 && typeof data[0] === 'object' && data[0] !== null) {
+      return Object.keys(data[0]);
+    }
+    // Array of primitives
+    return ['value'];
   }
-  if (typeof data === 'object') {
+
+  // Handle single object
+  if (typeof data === 'object' && data !== null) {
     return Object.keys(data);
   }
-  return [];
+
+  // Primitive value
+  return ['value'];
 }
 
 function extractRows(data: any): any[][] {
   if (!data) return [];
+
+  // Handle array of objects
   if (Array.isArray(data)) {
+    if (data.length === 0) return [];
+
     return data.map(item => {
-      if (typeof item === 'object') {
+      if (typeof item === 'object' && item !== null) {
         return Object.values(item);
       }
+      // Primitive value
       return [item];
     });
   }
-  if (typeof data === 'object') {
+
+  // Handle single object
+  if (typeof data === 'object' && data !== null) {
     return [Object.values(data)];
   }
+
+  // Primitive value
   return [[data]];
 }
 
@@ -211,11 +232,11 @@ const QueryWorkbenchPage: React.FC = () => {
           args: ['schema', 'query'],
           dstype: 'dsswres',
           sqldml: `
-            SELECT name, type 
-            FROM sqlite_master 
-            WHERE type IN ('table', 'view') 
-            AND name NOT LIKE 'sqlite_%'
-            ORDER BY name
+              SELECT name, type
+              FROM sqlite_master
+              WHERE type IN ('table', 'view')
+                AND name NOT LIKE 'sqlite_%'
+              ORDER BY name
           `,
           graph_traversal: [{}],
           criteria: []
@@ -289,24 +310,21 @@ const QueryWorkbenchPage: React.FC = () => {
 
       console.log(`✅ Executing query on: ${endpoint}`); // Shows which node handled it
 
-      // Build request matching exact API format
+      // ✅ FIXED: Build request matching EXACT API format from Postman collection
       let requestBody: any;
 
       if (connection.queryMode === 'sql') {
-        // SQL Mode - use sqldml command
+        // ✅ SQL Mode - CORRECTED to match Postman format exactly
         requestBody = {
           method: {
-            argcnt: 2,
-            cmd: 'sqldml'
+            cmd: 'sqldml',
+            argcnt: 1
           },
-          args: ['query', 'execute'],
-          dstype: 'dsswres',
-          sqldml: query,  // lowercase!
-          graph_traversal: [{}],
-          criteria: []
+          sqldml: query.trim()
         };
+        console.log('📤 SQL Request:', JSON.stringify(requestBody, null, 2));
       } else {
-        // CRUD Mode - use query command with criteria
+        // ✅ CRUD Mode - CORRECTED to match Postman format
         let criteriaObj;
         try {
           criteriaObj = JSON.parse(query);
@@ -316,27 +334,70 @@ const QueryWorkbenchPage: React.FC = () => {
 
         requestBody = {
           method: {
-            argcnt: 2,
-            cmd: 'query'
+            cmd: 'query',
+            argcnt: 10000
           },
-          args: ['query', 'execute'],
-          dstype: 'dsswres',
-          sqlselect: 'dummysql',
-          graph_traversal: [{}],
-          criteria: [criteriaObj]
+          args: ['*', 'document'],
+          dstype: 'kbdata',
+          sqlselect: '',
+          criteria: [criteriaObj],
+          options: {
+            strategy: 'LOCAL_THEN_REMOTE_MERGE',
+            time_budget_ms: 1500,
+            annotate_source: true
+          }
         };
+        console.log('📤 CRUD Request:', JSON.stringify(requestBody, null, 2));
       }
 
       const response = await axios.post(endpoint, requestBody, {
         timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      // Extract data from response
-      const data = response.data.data || response.data;
+      console.log('📥 API Response:', response.data);
 
-      const isSuccess = response.data.status === 200 ||
-        response.data.status === 'success' ||
-        !response.data.error;
+      // ✅ IMPROVED: Robust response handling with defensive checks
+      const responseData = response.data || {};
+
+      // Check if query was successful
+      const isSuccess = responseData.status === 200 ||
+        responseData.status === 'success' ||
+        (responseData.data && !responseData.error);
+
+      // Extract actual data with comprehensive fallbacks
+      let actualData: any[] | any = [];
+
+      if (responseData.data) {
+        // SQL format: response.data.data.records (array)
+        if (responseData.data.records && Array.isArray(responseData.data.records)) {
+          actualData = responseData.data.records;
+          console.log('📊 Extracted SQL records format:', actualData.length, 'rows');
+        }
+        // CRUD format: response.data.data (array)
+        else if (Array.isArray(responseData.data)) {
+          actualData = responseData.data;
+          console.log('📊 Extracted CRUD array format:', actualData.length, 'rows');
+        }
+        // Single object format
+        else if (typeof responseData.data === 'object' && responseData.data !== null) {
+          actualData = [responseData.data];
+          console.log('📊 Extracted single object format: 1 row');
+        }
+        // Fallback to empty array
+        else {
+          actualData = [];
+          console.log('⚠️ No data found in response, using empty array');
+        }
+      } else {
+        actualData = [];
+        console.log('⚠️ response.data is missing, using empty array');
+      }
+
+      // Ensure actualData is always defined (array or object)
+      const safeActualData = actualData || [];
 
       // ✅ PHASE 3: Extract node info from URL
       const executedOnNode = endpoint.includes('localhost')
@@ -345,16 +406,17 @@ const QueryWorkbenchPage: React.FC = () => {
 
       const queryResult: QueryResult = {
         success: isSuccess,
-        columns: extractColumns(data),
-        rows: extractRows(data),
-        rowCount: Array.isArray(data) ? data.length : (data ? 1 : 0),
+        columns: extractColumns(safeActualData),
+        rows: extractRows(safeActualData),
+        rowCount: Array.isArray(safeActualData) ? safeActualData.length : (safeActualData ? 1 : 0),
         executionTimeMs: Date.now() - startTime,
-        error: response.data.error || response.data.message || (isSuccess ? undefined : 'Query failed'),
-        operation: connection.queryMode === 'crud' ? 'QUERY' : 'SQL',
+        error: responseData.error || (isSuccess ? undefined : 'Query execution failed'),
+        operation: connection.queryMode === 'crud' ? 'QUERY' : 'SQL SELECT',
         executedOnNode, // ✅ PHASE 3: Track which node handled the query
       };
 
       console.log(`✅ Query completed on ${executedOnNode} in ${queryResult.executionTimeMs}ms`);
+      console.log(`✅ Extracted ${queryResult.rowCount} rows with ${queryResult.columns.length} columns`);
 
       setResult(queryResult);
 
@@ -374,14 +436,21 @@ const QueryWorkbenchPage: React.FC = () => {
         localStorage.setItem('queryWorkbench_history', JSON.stringify(newHistory));
       }
     } catch (error: any) {
-      console.error('Query execution error:', error);
+      console.error('❌ Query execution error:', error);
+      console.error('❌ Error response:', error.response?.data);
+
+      const errorMessage = error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        'Query execution failed. Check console for details.';
+
       setResult({
         success: false,
         columns: [],
         rows: [],
         rowCount: 0,
         executionTimeMs: Date.now() - startTime,
-        error: error.response?.data?.error || error.response?.data?.message || error.message || 'Query execution failed.',
+        error: errorMessage,
       });
     } finally {
       setIsExecuting(false);
