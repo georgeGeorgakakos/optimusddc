@@ -151,8 +151,7 @@ const DataCatalogAssistant: React.FC = () => {
   const visemeAnimationRef = React.useRef<number | null>(null);
 
   // Configuration
-  const BACKEND_URL =
-    process.env.REACT_APP_OPTIMUSDB_URL || '/api/v1/chat';
+  const BACKEND_URL = process.env.REACT_APP_OPTIMUSDB_URL || '/api/v1/chat';
 
   const AVATARS: AvatarConfig[] = React.useMemo(
     () => [
