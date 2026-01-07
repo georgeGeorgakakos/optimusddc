@@ -152,7 +152,7 @@ const DataCatalogAssistant: React.FC = () => {
 
   // Configuration
   const BACKEND_URL =
-    process.env.REACT_APP_OPTIMUSDB_URL || 'http://localhost:18001/api/v1/chat';
+    process.env.REACT_APP_OPTIMUSDB_URL || '/api/v1/chat';
 
   const AVATARS: AvatarConfig[] = React.useMemo(
     () => [
