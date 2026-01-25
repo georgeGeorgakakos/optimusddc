@@ -57,7 +57,7 @@ data:
         Returns user info if successful, raises exception if failed
         """
         token_url = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token"
-        
+    
         data = {
             'grant_type': 'password',
             'client_id': KEYCLOAK_CLIENT_ID,
@@ -66,19 +66,19 @@ data:
             'password': password,
             'scope': 'openid profile email'
         }
-        
+    
         try:
             response = requests.post(token_url, data=data, timeout=10)
             response.raise_for_status()
             token_data = response.json()
-            
+    
             # Get user info from Keycloak
             userinfo_url = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
             headers = {'Authorization': f"Bearer {token_data['access_token']}"}
             userinfo_response = requests.get(userinfo_url, headers=headers, timeout=10)
             userinfo_response.raise_for_status()
             user_info = userinfo_response.json()
-            
+    
             return {
                 'user_id': user_info.get('preferred_username', username),
                 'email': user_info.get('email', f"{username}@optimusddc.com"),
@@ -115,26 +115,26 @@ data:
         Initialize custom authentication routes and handlers.
         Sets up login/logout endpoints and authentication checks.
         """
-        
+    
         @app.route('/login', methods=['GET', 'POST'])
         def custom_login():
             """Handle custom branded login page and authentication"""
             # If already logged in, redirect to home
             if 'user' in session:
                 return redirect('/')
-            
+    
             error = None
             username = None
-            
+    
             if request.method == 'POST':
                 username = request.form.get('username', '').strip()
                 password = request.form.get('password', '')
                 remember = request.form.get('remember') == '1'
-                
+    
                 try:
                     # Authenticate against Keycloak
                     user_info = authenticate_with_keycloak(username, password)
-                    
+    
                     # Store user in session
                     session['user'] = {
                         'user_id': user_info['user_id'],
@@ -145,37 +145,37 @@ data:
                         'display_name': user_info['display_name'],
                         'is_active': user_info['is_active']
                     }
-                    
+    
                     # Set session permanent if remember me is checked
                     if remember:
                         session.permanent = True
                         app.permanent_session_lifetime = 604800  # 7 days
-                    
+    
                     # Redirect to original destination or home
                     next_page = request.args.get('next')
                     if next_page and next_page.startswith('/'):
                         return redirect(next_page)
                     return redirect('/')
-                    
+    
                 except ValueError as e:
                     error = str(e)
                 except Exception as e:
                     error = 'An error occurred during login. Please try again.'
                     app.logger.error(f"Login error: {str(e)}")
-            
+    
             # Render login template
             return render_template(
                 'login.html',
                 error=error,
                 username=username
             )
-        
+    
         @app.route('/logout')
         def custom_logout():
             """Handle logout - clear session and redirect to login"""
             session.clear()
             return redirect(url_for('custom_login'))
-        
+    
         # Authentication check before each request
         @app.before_request
         def check_authentication():
@@ -189,12 +189,12 @@ data:
                 'status',
                 'static'
             ]
-            
+    
             # Skip authentication for public endpoints and static files
             if request.endpoint in public_endpoints or \
                (request.endpoint and request.endpoint.startswith('static')):
                 return None
-            
+    
             # Require authentication for all other endpoints
             if 'user' not in session:
                 return redirect(url_for('custom_login', next=request.url))
@@ -205,10 +205,10 @@ data:
         Custom Authentication Configuration for OptimusDDC
         Uses branded login page with Keycloak backend authentication.
         """
-        
+    
         # Authentication method
         AUTH_USER_METHOD = get_custom_auth_user
-        
+    
         # Session configuration
         SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'OptimusDDC-Change-This-Secret-Key')
         SESSION_TYPE = 'filesystem'
@@ -217,7 +217,7 @@ data:
         SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
         SESSION_COOKIE_HTTPONLY = True
         SESSION_COOKIE_SAMESITE = 'Lax'
-        
+    
         # Initialize custom routes
         INIT_CUSTOM_ROUTES = init_custom_auth
 ---
@@ -236,7 +236,7 @@ data:
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title>OptimusDDC - Sign In</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/login.scss') }}">
     </head>
     <body>
         <div class="login-page">
@@ -259,22 +259,22 @@ data:
                                     </feMerge>
                                 </filter>
                             </defs>
-                            
+    
                             <!-- Central primary node -->
                             <circle cx="50" cy="50" r="14" fill="url(#logoGradient)" filter="url(#glow)"/>
-                            
+    
                             <!-- Ring 1: Surrounding nodes -->
                             <circle cx="28" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
                             <circle cx="72" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
                             <circle cx="28" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
                             <circle cx="72" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
-                            
+    
                             <!-- Ring 2: Outer nodes -->
                             <circle cx="18" cy="50" r="7" fill="url(#logoGradient)" opacity="0.65"/>
                             <circle cx="82" cy="50" r="7" fill="url(#logoGradient)" opacity="0.65"/>
                             <circle cx="50" cy="18" r="7" fill="url(#logoGradient)" opacity="0.65"/>
                             <circle cx="50" cy="82" r="7" fill="url(#logoGradient)" opacity="0.65"/>
-                            
+    
                             <!-- Connection lines representing P2P network -->
                             <line x1="50" y1="50" x2="28" y2="28" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
                             <line x1="50" y1="50" x2="72" y2="28" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
@@ -285,7 +285,7 @@ data:
                             <line x1="50" y1="50" x2="50" y2="18" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
                             <line x1="50" y1="50" x2="50" y2="82" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
                         </svg>
-                        
+    
                         <div class="brand-text">
                             <h1 class="logo-text">OptimusDDC</h1>
                         </div>
@@ -293,7 +293,7 @@ data:
                     <p class="subtitle">Decentralized Data Catalog</p>
                     <p class="tagline">Powered by <strong>SwarmChestrate</strong></p>
                 </div>
-                
+    
                 <!-- Error Message -->
                 {% if error %}
                 <div class="alert alert-error">
@@ -303,7 +303,7 @@ data:
                     <span>{{ error }}</span>
                 </div>
                 {% endif %}
-                
+    
                 <!-- Login Form -->
                 <form method="POST" action="{{ url_for('custom_login') }}" class="login-form" id="loginForm">
                     <div class="form-group">
@@ -325,7 +325,7 @@ data:
                             >
                         </div>
                     </div>
-                    
+    
                     <div class="form-group">
                         <label for="password">Password</label>
                         <div class="input-wrapper">
@@ -343,19 +343,19 @@ data:
                             >
                         </div>
                     </div>
-                    
+    
                     <div class="form-options">
                         <label class="checkbox-label">
                             <input type="checkbox" id="remember" name="remember" value="1">
                             <span class="checkbox-text">Remember me for 7 days</span>
                         </label>
                     </div>
-                    
+    
                     <button type="submit" class="login-button" id="loginButton">
                         <span class="button-text">Sign In to OptimusDDC</span>
                     </button>
                 </form>
-                
+    
                 <!-- Demo Credentials -->
                 <div class="demo-credentials">
                     <h3 class="demo-title">
@@ -387,36 +387,36 @@ data:
                         </div>
                     </div>
                 </div>
-                
+    
                 <!-- Footer -->
                 <div class="login-footer">
                     <p>Secured by <a href="/auth" target="_blank">Keycloak</a></p>
                 </div>
             </div>
         </div>
-        
+    
         <script>
             // Auto-fill credentials when demo card is clicked
             function fillCredentials(username, password) {
                 document.getElementById('username').value = username;
                 document.getElementById('password').value = password;
                 document.getElementById('username').focus();
-                
+    
                 // Add visual feedback
                 const cards = document.querySelectorAll('.credential-card');
                 cards.forEach(card => card.classList.remove('active'));
                 event.currentTarget.classList.add('active');
             }
-            
+    
             // Handle form submission
             document.getElementById('loginForm').addEventListener('submit', function(e) {
                 const button = document.getElementById('loginButton');
                 const buttonText = button.querySelector('.button-text');
-                
+    
                 button.disabled = true;
                 buttonText.innerHTML = '<span class="spinner"></span>Signing in...';
             });
-            
+    
             // Add enter key support for credential cards
             document.querySelectorAll('.credential-card').forEach(card => {
                 card.addEventListener('keypress', function(e) {
@@ -430,14 +430,14 @@ data:
     </body>
     </html>
 ---
-# Login CSS Stylesheet
+# Login SCSS Stylesheet
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: login-css
+  name: login-scss
   namespace: optimusddc
 data:
-  login.css: |
+  login.scss: |
     /* OptimusDDC Login Page Styles */
     
     /* CSS Variables for theming */
@@ -880,25 +880,25 @@ data:
         body {
             padding: 10px;
         }
-        
+    
         .login-container {
             padding: 36px 28px;
             border-radius: 20px;
         }
-        
+    
         .logo-text {
             font-size: 32px;
         }
-        
+    
         .swarm-logo {
             width: 56px;
             height: 56px;
         }
-        
+    
         .credentials-grid {
             grid-template-columns: 1fr;
         }
-        
+    
         .credential-card {
             padding: 16px;
         }
@@ -925,11 +925,11 @@ data:
         body {
             background: white;
         }
-        
+    
         .login-container {
             box-shadow: none;
         }
-        
+    
         .demo-credentials {
             display: none;
         }
@@ -1150,6 +1150,7 @@ spec:
         - name: realm-config
           configMap:
             name: keycloak-realm-config
+
 ---
 # ==================== OPTIMUSDB NODE 1 ====================
 apiVersion: v1
@@ -1661,6 +1662,8 @@ spec:
       port: 5001
       targetPort: 5001
 ---
+
+---
 # ==================== CATALOG SEARCH ====================
 apiVersion: v1
 kind: Service
@@ -1822,6 +1825,7 @@ spec:
             failureThreshold: 3
 ---
 ---
+---
 # ==================== CATALOG FRONTEND WITH CUSTOM AUTH ====================
 apiVersion: v1
 kind: Service
@@ -1875,8 +1879,8 @@ spec:
               cp /mnt/login-template/login.html /app-files/templates/
               echo "✓ Copied login.html"
               
-              cp /mnt/login-css/login.css /app-files/static/css/
-              echo "✓ Copied login.css"
+              cp /mnt/login-scss/login.scss /app-files/static/css/
+              echo "✓ Copied login.scss"
               
               chmod -R 644 /app-files/
               echo "✓ Set permissions"
@@ -1899,8 +1903,8 @@ spec:
               mountPath: /mnt/custom-auth
             - name: login-template
               mountPath: /mnt/login-template
-            - name: login-css
-              mountPath: /mnt/login-css
+            - name: login-scss
+              mountPath: /mnt/login-scss
             - name: app-files
               mountPath: /app-files
       containers:
@@ -1915,7 +1919,7 @@ spec:
             # ============ Custom Authentication Configuration ============
             - name: FRONTEND_SVC_CONFIG_MODULE_CLASS
               value: "amundsen_application.custom_auth_config.CustomAuthConfig"
-            
+
             # Keycloak Backend Configuration
             - name: KEYCLOAK_URL
               value: "http://keycloak:8080"
@@ -1925,11 +1929,11 @@ spec:
               value: "amundsen-frontend"
             - name: KEYCLOAK_CLIENT_SECRET
               value: "optimusddc-secret-2025"
-            
+
             # Session Configuration
             - name: FLASK_SECRET_KEY
               value: "OptimusDDC-Production-Secret-Key-Change-This"
-            
+
             # ============ Service Endpoints (from original config) ============
             - name: SEARCHSERVICE_BASE
               value: "http://catalogsearch:5013"
@@ -1943,15 +1947,23 @@ spec:
               echo "Copying custom auth files to Amundsen directory..."
               echo "================================================"
               
+              # Ensure target directories exist
+              mkdir -p /amundsen/amundsen_application/static/css
+              mkdir -p /amundsen/amundsen_application/templates
+              
               cp -v /app-files/custom_auth_config.py /amundsen/amundsen_application/
               cp -v /app-files/templates/login.html /amundsen/amundsen_application/templates/
-              cp -v /app-files/static/css/login.css /amundsen/amundsen_application/static/css/
+              cp -v /app-files/static/css/login.scss /amundsen/amundsen_application/static/css/
               
               echo ""
               echo "Verifying files:"
               ls -la /amundsen/amundsen_application/ | grep custom_auth || echo "⚠ custom_auth_config.py not found"
               ls -la /amundsen/amundsen_application/templates/ | grep login || echo "⚠ login.html not found"
-              ls -la /amundsen/amundsen_application/static/css/ | grep login || echo "⚠ login.css not found"
+              ls -la /amundsen/amundsen_application/static/css/ | grep login || echo "⚠ login.scss not found"
+              
+              echo ""
+              echo "First 10 lines of login.scss:"
+              head -10 /amundsen/amundsen_application/static/css/login.scss
               
               echo ""
               echo "================================================"
@@ -1989,11 +2001,12 @@ spec:
         - name: login-template
           configMap:
             name: login-template
-        - name: login-css
+        - name: login-scss
           configMap:
-            name: login-css
+            name: login-scss
         - name: app-files
           emptyDir: {}
+
 # ==============================================================================
 # TRAEFIK MIDDLEWARES
 # ==============================================================================
