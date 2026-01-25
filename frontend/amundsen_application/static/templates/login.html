@@ -134,22 +134,22 @@
         Demo Credentials
       </h3>
       <div class="credentials-grid">
-        <div class="credential-card" onclick="fillCredentials('demo', 'demo123')">
+        <div class="credential-card" onclick="fillCredentials('demo', 'demo123')" tabindex="0">
           <div class="credential-username">demo</div>
           <div class="credential-role">Demo User</div>
           <div class="credential-password">demo123</div>
         </div>
-        <div class="credential-card" onclick="fillCredentials('admin', 'admin123')">
+        <div class="credential-card" onclick="fillCredentials('admin', 'admin123')" tabindex="0">
           <div class="credential-username">admin</div>
           <div class="credential-role">Administrator</div>
           <div class="credential-password">admin123</div>
         </div>
-        <div class="credential-card" onclick="fillCredentials('analyst', 'analyst123')">
+        <div class="credential-card" onclick="fillCredentials('analyst', 'analyst123')" tabindex="0">
           <div class="credential-username">analyst</div>
           <div class="credential-role">Data Analyst</div>
           <div class="credential-password">analyst123</div>
         </div>
-        <div class="credential-card" onclick="fillCredentials('scientist', 'scientist123')">
+        <div class="credential-card" onclick="fillCredentials('scientist', 'scientist123')" tabindex="0">
           <div class="credential-username">scientist</div>
           <div class="credential-role">Data Scientist</div>
           <div class="credential-password">scientist123</div>
@@ -193,7 +193,6 @@
         this.click();
       }
     });
-    card.setAttribute('tabindex', '0');
   });
 </script>
 </body>

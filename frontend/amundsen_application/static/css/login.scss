@@ -1,115 +1,49 @@
-// OptimusDDC Login Page Styles (SCSS)
-// Compiled to CSS for production use
+:root {
+--primary: #667eea;
+--secondary: #764ba2;
+--accent: #4f46e5;
+--dark: #1e293b;
+--light: #f8fafc;
+--success: #16a34a;
+--error: #dc2626;
+--warning: #eab308;
+--gray-50: #f9fafb;
+--gray-100: #f3f4f6;
+--gray-200: #e5e7eb;
+--gray-300: #d1d5db;
+--gray-400: #9ca3af;
+--gray-500: #6b7280;
+--gray-600: #4b5563;
+--gray-700: #374151;
+--gray-800: #1f2937;
+--gray-900: #111827;
+}
 
-// ==================== VARIABLES ====================
+/* Global Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-// Color Palette
-$color-primary: #667eea;
-$color-secondary: #764ba2;
-$color-accent: #4f46e5;
-$color-dark: #1e293b;
-$color-light: #f8fafc;
-$color-success: #16a34a;
-$color-error: #dc2626;
-$color-warning: #eab308;
-
-// Gray Scale
-$gray-50: #f9fafb;
-$gray-100: #f3f4f6;
-$gray-200: #e5e7eb;
-$gray-300: #d1d5db;
-$gray-400: #9ca3af;
-$gray-500: #6b7280;
-$gray-600: #4b5563;
-$gray-700: #374151;
-$gray-800: #1f2937;
-$gray-900: #111827;
-
-// Gradients
-$gradient-primary: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
-$gradient-light: linear-gradient(135deg, $gray-50 0%, $gray-100 100%);
-$gradient-horizontal: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-$gradient-divider: linear-gradient(to right, transparent, $gray-200, transparent);
-
-// Spacing
-$spacing-xs: 4px;
-$spacing-sm: 8px;
-$spacing-md: 16px;
-$spacing-lg: 24px;
-$spacing-xl: 32px;
-$spacing-2xl: 48px;
-
-// Border Radius
-$radius-sm: 8px;
-$radius-md: 12px;
-$radius-lg: 16px;
-$radius-xl: 20px;
-$radius-2xl: 24px;
-
-// Transitions
-$transition-fast: 0.2s ease;
-$transition-normal: 0.3s ease;
-$transition-slow: 0.5s ease;
-
-// Shadows
-$shadow-sm: 0 4px 14px rgba($color-primary, 0.4);
-$shadow-md: 0 12px 24px rgba($color-primary, 0.5);
-$shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
-$shadow-card: 0 4px 12px rgba($color-primary, 0.15);
-$shadow-focus: 0 0 0 4px rgba($color-primary, 0.1);
-
-// Breakpoints
-$breakpoint-mobile: 640px;
-$breakpoint-tablet: 768px;
-$breakpoint-desktop: 1024px;
-
-// ==================== MIXINS ====================
-
-@mixin flex-center {
+/* Body and Page Layout */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@mixin absolute-full {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+.login-page {
+  width: 100%;
+  max-width: 500px;
+  animation: fadeIn 0.6s ease-out;
 }
-
-@mixin input-focus {
-  outline: none;
-  border-color: $color-primary;
-  background-color: white;
-  box-shadow: $shadow-focus;
-}
-
-@mixin button-hover {
-  transform: translateY(-2px);
-  box-shadow: $shadow-md;
-}
-
-@mixin card-hover {
-  border-color: $color-primary;
-  box-shadow: $shadow-card;
-  transform: translateY(-2px);
-}
-
-@mixin responsive-mobile {
-  @media (max-width: $breakpoint-mobile) {
-    @content;
-  }
-}
-
-@mixin responsive-tablet {
-  @media (max-width: $breakpoint-tablet) {
-    @content;
-  }
-}
-
-// ==================== KEYFRAMES ====================
 
 @keyframes fadeIn {
   from {
@@ -120,6 +54,100 @@ $breakpoint-desktop: 1024px;
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Login Container */
+.login-container {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 48px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+}
+
+/* Logo Section */
+.logo-section {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.swarm-logo {
+  filter: drop-shadow(0 10px 25px rgba(102, 126, 234, 0.4));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-text {
+  font-size: 42px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.subtitle {
+  color: var(--gray-600);
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.tagline {
+  color: var(--gray-500);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.tagline strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Alert Messages */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  animation: slideDown 0.3s ease-out;
 }
 
 @keyframes slideDown {
@@ -133,164 +161,37 @@ $breakpoint-desktop: 1024px;
   }
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+.alert-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.alert-success {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
 }
 
-// ==================== GLOBAL RESET ====================
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+.alert-icon {
+  flex-shrink: 0;
 }
 
-// ==================== BODY & PAGE LAYOUT ====================
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-  'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
-  background: $gradient-primary;
-  min-height: 100vh;
-  @include flex-center;
-  padding: 20px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.login-page {
-  width: 100%;
-  max-width: 500px;
-  animation: fadeIn 0.6s ease-out;
-}
-
-// ==================== LOGIN CONTAINER ====================
-
-.login-container {
-  background: white;
-  border-radius: $radius-2xl;
-  box-shadow: $shadow-lg, 0 0 0 1px rgba(255, 255, 255, 0.1);
-  padding: $spacing-2xl 40px;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    @include absolute-full;
-    height: 4px;
-    bottom: auto;
-    background: $gradient-primary;
-  }
-}
-
-// ==================== LOGO SECTION ====================
-
-.logo-section {
-  text-align: center;
-  margin-bottom: 36px;
-}
-
-.logo-container {
-  @include flex-center;
-  gap: $spacing-md;
-  margin-bottom: $spacing-md;
-}
-
-.swarm-logo {
-  filter: drop-shadow(0 10px 25px rgba($color-primary, 0.4));
-  animation: float 3s ease-in-out infinite;
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.logo-text {
-  font-size: 42px;
-  font-weight: 800;
-  background: $gradient-primary;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
-  line-height: 1;
-}
-
-.subtitle {
-  color: $gray-600;
-  font-size: 15px;
-  font-weight: 500;
-  margin-top: $spacing-sm;
-}
-
-.tagline {
-  color: $gray-500;
-  font-size: 13px;
-  margin-top: 6px;
-
-  strong {
-    color: $color-primary;
-    font-weight: 600;
-  }
-}
-
-// ==================== ALERT MESSAGES ====================
-
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px $spacing-md;
-  border-radius: $radius-md;
-  margin-bottom: $spacing-lg;
-  font-size: 14px;
-  animation: slideDown $transition-normal;
-
-  &-icon {
-    flex-shrink: 0;
-  }
-
-  &-error {
-    background-color: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #991b1b;
-  }
-
-  &-success {
-    background-color: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    color: #166534;
-  }
-}
-
-// ==================== FORM STYLES ====================
-
+/* Form Styles */
 .login-form {
-  margin-bottom: $spacing-xl;
+  margin-bottom: 32px;
 }
 
 .form-group {
   margin-bottom: 20px;
+}
 
-  label {
-    display: block;
-    margin-bottom: $spacing-sm;
-    color: $gray-700;
-    font-weight: 600;
-    font-size: 14px;
-  }
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gray-700);
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .input-wrapper {
@@ -299,45 +200,47 @@ body {
 
 .input-icon {
   position: absolute;
-  left: $spacing-md;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: $gray-400;
+  color: var(--gray-400);
   pointer-events: none;
 }
 
 .form-input {
   width: 100%;
-  padding: 14px $spacing-md 14px 48px;
-  border: 2px solid $gray-200;
-  border-radius: $radius-md;
+  padding: 14px 16px 14px 48px;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px;
   font-size: 15px;
-  transition: all $transition-fast;
-  background-color: $gray-50;
-  color: $gray-900;
-
-  &::placeholder {
-    color: $gray-400;
-  }
-
-  &:hover {
-    border-color: $gray-300;
-    background-color: white;
-  }
-
-  &:focus {
-    @include input-focus;
-
-    & + .input-icon {
-      color: $color-primary;
-    }
-  }
+  transition: all 0.2s ease;
+  background-color: var(--gray-50);
+  color: var(--gray-900);
 }
 
-// ==================== FORM OPTIONS ====================
+.form-input::placeholder {
+  color: var(--gray-400);
+}
 
+.form-input:hover {
+  border-color: var(--gray-300);
+  background-color: white;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: white;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-input:focus + .input-icon {
+  color: var(--primary);
+}
+
+/* Form Options */
 .form-options {
-  margin-bottom: $spacing-lg;
+  margin-bottom: 24px;
 }
 
 .checkbox-label {
@@ -345,72 +248,76 @@ body {
   align-items: center;
   cursor: pointer;
   user-select: none;
+}
 
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin-right: 10px;
-    cursor: pointer;
-    accent-color: $color-primary;
-  }
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+  accent-color: var(--primary);
 }
 
 .checkbox-text {
-  color: $gray-600;
+  color: var(--gray-600);
   font-size: 14px;
 }
 
-// ==================== LOGIN BUTTON ====================
-
+/* Login Button */
 .login-button {
   width: 100%;
-  padding: $spacing-md $spacing-lg;
-  background: $gradient-primary;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   color: white;
   border: none;
-  border-radius: $radius-md;
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all $transition-normal;
-  box-shadow: $shadow-sm;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
   position: relative;
   overflow: hidden;
+}
 
-  &::before {
-    content: '';
-    @include absolute-full;
-    left: -100%;
-    background: $gradient-horizontal;
-    transition: left $transition-slow;
-  }
+.login-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
 
-  &:hover {
-    @include button-hover;
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(102, 126, 234, 0.5);
+}
 
-    &::before {
-      left: 100%;
-    }
-  }
+.login-button:hover::before {
+  left: 100%;
+}
 
-  &:active {
-    transform: translateY(0);
-  }
+.login-button:active {
+  transform: translateY(0);
+}
 
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-  }
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .button-text {
-  @include flex-center;
-  gap: $spacing-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-// ==================== LOADING SPINNER ====================
-
+/* Loading Spinner */
 .spinner {
   display: inline-block;
   width: 16px;
@@ -421,28 +328,33 @@ body {
   animation: spin 0.6s linear infinite;
 }
 
-// ==================== DEMO CREDENTIALS ====================
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
+/* Demo Credentials Section */
 .demo-credentials {
-  margin-top: $spacing-xl;
-  padding: $spacing-lg;
-  background: $gradient-light;
-  border-radius: $radius-lg;
-  border: 2px solid $gray-200;
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+  border-radius: 16px;
+  border: 2px solid var(--gray-200);
 }
 
 .demo-title {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  color: $gray-700;
+  gap: 8px;
+  color: var(--gray-700);
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: $spacing-md;
+  margin-bottom: 16px;
+}
 
-  svg {
-    color: $color-primary;
-  }
+.demo-title svg {
+  color: var(--primary);
 }
 
 .credentials-grid {
@@ -455,30 +367,27 @@ body {
   padding: 14px;
   background: white;
   border-radius: 10px;
-  border: 2px solid $gray-200;
+  border: 2px solid var(--gray-200);
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all 0.2s ease;
   text-align: center;
+}
 
-  &:hover {
-    @include card-hover;
-  }
+.credential-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+}
 
-  &:active,
-  &.active {
-    border-color: $color-secondary;
-    box-shadow: 0 2px 8px rgba($color-secondary, 0.2);
-    transform: translateY(0);
-  }
-
-  &:focus {
-    outline: 2px solid $color-primary;
-    outline-offset: 2px;
-  }
+.credential-card:active,
+.credential-card.active {
+  border-color: var(--secondary);
+  box-shadow: 0 2px 8px rgba(118, 75, 162, 0.2);
+  transform: translateY(0);
 }
 
 .credential-username {
-  color: $color-primary;
+  color: var(--primary);
   font-weight: 700;
   font-size: 16px;
   font-family: 'Courier New', 'Consolas', monospace;
@@ -486,54 +395,52 @@ body {
 }
 
 .credential-role {
-  color: $gray-600;
+  color: var(--gray-600);
   font-size: 11px;
   font-weight: 500;
   margin-bottom: 6px;
 }
 
 .credential-password {
-  color: $gray-500;
+  color: var(--gray-500);
   font-size: 13px;
   font-family: 'Courier New', 'Consolas', monospace;
 }
 
-// ==================== FOOTER ====================
-
+/* Footer */
 .login-footer {
   margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid $gray-200;
+  border-top: 1px solid var(--gray-200);
   text-align: center;
-
-  p {
-    color: $gray-500;
-    font-size: 13px;
-  }
-
-  a {
-    color: $color-primary;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color $transition-fast;
-
-    &:hover {
-      color: $color-secondary;
-      text-decoration: underline;
-    }
-  }
 }
 
-// ==================== RESPONSIVE DESIGN ====================
+.login-footer p {
+  color: var(--gray-500);
+  font-size: 13px;
+}
 
-@include responsive-mobile {
+.login-footer a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.login-footer a:hover {
+  color: var(--secondary);
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
   body {
     padding: 10px;
   }
 
   .login-container {
     padding: 36px 28px;
-    border-radius: $radius-xl;
+    border-radius: 20px;
   }
 
   .logo-text {
@@ -550,78 +457,65 @@ body {
   }
 
   .credential-card {
-    padding: $spacing-md;
+    padding: 16px;
   }
 }
 
-// ==================== ACCESSIBILITY ====================
-
-input:focus-visible,
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid $color-primary;
-  outline-offset: 2px;
+/* Preview Banner */
+.preview-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-button:focus-visible {
-  outline-color: white;
+.preview-banner a {
+  color: white;
+  text-decoration: underline;
+  margin-left: 8px;
 }
+</style>
+</head>
+<body>
+<!-- Preview Banner -->
+<div class="preview-banner">
+                           🎨 PREVIEW MODE - This is how your OptimusDDC login page will look
+</div>
 
-// ==================== PRINT STYLES ====================
+<div class="login-page">
+<div class="login-container">
+<!-- Logo and Branding -->
+<div class="logo-section">
+<div class="logo-container">
+<!-- SwarmChestrate Distributed Nodes Logo -->
+<svg width="72" height="72" viewBox="0 0 100 100" class="swarm-logo">
+<defs>
+<linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" style="stop-color:#667eea"/>
+<stop offset="100%" style="stop-color:#764ba2"/>
+</linearGradient>
+<filter id="glow">
+<feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+<feMerge>
+<feMergeNode in="coloredBlur"/>
+<feMergeNode in="SourceGraphic"/>
+</feMerge>
+</filter>
+</defs>
 
-@media print {
-  body {
-    background: white;
-  }
+<!-- Central primary node -->
+<circle cx="50" cy="50" r="14" fill="url(#logoGradient)" filter="url(#glow)"/>
 
-  .login-container {
-    box-shadow: none;
-  }
-
-  .demo-credentials {
-    display: none;
-  }
-}
-
-// ==================== UTILITY CLASSES ====================
-
-.text-gradient {
-  background: $gradient-primary;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.shadow-glow {
-  filter: drop-shadow(0 10px 25px rgba($color-primary, 0.4));
-}
-
-// ==================== THEME VARIATIONS ====================
-
-// Dark mode support (optional, for future use)
-@media (prefers-color-scheme: dark) {
-  // Can be implemented later if needed
-  // body { ... }
-}
-
-// High contrast mode support
-@media (prefers-contrast: more) {
-  .login-container {
-    border: 2px solid $gray-900;
-  }
-
-  .form-input {
-    border-width: 3px;
-  }
-}
-
-// Reduced motion support
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+<!-- Ring Surrounding nodes -->
+<circle cx="28" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
+<circle cx="72" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
+<circle cx="28" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
+<circle cx="72" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
