@@ -1,0 +1,627 @@
+// OptimusDDC Login Page Styles (SCSS)
+// Compiled to CSS for production use
+
+// ==================== VARIABLES ====================
+
+// Color Palette
+$color-primary: #667eea;
+$color-secondary: #764ba2;
+$color-accent: #4f46e5;
+$color-dark: #1e293b;
+$color-light: #f8fafc;
+$color-success: #16a34a;
+$color-error: #dc2626;
+$color-warning: #eab308;
+
+// Gray Scale
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+
+// Gradients
+$gradient-primary: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+$gradient-light: linear-gradient(135deg, $gray-50 0%, $gray-100 100%);
+$gradient-horizontal: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+$gradient-divider: linear-gradient(to right, transparent, $gray-200, transparent);
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-2xl: 48px;
+
+// Border Radius
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 20px;
+$radius-2xl: 24px;
+
+// Transitions
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;
+
+// Shadows
+$shadow-sm: 0 4px 14px rgba($color-primary, 0.4);
+$shadow-md: 0 12px 24px rgba($color-primary, 0.5);
+$shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
+$shadow-card: 0 4px 12px rgba($color-primary, 0.15);
+$shadow-focus: 0 0 0 4px rgba($color-primary, 0.1);
+
+// Breakpoints
+$breakpoint-mobile: 640px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+
+// ==================== MIXINS ====================
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin absolute-full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+@mixin input-focus {
+  outline: none;
+  border-color: $color-primary;
+  background-color: white;
+  box-shadow: $shadow-focus;
+}
+
+@mixin button-hover {
+  transform: translateY(-2px);
+  box-shadow: $shadow-md;
+}
+
+@mixin card-hover {
+  border-color: $color-primary;
+  box-shadow: $shadow-card;
+  transform: translateY(-2px);
+}
+
+@mixin responsive-mobile {
+  @media (max-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+@mixin responsive-tablet {
+  @media (max-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+// ==================== KEYFRAMES ====================
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ==================== GLOBAL RESET ====================
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+// ==================== BODY & PAGE LAYOUT ====================
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
+  background: $gradient-primary;
+  min-height: 100vh;
+  @include flex-center;
+  padding: 20px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.login-page {
+  width: 100%;
+  max-width: 500px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+// ==================== LOGIN CONTAINER ====================
+
+.login-container {
+  background: white;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-lg, 0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: $spacing-2xl 40px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    @include absolute-full;
+    height: 4px;
+    bottom: auto;
+    background: $gradient-primary;
+  }
+}
+
+// ==================== LOGO SECTION ====================
+
+.logo-section {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.logo-container {
+  @include flex-center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.swarm-logo {
+  filter: drop-shadow(0 10px 25px rgba($color-primary, 0.4));
+  animation: float 3s ease-in-out infinite;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-text {
+  font-size: 42px;
+  font-weight: 800;
+  background: $gradient-primary;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.subtitle {
+  color: $gray-600;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: $spacing-sm;
+}
+
+.tagline {
+  color: $gray-500;
+  font-size: 13px;
+  margin-top: 6px;
+
+  strong {
+    color: $color-primary;
+    font-weight: 600;
+  }
+}
+
+// ==================== ALERT MESSAGES ====================
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px $spacing-md;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-lg;
+  font-size: 14px;
+  animation: slideDown $transition-normal;
+
+  &-icon {
+    flex-shrink: 0;
+  }
+
+  &-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+
+  &-success {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+}
+
+// ==================== FORM STYLES ====================
+
+.login-form {
+  margin-bottom: $spacing-xl;
+}
+
+.form-group {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: $spacing-sm;
+    color: $gray-700;
+    font-weight: 600;
+    font-size: 14px;
+  }
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: $spacing-md;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $gray-400;
+  pointer-events: none;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px $spacing-md 14px 48px;
+  border: 2px solid $gray-200;
+  border-radius: $radius-md;
+  font-size: 15px;
+  transition: all $transition-fast;
+  background-color: $gray-50;
+  color: $gray-900;
+
+  &::placeholder {
+    color: $gray-400;
+  }
+
+  &:hover {
+    border-color: $gray-300;
+    background-color: white;
+  }
+
+  &:focus {
+    @include input-focus;
+
+    & + .input-icon {
+      color: $color-primary;
+    }
+  }
+}
+
+// ==================== FORM OPTIONS ====================
+
+.form-options {
+  margin-bottom: $spacing-lg;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: $color-primary;
+  }
+}
+
+.checkbox-text {
+  color: $gray-600;
+  font-size: 14px;
+}
+
+// ==================== LOGIN BUTTON ====================
+
+.login-button {
+  width: 100%;
+  padding: $spacing-md $spacing-lg;
+  background: $gradient-primary;
+  color: white;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-normal;
+  box-shadow: $shadow-sm;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    @include absolute-full;
+    left: -100%;
+    background: $gradient-horizontal;
+    transition: left $transition-slow;
+  }
+
+  &:hover {
+    @include button-hover;
+
+    &::before {
+      left: 100%;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.button-text {
+  @include flex-center;
+  gap: $spacing-sm;
+}
+
+// ==================== LOADING SPINNER ====================
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.6s linear infinite;
+}
+
+// ==================== DEMO CREDENTIALS ====================
+
+.demo-credentials {
+  margin-top: $spacing-xl;
+  padding: $spacing-lg;
+  background: $gradient-light;
+  border-radius: $radius-lg;
+  border: 2px solid $gray-200;
+}
+
+.demo-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $gray-700;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: $spacing-md;
+
+  svg {
+    color: $color-primary;
+  }
+}
+
+.credentials-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.credential-card {
+  padding: 14px;
+  background: white;
+  border-radius: 10px;
+  border: 2px solid $gray-200;
+  cursor: pointer;
+  transition: all $transition-fast;
+  text-align: center;
+
+  &:hover {
+    @include card-hover;
+  }
+
+  &:active,
+  &.active {
+    border-color: $color-secondary;
+    box-shadow: 0 2px 8px rgba($color-secondary, 0.2);
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+}
+
+.credential-username {
+  color: $color-primary;
+  font-weight: 700;
+  font-size: 16px;
+  font-family: 'Courier New', 'Consolas', monospace;
+  margin-bottom: 4px;
+}
+
+.credential-role {
+  color: $gray-600;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.credential-password {
+  color: $gray-500;
+  font-size: 13px;
+  font-family: 'Courier New', 'Consolas', monospace;
+}
+
+// ==================== FOOTER ====================
+
+.login-footer {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid $gray-200;
+  text-align: center;
+
+  p {
+    color: $gray-500;
+    font-size: 13px;
+  }
+
+  a {
+    color: $color-primary;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-secondary;
+      text-decoration: underline;
+    }
+  }
+}
+
+// ==================== RESPONSIVE DESIGN ====================
+
+@include responsive-mobile {
+  body {
+    padding: 10px;
+  }
+
+  .login-container {
+    padding: 36px 28px;
+    border-radius: $radius-xl;
+  }
+
+  .logo-text {
+    font-size: 32px;
+  }
+
+  .swarm-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .credentials-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .credential-card {
+    padding: $spacing-md;
+  }
+}
+
+// ==================== ACCESSIBILITY ====================
+
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid $color-primary;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline-color: white;
+}
+
+// ==================== PRINT STYLES ====================
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .login-container {
+    box-shadow: none;
+  }
+
+  .demo-credentials {
+    display: none;
+  }
+}
+
+// ==================== UTILITY CLASSES ====================
+
+.text-gradient {
+  background: $gradient-primary;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.shadow-glow {
+  filter: drop-shadow(0 10px 25px rgba($color-primary, 0.4));
+}
+
+// ==================== THEME VARIATIONS ====================
+
+// Dark mode support (optional, for future use)
+@media (prefers-color-scheme: dark) {
+  // Can be implemented later if needed
+  // body { ... }
+}
+
+// High contrast mode support
+@media (prefers-contrast: more) {
+  .login-container {
+    border: 2px solid $gray-900;
+  }
+
+  .form-input {
+    border-width: 3px;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

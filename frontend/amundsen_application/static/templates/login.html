@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>OptimusDDC - Sign In</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-container">
+    <!-- Logo and Branding -->
+    <div class="logo-section">
+      <div class="logo-container">
+        <!-- SwarmChestrate Distributed Nodes Logo -->
+        <svg width="72" height="72" viewBox="0 0 100 100" class="swarm-logo">
+          <defs>
+            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#667eea"/>
+              <stop offset="100%" style="stop-color:#764ba2"/>
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          <!-- Central primary node -->
+          <circle cx="50" cy="50" r="14" fill="url(#logoGradient)" filter="url(#glow)"/>
+
+          <!-- Ring 1: Surrounding nodes -->
+          <circle cx="28" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
+          <circle cx="72" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
+          <circle cx="28" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
+          <circle cx="72" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
+
+          <!-- Ring 2: Outer nodes -->
+          <circle cx="18" cy="50" r="7" fill="url(#logoGradient)" opacity="0.65"/>
+          <circle cx="82" cy="50" r="7" fill="url(#logoGradient)" opacity="0.65"/>
+          <circle cx="50" cy="18" r="7" fill="url(#logoGradient)" opacity="0.65"/>
+          <circle cx="50" cy="82" r="7" fill="url(#logoGradient)" opacity="0.65"/>
+
+          <!-- Connection lines representing P2P network -->
+          <line x1="50" y1="50" x2="28" y2="28" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+          <line x1="50" y1="50" x2="72" y2="28" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+          <line x1="50" y1="50" x2="28" y2="72" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+          <line x1="50" y1="50" x2="72" y2="72" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+          <line x1="50" y1="50" x2="18" y2="50" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+          <line x1="50" y1="50" x2="82" y2="50" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+          <line x1="50" y1="50" x2="50" y2="18" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+          <line x1="50" y1="50" x2="50" y2="82" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
+        </svg>
+
+        <div class="brand-text">
+          <h1 class="logo-text">OptimusDDC</h1>
+        </div>
+      </div>
+      <p class="subtitle">Decentralized Data Catalog</p>
+      <p class="tagline">Powered by <strong>SwarmChestrate</strong></p>
+    </div>
+
+    <!-- Error Message -->
+    {% if error %}
+    <div class="alert alert-error">
+      <svg class="alert-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+      </svg>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Login Form -->
+    <form method="POST" action="{{ url_for('custom_login') }}" class="login-form" id="loginForm">
+      <div class="form-group">
+        <label for="username">Username or Email</label>
+        <div class="input-wrapper">
+          <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+          </svg>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            autofocus
+            autocomplete="username"
+            placeholder="Enter your username"
+            value="{{ username or '' }}"
+            class="form-input"
+          >
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+          </svg>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            class="form-input"
+          >
+        </div>
+      </div>
+
+      <div class="form-options">
+        <label class="checkbox-label">
+          <input type="checkbox" id="remember" name="remember" value="1">
+          <span class="checkbox-text">Remember me for 7 days</span>
+        </label>
+      </div>
+
+      <button type="submit" class="login-button" id="loginButton">
+        <span class="button-text">Sign In to OptimusDDC</span>
+      </button>
+    </form>
+
+    <!-- Demo Credentials -->
+    <div class="demo-credentials">
+      <h3 class="demo-title">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/>
+        </svg>
+        Demo Credentials
+      </h3>
+      <div class="credentials-grid">
+        <div class="credential-card" onclick="fillCredentials('demo', 'demo123')">
+          <div class="credential-username">demo</div>
+          <div class="credential-role">Demo User</div>
+          <div class="credential-password">demo123</div>
+        </div>
+        <div class="credential-card" onclick="fillCredentials('admin', 'admin123')">
+          <div class="credential-username">admin</div>
+          <div class="credential-role">Administrator</div>
+          <div class="credential-password">admin123</div>
+        </div>
+        <div class="credential-card" onclick="fillCredentials('analyst', 'analyst123')">
+          <div class="credential-username">analyst</div>
+          <div class="credential-role">Data Analyst</div>
+          <div class="credential-password">analyst123</div>
+        </div>
+        <div class="credential-card" onclick="fillCredentials('scientist', 'scientist123')">
+          <div class="credential-username">scientist</div>
+          <div class="credential-role">Data Scientist</div>
+          <div class="credential-password">scientist123</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p>Secured by <a href="/auth" target="_blank">Keycloak</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto-fill credentials when demo card is clicked
+  function fillCredentials(username, password) {
+    document.getElementById('username').value = username;
+    document.getElementById('password').value = password;
+    document.getElementById('username').focus();
+
+    // Add visual feedback
+    const cards = document.querySelectorAll('.credential-card');
+    cards.forEach(card => card.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+
+  // Handle form submission
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    const button = document.getElementById('loginButton');
+    const buttonText = button.querySelector('.button-text');
+
+    button.disabled = true;
+    buttonText.innerHTML = '<span class="spinner"></span>Signing in...';
+  });
+
+  // Add enter key support for credential cards
+  document.querySelectorAll('.credential-card').forEach(card => {
+    card.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        this.click();
+      }
+    });
+    card.setAttribute('tabindex', '0');
+  });
+</script>
+</body>
+</html>
