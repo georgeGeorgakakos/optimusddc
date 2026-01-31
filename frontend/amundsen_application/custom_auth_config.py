@@ -13,6 +13,7 @@ import os
 import logging
 from typing import Optional, Dict, Any, Callable
 from functools import wraps
+from urllib.parse import quote
 
 # Third-party imports
 import requests
@@ -175,7 +176,6 @@ def init_custom_auth(app: Flask) -> None:
             return redirect('/')
 
         error = None
-        username = None
 
         if request.method == 'POST':
             username = request.form.get('username', '').strip()
@@ -223,12 +223,13 @@ def init_custom_auth(app: Flask) -> None:
                     error = 'An error occurred during login. Please try again.'
                     logger.error(f"Unexpected error during login for user '{username}': {str(e)}", exc_info=True)
 
-        # Render login template
-        return render_template(
-            'login.html',
-            error=error,
-            username=username
-        )
+            # If there's an error, redirect with error parameter for JavaScript to display
+            if error:
+                logger.debug(f"Redirecting to login with error: {error}")
+                return redirect(f'/login?error={quote(error)}')
+
+        # Render login template (no variables needed - pure HTML)
+        return render_template('login.html')
 
     @app.route('/logout')
     def custom_logout():

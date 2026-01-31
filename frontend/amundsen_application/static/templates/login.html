@@ -5,7 +5,513 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>OptimusDDC - Sign In</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.scss') }}">
+  <style>
+      /* OptimusDDC Login Page Styles */
+
+      /* CSS Variables for theming */
+      :root {
+          --primary: #667eea;
+          --secondary: #764ba2;
+          --accent: #4f46e5;
+          --dark: #1e293b;
+          --light: #f8fafc;
+          --success: #16a34a;
+          --error: #dc2626;
+          --warning: #eab308;
+          --gray-50: #f9fafb;
+          --gray-100: #f3f4f6;
+          --gray-200: #e5e7eb;
+          --gray-300: #d1d5db;
+          --gray-400: #9ca3af;
+          --gray-500: #6b7280;
+          --gray-600: #4b5563;
+          --gray-700: #374151;
+          --gray-800: #1f2937;
+          --gray-900: #111827;
+      }
+
+      /* Global Reset */
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+      }
+
+      /* Body and Page Layout */
+      body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+      }
+
+      .login-page {
+          width: 100%;
+          max-width: 500px;
+          animation: fadeIn 0.6s ease-out;
+      }
+
+      @keyframes fadeIn {
+          from {
+              opacity: 0;
+              transform: translateY(20px);
+          }
+          to {
+              opacity: 1;
+              transform: translateY(0);
+          }
+      }
+
+      /* Login Container */
+      .login-container {
+          background: white;
+          border-radius: 24px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+          padding: 48px 40px;
+          position: relative;
+          overflow: hidden;
+      }
+
+      .login-container::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, var(--primary), var(--secondary));
+      }
+
+      /* Logo Section */
+      .logo-section {
+          text-align: center;
+          margin-bottom: 36px;
+      }
+
+      .logo-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 16px;
+      }
+
+      .swarm-logo {
+          filter: drop-shadow(0 10px 25px rgba(102, 126, 234, 0.4));
+          animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+          0%, 100% {
+              transform: translateY(0px);
+          }
+          50% {
+              transform: translateY(-10px);
+          }
+      }
+
+      .brand-text {
+          display: flex;
+          flex-direction: column;
+      }
+
+      .logo-text {
+          font-size: 42px;
+          font-weight: 800;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: -0.5px;
+          line-height: 1;
+      }
+
+      .subtitle {
+          color: var(--gray-600);
+          font-size: 15px;
+          font-weight: 500;
+          margin-top: 8px;
+      }
+
+      .tagline {
+          color: var(--gray-500);
+          font-size: 13px;
+          margin-top: 6px;
+      }
+
+      .tagline strong {
+          color: var(--primary);
+          font-weight: 600;
+      }
+
+      /* Partner Logos Section */
+      .partner-logos {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid var(--gray-200);
+      }
+
+      .partner-logo-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+      }
+
+      .partner-logo-label {
+          font-size: 10px;
+          color: var(--gray-500);
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+      }
+
+      .partner-logo-svg {
+          opacity: 0.7;
+          transition: opacity 0.3s ease;
+      }
+
+      .partner-logo-svg:hover {
+          opacity: 1;
+      }
+
+      /* Alert Messages */
+      .alert {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 16px;
+          border-radius: 12px;
+          margin-bottom: 24px;
+          font-size: 14px;
+          animation: slideDown 0.3s ease-out;
+      }
+
+      @keyframes slideDown {
+          from {
+              opacity: 0;
+              transform: translateY(-10px);
+          }
+          to {
+              opacity: 1;
+              transform: translateY(0);
+          }
+      }
+
+      .alert-error {
+          background-color: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+      }
+
+      .alert-success {
+          background-color: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #166534;
+      }
+
+      .alert-icon {
+          flex-shrink: 0;
+      }
+
+      /* Form Styles */
+      .login-form {
+          margin-bottom: 32px;
+      }
+
+      .form-group {
+          margin-bottom: 20px;
+      }
+
+      .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          color: var(--gray-700);
+          font-weight: 600;
+          font-size: 14px;
+      }
+
+      .input-wrapper {
+          position: relative;
+      }
+
+      .input-icon {
+          position: absolute;
+          left: 16px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--gray-400);
+          pointer-events: none;
+      }
+
+      .form-input {
+          width: 100%;
+          padding: 14px 16px 14px 48px;
+          border: 2px solid var(--gray-200);
+          border-radius: 12px;
+          font-size: 15px;
+          transition: all 0.2s ease;
+          background-color: var(--gray-50);
+          color: var(--gray-900);
+      }
+
+      .form-input::placeholder {
+          color: var(--gray-400);
+      }
+
+      .form-input:hover {
+          border-color: var(--gray-300);
+          background-color: white;
+      }
+
+      .form-input:focus {
+          outline: none;
+          border-color: var(--primary);
+          background-color: white;
+          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+      }
+
+      .input-icon {
+          color: var(--primary);
+      }
+
+      /* Form Options */
+      .form-options {
+          margin-bottom: 24px;
+      }
+
+      .checkbox-label {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          user-select: none;
+      }
+
+      .checkbox-label input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          margin-right: 10px;
+          cursor: pointer;
+          accent-color: var(--primary);
+      }
+
+      .checkbox-text {
+          color: var(--gray-600);
+          font-size: 14px;
+      }
+
+      /* Login Button */
+      .login-button {
+          width: 100%;
+          padding: 16px 24px;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+          position: relative;
+          overflow: hidden;
+      }
+
+      .login-button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          transition: left 0.5s ease;
+      }
+
+      .login-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 24px rgba(102, 126, 234, 0.5);
+      }
+
+      .login-button:hover::before {
+          left: 100%;
+      }
+
+      .login-button:active {
+          transform: translateY(0);
+      }
+
+      .login-button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+      }
+
+      .button-text {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+      }
+
+      /* Loading Spinner */
+      .spinner {
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 0.6s linear infinite;
+      }
+
+      @keyframes spin {
+          to {
+              transform: rotate(360deg);
+          }
+      }
+
+      /* Demo Credentials Section */
+      .demo-credentials {
+          margin-top: 32px;
+          padding: 24px;
+          background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+          border-radius: 16px;
+          border: 2px solid var(--gray-200);
+      }
+
+      .demo-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--gray-700);
+          font-size: 16px;
+          font-weight: 600;
+          margin-bottom: 16px;
+      }
+
+      .demo-title svg {
+          color: var(--primary);
+      }
+
+      .credentials-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+      }
+
+      .credential-card {
+          padding: 14px;
+          background: white;
+          border-radius: 10px;
+          border: 2px solid var(--gray-200);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: center;
+      }
+
+      .credential-card:hover {
+          border-color: var(--primary);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+          transform: translateY(-2px);
+      }
+
+      .credential-card:active,
+      .credential-card.active {
+          border-color: var(--secondary);
+          box-shadow: 0 2px 8px rgba(118, 75, 162, 0.2);
+          transform: translateY(0);
+      }
+
+      .credential-username {
+          color: var(--primary);
+          font-weight: 700;
+          font-size: 16px;
+          font-family: 'Courier New', 'Consolas', monospace;
+          margin-bottom: 4px;
+      }
+
+      .credential-role {
+          color: var(--gray-600);
+          font-size: 11px;
+          font-weight: 500;
+          margin-bottom: 6px;
+      }
+
+      .credential-password {
+          color: var(--gray-500);
+          font-size: 13px;
+          font-family: 'Courier New', 'Consolas', monospace;
+      }
+
+      /* Footer */
+      .login-footer {
+          margin-top: 28px;
+          padding-top: 20px;
+          border-top: 1px solid var(--gray-200);
+          text-align: center;
+      }
+
+      .login-footer p {
+          color: var(--gray-500);
+          font-size: 13px;
+      }
+
+      .login-footer a {
+          color: var(--primary);
+          text-decoration: none;
+          font-weight: 500;
+          transition: color 0.2s ease;
+      }
+
+      .login-footer a:hover {
+          color: var(--secondary);
+          text-decoration: underline;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 640px) {
+          body {
+              padding: 10px;
+          }
+
+          .login-container {
+              padding: 36px 28px;
+              border-radius: 20px;
+          }
+
+          .logo-text {
+              font-size: 32px;
+          }
+
+          .swarm-logo {
+              width: 56px;
+              height: 56px;
+          }
+
+          .credentials-grid {
+              grid-template-columns: 1fr;
+          }
+
+          .credential-card {
+              padding: 16px;
+          }
+
+          .partner-logos {
+              flex-direction: column;
+              gap: 16px;
+          }
+      }
+  </style>
 </head>
 <body>
 <div class="login-page">
@@ -61,20 +567,58 @@
       </div>
       <p class="subtitle">Decentralized Data Catalog</p>
       <p class="tagline">Powered by <strong>SwarmChestrate</strong></p>
-    </div>
 
-    <!-- Error Message -->
-    {% if error %}
-    <div class="alert alert-error">
-      <svg class="alert-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-      </svg>
-      <span>{{ error }}</span>
+      <!-- Partner Logos -->
+      <div class="partner-logos">
+        <!-- SwarmChestrate Logo -->
+        <div class="partner-logo-item">
+          <div class="partner-logo-label">SwarmChestrate</div>
+          <svg width="48" height="48" viewBox="0 0 100 100" class="partner-logo-svg">
+            <defs>
+              <linearGradient id="swarmGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#667eea"/>
+                <stop offset="100%" style="stop-color:#764ba2"/>
+              </linearGradient>
+            </defs>
+            <!-- Hexagonal swarm pattern -->
+            <circle cx="50" cy="50" r="12" fill="url(#swarmGradient)" opacity="0.9"/>
+            <circle cx="30" cy="35" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
+            <circle cx="70" cy="35" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
+            <circle cx="30" cy="65" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
+            <circle cx="70" cy="65" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
+            <circle cx="50" cy="25" r="6" fill="url(#swarmGradient)" opacity="0.5"/>
+            <circle cx="50" cy="75" r="6" fill="url(#swarmGradient)" opacity="0.5"/>
+            <line x1="50" y1="50" x2="30" y2="35" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
+            <line x1="50" y1="50" x2="70" y2="35" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
+            <line x1="50" y1="50" x2="30" y2="65" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
+            <line x1="50" y1="50" x2="70" y2="65" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
+          </svg>
+        </div>
+
+        <!-- ICCS Logo -->
+        <div class="partner-logo-item">
+          <div class="partner-logo-label">ICCS / NTUA</div>
+          <svg width="48" height="48" viewBox="0 0 100 100" class="partner-logo-svg">
+            <defs>
+              <linearGradient id="iccsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#1e40af"/>
+                <stop offset="100%" style="stop-color:#3b82f6"/>
+              </linearGradient>
+            </defs>
+            <!-- Academic shield/book design -->
+            <path d="M50 15 L20 25 L20 50 Q20 70 50 85 Q80 70 80 50 L80 25 Z"
+                  fill="url(#iccsGradient)" opacity="0.9"/>
+            <rect x="35" y="38" width="30" height="3" fill="white" opacity="0.8"/>
+            <rect x="35" y="46" width="30" height="3" fill="white" opacity="0.8"/>
+            <rect x="35" y="54" width="30" height="3" fill="white" opacity="0.8"/>
+            <circle cx="50" cy="30" r="5" fill="white" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
     </div>
-    {% endif %}
 
     <!-- Login Form -->
-    <form method="POST" action="{{ url_for('custom_login') }}" class="login-form" id="loginForm">
+    <form method="POST" action="/login" class="login-form" id="loginForm">
       <div class="form-group">
         <label for="username">Username or Email</label>
         <div class="input-wrapper">
@@ -89,7 +633,6 @@
             autofocus
             autocomplete="username"
             placeholder="Enter your username"
-            value="{{ username or '' }}"
             class="form-input"
           >
         </div>
@@ -131,7 +674,7 @@
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/>
         </svg>
-        Demo Credentials
+        Demo Credentials - Click to Auto-Fill!
       </h3>
       <div class="credentials-grid">
         <div class="credential-card" onclick="fillCredentials('demo', 'demo123')" tabindex="0">
@@ -165,6 +708,16 @@
 </div>
 
 <script>
+  // Check for error parameter in URL
+  window.addEventListener('load', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+
+    if (error) {
+      showMessage(decodeURIComponent(error), 'error');
+    }
+  });
+
   // Auto-fill credentials when demo card is clicked
   function fillCredentials(username, password) {
     document.getElementById('username').value = username;
@@ -175,6 +728,41 @@
     const cards = document.querySelectorAll('.credential-card');
     cards.forEach(card => card.classList.remove('active'));
     event.currentTarget.classList.add('active');
+
+    // Show success message
+    showMessage('✓ Credentials auto-filled! Click "Sign In" to continue.', 'success');
+  }
+
+  // Show message function
+  function showMessage(message, type) {
+    // Remove existing messages
+    const existing = document.querySelector('.alert');
+    if (existing) {
+      existing.remove();
+    }
+
+    // Create new message
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.innerHTML = `
+      <svg class="alert-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+        ${type === 'success'
+      ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+      : '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>'
+    }
+      </svg>
+      <span>${message}</span>
+    `;
+
+    // Insert before form
+    const form = document.querySelector('.login-form');
+    form.parentNode.insertBefore(alert, form);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      alert.style.opacity = '0';
+      setTimeout(() => alert.remove(), 300);
+    }, 5000);
   }
 
   // Handle form submission
@@ -183,7 +771,7 @@
     const buttonText = button.querySelector('.button-text');
 
     button.disabled = true;
-    buttonText.innerHTML = '<span class="spinner"></span>Signing in...';
+    buttonText.innerHTML = '<span class="spinner"></span> Signing in...';
   });
 
   // Add enter key support for credential cards
