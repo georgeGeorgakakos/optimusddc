@@ -101,7 +101,9 @@
           margin-bottom: 16px;
       }
 
-      .swarm-logo {
+      .main-logo-image {
+          height: 72px;
+          width: auto;
           filter: drop-shadow(0 10px 25px rgba(102, 126, 234, 0.4));
           animation: float 3s ease-in-out infinite;
       }
@@ -144,9 +146,16 @@
           margin-top: 6px;
       }
 
-      .tagline strong {
+      .tagline a {
           color: var(--primary);
           font-weight: 600;
+          text-decoration: none;
+          transition: color 0.2s ease;
+      }
+
+      .tagline a:hover {
+          color: var(--secondary);
+          text-decoration: underline;
       }
 
       /* Partner Logos Section */
@@ -175,13 +184,16 @@
           letter-spacing: 0.5px;
       }
 
-      .partner-logo-svg {
+      .partner-logo-image {
+          height: 48px;
+          width: auto;
           opacity: 0.7;
-          transition: opacity 0.3s ease;
+          transition: opacity 0.3s ease, transform 0.3s ease;
       }
 
-      .partner-logo-svg:hover {
+      .partner-logo-image:hover {
           opacity: 1;
+          transform: scale(1.05);
       }
 
       /* Alert Messages */
@@ -464,6 +476,7 @@
       .login-footer p {
           color: var(--gray-500);
           font-size: 13px;
+          margin-bottom: 8px;
       }
 
       .login-footer a {
@@ -476,6 +489,88 @@
       .login-footer a:hover {
           color: var(--secondary);
           text-decoration: underline;
+      }
+
+      /* Creator Credit - Fancy Styling */
+      .creator-credit {
+          margin-top: 12px;
+          padding: 12px 20px;
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+          border-radius: 12px;
+          border: 1px solid rgba(102, 126, 234, 0.15);
+          position: relative;
+          overflow: hidden;
+      }
+
+      .creator-credit::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+          animation: shimmer 3s infinite;
+      }
+
+      @keyframes shimmer {
+          0% {
+              left: -100%;
+          }
+          100% {
+              left: 100%;
+          }
+      }
+
+      .creator-credit p {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 12px;
+          color: var(--gray-600);
+          font-weight: 500;
+          margin: 0;
+      }
+
+      .creator-credit .creator-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          border-radius: 50%;
+          color: white;
+          font-size: 11px;
+          font-weight: 700;
+      }
+
+      .creator-credit .creator-name {
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-weight: 700;
+          font-size: 13px;
+      }
+
+      .creator-credit .sparkle {
+          display: inline-block;
+          color: var(--primary);
+          animation: sparkle 2s ease-in-out infinite;
+      }
+
+      @keyframes sparkle {
+          0%, 100% {
+              opacity: 0.3;
+              transform: scale(0.8);
+          }
+          50% {
+              opacity: 1;
+              transform: scale(1.2);
+          }
       }
 
       /* Responsive Design */
@@ -493,8 +588,7 @@
               font-size: 32px;
           }
 
-          .swarm-logo {
-              width: 56px;
+          .main-logo-image {
               height: 56px;
           }
 
@@ -510,6 +604,10 @@
               flex-direction: column;
               gap: 16px;
           }
+
+          .partner-logo-image {
+              height: 40px;
+          }
       }
   </style>
 </head>
@@ -519,100 +617,28 @@
     <!-- Logo and Branding -->
     <div class="logo-section">
       <div class="logo-container">
-        <!-- SwarmChestrate Distributed Nodes Logo -->
-        <svg width="72" height="72" viewBox="0 0 100 100" class="swarm-logo">
-          <defs>
-            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#667eea"/>
-              <stop offset="100%" style="stop-color:#764ba2"/>
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-
-          <!-- Central primary node -->
-          <circle cx="50" cy="50" r="14" fill="url(#logoGradient)" filter="url(#glow)"/>
-
-          <!-- Ring 1: Surrounding nodes -->
-          <circle cx="28" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
-          <circle cx="72" cy="28" r="9" fill="url(#logoGradient)" opacity="0.85"/>
-          <circle cx="28" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
-          <circle cx="72" cy="72" r="9" fill="url(#logoGradient)" opacity="0.85"/>
-
-          <!-- Ring 2: Outer nodes -->
-          <circle cx="18" cy="50" r="7" fill="url(#logoGradient)" opacity="0.65"/>
-          <circle cx="82" cy="50" r="7" fill="url(#logoGradient)" opacity="0.65"/>
-          <circle cx="50" cy="18" r="7" fill="url(#logoGradient)" opacity="0.65"/>
-          <circle cx="50" cy="82" r="7" fill="url(#logoGradient)" opacity="0.65"/>
-
-          <!-- Connection lines representing P2P network -->
-          <line x1="50" y1="50" x2="28" y2="28" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-          <line x1="50" y1="50" x2="72" y2="28" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-          <line x1="50" y1="50" x2="28" y2="72" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-          <line x1="50" y1="50" x2="72" y2="72" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-          <line x1="50" y1="50" x2="18" y2="50" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-          <line x1="50" y1="50" x2="82" y2="50" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-          <line x1="50" y1="50" x2="50" y2="18" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-          <line x1="50" y1="50" x2="50" y2="82" stroke="url(#logoGradient)" stroke-width="2" opacity="0.25"/>
-        </svg>
+        <!-- Main Logo Image (logo1.png) -->
+        <img src="/static/images/logo1.png" alt="OptimusDDC Logo" class="main-logo-image">
 
         <div class="brand-text">
           <h1 class="logo-text">OptimusDDC</h1>
         </div>
       </div>
       <p class="subtitle">Decentralized Data Catalog</p>
-      <p class="tagline">Powered by <strong>SwarmChestrate</strong></p>
+      <p class="tagline">Powered by <a href="https://github.com/georgeGeorgakakos/optimusdb" target="_blank" rel="noopener">OptimusDB</a></p>
 
       <!-- Partner Logos -->
       <div class="partner-logos">
-        <!-- SwarmChestrate Logo -->
+        <!-- SwarmChestrate Logo (logo2.png) -->
         <div class="partner-logo-item">
           <div class="partner-logo-label">SwarmChestrate</div>
-          <svg width="48" height="48" viewBox="0 0 100 100" class="partner-logo-svg">
-            <defs>
-              <linearGradient id="swarmGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#667eea"/>
-                <stop offset="100%" style="stop-color:#764ba2"/>
-              </linearGradient>
-            </defs>
-            <!-- Hexagonal swarm pattern -->
-            <circle cx="50" cy="50" r="12" fill="url(#swarmGradient)" opacity="0.9"/>
-            <circle cx="30" cy="35" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
-            <circle cx="70" cy="35" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
-            <circle cx="30" cy="65" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
-            <circle cx="70" cy="65" r="8" fill="url(#swarmGradient)" opacity="0.7"/>
-            <circle cx="50" cy="25" r="6" fill="url(#swarmGradient)" opacity="0.5"/>
-            <circle cx="50" cy="75" r="6" fill="url(#swarmGradient)" opacity="0.5"/>
-            <line x1="50" y1="50" x2="30" y2="35" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
-            <line x1="50" y1="50" x2="70" y2="35" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
-            <line x1="50" y1="50" x2="30" y2="65" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
-            <line x1="50" y1="50" x2="70" y2="65" stroke="url(#swarmGradient)" stroke-width="1.5" opacity="0.3"/>
-          </svg>
+          <img src="/static/images/logo2.png" alt="SwarmChestrate Logo" class="partner-logo-image">
         </div>
 
-        <!-- ICCS Logo -->
+        <!-- ICCS / NTUA Logo (logo3.png) -->
         <div class="partner-logo-item">
           <div class="partner-logo-label">ICCS / NTUA</div>
-          <svg width="48" height="48" viewBox="0 0 100 100" class="partner-logo-svg">
-            <defs>
-              <linearGradient id="iccsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#1e40af"/>
-                <stop offset="100%" style="stop-color:#3b82f6"/>
-              </linearGradient>
-            </defs>
-            <!-- Academic shield/book design -->
-            <path d="M50 15 L20 25 L20 50 Q20 70 50 85 Q80 70 80 50 L80 25 Z"
-                  fill="url(#iccsGradient)" opacity="0.9"/>
-            <rect x="35" y="38" width="30" height="3" fill="white" opacity="0.8"/>
-            <rect x="35" y="46" width="30" height="3" fill="white" opacity="0.8"/>
-            <rect x="35" y="54" width="30" height="3" fill="white" opacity="0.8"/>
-            <circle cx="50" cy="30" r="5" fill="white" opacity="0.8"/>
-          </svg>
+          <img src="/static/images/logo3.png" alt="ICCS / NTUA Logo" class="partner-logo-image">
         </div>
       </div>
     </div>
@@ -703,6 +729,16 @@
     <!-- Footer -->
     <div class="login-footer">
       <p>Secured by <a href="/auth" target="_blank">Keycloak</a></p>
+
+      <!-- Fancy Creator Credit -->
+      <div class="creator-credit">
+        <p>
+          <span class="sparkle">✨</span>
+          <span class="creator-icon">G</span>
+          <span>Created by <span class="creator-name">George Georgakakos</span></span>
+          <span class="sparkle">✨</span>
+        </p>
+      </div>
     </div>
   </div>
 </div>
