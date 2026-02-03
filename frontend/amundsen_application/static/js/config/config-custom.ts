@@ -42,13 +42,13 @@ const configCustom: AppConfigCustom = {
   // ... keep existing config
 
   // Show your own logo image:
-  logoPath: "/static/images/optimus-logo.png",
+  logoPath: '/static/images/optimus-logo.png',
 
   // Change the text next to it (top-left):
-  logoTitle: "",
+  logoTitle: '',
 
   // (optional) change browser tab title:
-  documentTitle: "OptimusDB - Data Discovery Portal",
+  documentTitle: 'OptimusDB - Data Discovery Portal',
 };
 
 export default configCustom;

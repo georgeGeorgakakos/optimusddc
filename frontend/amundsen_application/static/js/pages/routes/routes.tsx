@@ -23,6 +23,7 @@ import QueryWorkbenchPage from '../QueryWorkbenchPage';
 import LogAnalyticsPage from '../LogAnalyticsPage';
 import PersistedDataPage from '../PersistedDataPage';
 import PostmanPage from '../PostmanPage';
+import ETLWorkbenchPage from '../ETLWorkbenchPage';
 /**
  * Central route configuration for Amundsen with OptimusDB support.
  *
@@ -94,7 +95,7 @@ const AppRoutes: React.FC = () => (
 
     {/* Query Workbench page - SQL query interface with distributed execution */}
     <Route exact path="/queryworkbench" component={QueryWorkbenchPage} />
-
+    <Route exact path="/etl-workbench" component={ETLWorkbenchPage} />
     {/* Alternative route alias for consistency */}
     <Route exact path="/query-workbench" component={QueryWorkbenchPage} />
     <Route exact path="/logs" component={LogAnalyticsPage} />

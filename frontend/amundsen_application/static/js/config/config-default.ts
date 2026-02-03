@@ -158,6 +158,12 @@ const configDefault: AppConfig = {
       use_router: true,
     },
     {
+      href: '/etl-workbench',
+      id: 'nav::etl-workbench',
+      label: 'Flow Workbench',
+      use_router: true,
+    },
+    {
       href: '/metrics',
       id: 'nav::metrics',
       label: 'Metrics',
