@@ -38,6 +38,7 @@ import NavBar from './features/NavBar';
 import metricsPage from './pages/MetricsPage';
 import DataCatalogAssistant from './components/DataCatalogAssistant';
 import WikiPage from './pages/WikiPage';
+import ETLWorkbenchPage from './pages/ETLWorkbenchPage';
 
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
@@ -74,6 +75,7 @@ const Routes: React.FC = () => {
         <Route path="/browse" component={BrowsePage} />
         <Route path="/cluster/topology" component={ClusterTopologyPage} />
         <Route path="/queryworkbench" component={QueryWorkbenchPage} />
+        <Route path="/etl-workbench" component={ETLWorkbenchPage} />
         <Route path="/logs" component={LogAnalyticsPage} />
         <Route path="/dashboard/:uri" component={DashboardPage} />
         <Route path="/feature/:group/:name/:version" component={FeaturePage} />
