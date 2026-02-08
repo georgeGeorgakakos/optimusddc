@@ -2,6 +2,7 @@
 // FILE: amundsen_application/static/js/pages/ETLWorkbenchPage/index.tsx
 // ==============================================================================
 // OptimusFlow ETL Workbench - Integrated with SwarmChestrate
+// ALL FIXES APPLIED: Scrollbar, White Grid, Drag Nodes, Connections, Zoom, GO Export
 // ==============================================================================
 
 import * as React from 'react';
@@ -789,10 +790,13 @@ function generateConnectionId(): string {
 }
 
 // ==============================================================================
-// Workflow Builder Component
+// Workflow Builder Component - WITH ALL FIXES
 // ==============================================================================
 
 const WorkflowBuilder: React.FC = () => {
+  // ============================================================================
+  // STATE - ALL NEW STATE VARIABLES ADDED
+  // ============================================================================
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -800,6 +804,25 @@ const WorkflowBuilder: React.FC = () => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [workflowName, setWorkflowName] = useState('Untitled Workflow');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // NEW: Node dragging state
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // NEW: Connection drawing state
+  const [drawingConnection, setDrawingConnection] = useState<{
+    sourceId: string;
+    sourceX: number;
+    sourceY: number;
+  } | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // NEW: Zoom & pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const selectedNodeData = nodes.find((n) => n.id === selectedNode);
@@ -830,7 +853,54 @@ const WorkflowBuilder: React.FC = () => {
     ),
   };
 
-  // Drag handlers
+  // ============================================================================
+  // NEW: CONNECTION VALIDATION
+  // ============================================================================
+  const canConnect = (
+    sourceId: string,
+    targetId: string
+  ): { valid: boolean; reason?: string } => {
+    const sourceNode = nodes.find((n) => n.id === sourceId);
+    const targetNode = nodes.find((n) => n.id === targetId);
+
+    if (!sourceNode || !targetNode) {
+      return { valid: false, reason: 'Node not found' };
+    }
+
+    const exists = connections.some(
+      (c) => c.sourceId === sourceId && c.targetId === targetId
+    );
+
+    if (exists) {
+      return { valid: false, reason: 'Connection already exists' };
+    }
+
+    if (sourceId === targetId) {
+      return { valid: false, reason: 'Cannot connect node to itself' };
+    }
+
+    // CONNECTION RULES
+    if (sourceNode.type === 'source' && targetNode.type === 'source') {
+      return { valid: false, reason: 'Cannot connect sources to each other' };
+    }
+
+    if (sourceNode.type === 'sink') {
+      return { valid: false, reason: 'Sinks cannot have outgoing connections' };
+    }
+
+    if (targetNode.type === 'source') {
+      return {
+        valid: false,
+        reason: 'Sources cannot have incoming connections',
+      };
+    }
+
+    return { valid: true };
+  };
+
+  // ============================================================================
+  // DRAG HANDLERS - Adding new nodes to canvas
+  // ============================================================================
   const handleDragStart = (nodeType: any) => (e: React.DragEvent) => {
     setDraggedNodeType(nodeType);
     e.dataTransfer.effectAllowed = 'copy';
@@ -853,8 +923,9 @@ const WorkflowBuilder: React.FC = () => {
     if (!draggedNodeType || !canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // IMPORTANT: Adjust for zoom and pan
+    const x = (e.clientX - rect.left - pan.x) / zoom;
+    const y = (e.clientY - rect.top - pan.y) / zoom;
 
     // Initialize config with default values
     const config: NodeConfig = {};
@@ -882,7 +953,158 @@ const WorkflowBuilder: React.FC = () => {
     setDraggedNodeType(null);
   };
 
-  // Node handlers
+  // ============================================================================
+  // NEW: NODE DRAGGING - Move nodes after placement
+  // ============================================================================
+  const handleNodeMouseDown = (nodeId: string, e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left click
+    e.stopPropagation();
+
+    const node = nodes.find((n) => n.id === nodeId);
+
+    if (!node) return;
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+
+    if (!rect) return;
+
+    setDraggingNode(nodeId);
+    setDragOffset({
+      x: (e.clientX - rect.left - pan.x) / zoom - node.position.x,
+      y: (e.clientY - rect.top - pan.y) / zoom - node.position.y,
+    });
+    setSelectedNode(nodeId);
+  };
+
+  // ============================================================================
+  // NEW: CANVAS MOUSE HANDLING
+  // ============================================================================
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+
+    if (!rect) return;
+
+    const mouseX = (e.clientX - rect.left - pan.x) / zoom;
+    const mouseY = (e.clientY - rect.top - pan.y) / zoom;
+
+    // Update mouse position for connection drawing
+    if (drawingConnection) {
+      setMousePosition({ x: mouseX, y: mouseY });
+    }
+
+    // Move node if dragging
+    if (draggingNode) {
+      setNodes(
+        nodes.map((node) =>
+          node.id === draggingNode
+            ? {
+                ...node,
+                position: {
+                  x: Math.max(0, mouseX - dragOffset.x),
+                  y: Math.max(0, mouseY - dragOffset.y),
+                },
+              }
+            : node
+        )
+      );
+    }
+
+    // Pan canvas
+    if (isPanning) {
+      setPan({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y,
+      });
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    setDraggingNode(null);
+    setIsPanning(false);
+  };
+
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && (e.ctrlKey || e.metaKey))) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  const handleCanvasClick = () => {
+    if (drawingConnection) {
+      setDrawingConnection(null);
+    }
+  };
+
+  // ============================================================================
+  // NEW: CONNECTION DRAWING
+  // ============================================================================
+  const handlePortClick = (
+    nodeId: string,
+    port: 'input' | 'output',
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+
+    const node = nodes.find((n) => n.id === nodeId);
+
+    if (!node) return;
+
+    if (port === 'output') {
+      // Start drawing connection
+      setDrawingConnection({
+        sourceId: nodeId,
+        sourceX: node.position.x + 120,
+        sourceY: node.position.y + 40,
+      });
+    } else if (port === 'input' && drawingConnection) {
+      // Complete connection
+      const validation = canConnect(drawingConnection.sourceId, nodeId);
+
+      if (validation.valid) {
+        const newConnection: Connection = {
+          id: generateConnectionId(),
+          sourceId: drawingConnection.sourceId,
+          targetId: nodeId,
+          sourcePort: 'output',
+          targetPort: 'input',
+        };
+
+        setConnections([...connections, newConnection]);
+      } else {
+        alert(`❌ Cannot create connection: ${validation.reason}`);
+      }
+
+      setDrawingConnection(null);
+    }
+  };
+
+  const handleDeleteConnection = (connectionId: string) => {
+    setConnections(connections.filter((c) => c.id !== connectionId));
+  };
+
+  // ============================================================================
+  // NEW: ZOOM & PAN
+  // ============================================================================
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.1, Math.min(3, zoom * delta));
+
+      setZoom(newZoom);
+    }
+  };
+
+  const handleResetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // ============================================================================
+  // NODE HANDLERS
+  // ============================================================================
   const handleNodeClick = (nodeId: string) => {
     setSelectedNode(nodeId);
   };
@@ -909,7 +1131,9 @@ const WorkflowBuilder: React.FC = () => {
     );
   };
 
-  // Workflow operations
+  // ============================================================================
+  // WORKFLOW OPERATIONS
+  // ============================================================================
   const handleClearAll = () => {
     if (window.confirm('Are you sure you want to clear all nodes?')) {
       setNodes([]);
@@ -921,17 +1145,14 @@ const WorkflowBuilder: React.FC = () => {
   const handleValidate = () => {
     const errors: string[] = [];
 
-    // Check for at least one source
     if (nodeCounts.sources === 0) {
       errors.push('Workflow must have at least one source node');
     }
 
-    // Check for at least one sink
     if (nodeCounts.sinks === 0) {
       errors.push('Workflow must have at least one sink node');
     }
 
-    // Validate each node's configuration
     nodes.forEach((node) => {
       const nodeType = [
         ...NODE_LIBRARY.sources,
@@ -959,6 +1180,192 @@ const WorkflowBuilder: React.FC = () => {
     }
   };
 
+  // ============================================================================
+  // NEW: GO CODE GENERATION
+  // ============================================================================
+  const generateGoCode = (): string => {
+    const workflowNameClean = workflowName.replace(/[^a-zA-Z0-9]/g, '');
+
+    let code = `package main
+
+import (
+\t"fmt"
+\t"log"
+\t"time"
+\t"context"
+\t
+\t"github.com/optimusdb/sdk"
+)
+
+// ${workflowName}
+// Generated: ${new Date().toISOString()}
+// Nodes: ${nodes.length} | Connections: ${connections.length}
+
+type ${workflowNameClean}Job struct {
+\tsdk.BaseJob
+\tCtx context.Context
+}
+
+func (j *${workflowNameClean}Job) Execute() error {
+\tlog.Printf("🚀 Starting workflow: ${workflowName}")
+\tstart := time.Now()
+\t
+`;
+
+    // Generate code for each node
+    nodes.forEach((node) => {
+      code += `\t// ========================================\n`;
+      code += `\t// Node: ${node.label} (${node.id})\n`;
+      code += `\t// Type: ${node.type} - ${node.nodeType}\n`;
+      code += `\t// ========================================\n`;
+      code += `\tlog.Printf("⚙️  Executing: ${node.label}")\n\t\n`;
+
+      // Generate node-specific code based on type
+      if (node.type === 'source') {
+        code += generateSourceCode(node);
+      } else if (node.type === 'transform') {
+        code += generateTransformCode(node);
+      } else if (node.type === 'sink') {
+        code += generateSinkCode(node);
+      }
+
+      code += `\n\n`;
+    });
+
+    code += `\tduration := time.Since(start)
+\tlog.Printf("✅ Workflow completed successfully in %v", duration)
+\treturn nil
+}
+
+func main() {
+\tctx := context.Background()
+\tjob := &${workflowNameClean}Job{Ctx: ctx}
+\t
+\tif err := job.Execute(); err != nil {
+\t\tlog.Fatalf("❌ Workflow failed: %v", err)
+\t}
+}
+`;
+
+    return code;
+  };
+
+  const generateSourceCode = (node: WorkflowNode): string => {
+    const { config } = node;
+
+    switch (node.nodeType) {
+      case 'postgresql_reader':
+      case 'mysql_reader':
+        return `\tconnStr := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s",
+\t\t"${config.host || 'localhost'}", ${config.port || 5432}, 
+\t\t"${config.database || ''}", "${config.username || ''}", "${
+          config.password || ''
+        }")
+\t
+\tdb_${node.id}, err := sdk.Connect(j.Ctx, connStr)
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to connect to database: %w", err)
+\t}
+\tdefer db_${node.id}.Close()
+\t
+\tquery := "SELECT * FROM ${config.table || 'table_name'}"
+\tdata_${node.id}, err := sdk.QueryRows(j.Ctx, db_${node.id}, query)
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to read data: %w", err)
+\t}
+\tlog.Printf("📊 Read %d rows from ${config.table || 'table'}", len(data_${
+          node.id
+        }))`;
+
+      case 'csv_reader':
+        return `\tdata_${node.id}, err := sdk.ReadCSV("${
+          config.filePath || ''
+        }", "${config.delimiter || ','}", ${config.hasHeader || true})
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to read CSV: %w", err)
+\t}
+\tlog.Printf("📄 Read %d rows from CSV", len(data_${node.id}))`;
+
+      default:
+        return `\tdata_${node.id}, err := sdk.ReadSource(j.Ctx, "${node.nodeType}", map[string]interface{}{})
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to read source: %w", err)
+\t}`;
+    }
+  };
+
+  const generateTransformCode = (node: WorkflowNode): string => {
+    const inputConn = connections.find((c) => c.targetId === node.id);
+    const inputVar = inputConn ? `data_${inputConn.sourceId}` : 'data';
+    const { config } = node;
+
+    switch (node.nodeType) {
+      case 'filter':
+        return `\tdata_${node.id} := sdk.Filter(${inputVar}, "${
+          config.condition || 'true'
+        }")
+\tlog.Printf("🔍 Filter: %d → %d rows", len(${inputVar}), len(data_${
+          node.id
+        }))`;
+
+      case 'aggregate':
+        return `\tdata_${node.id} := sdk.Aggregate(${inputVar}, []string{}, map[string]string{})
+\tlog.Printf("📊 Aggregate: %d groups", len(data_${node.id}))`;
+
+      default:
+        return `\tdata_${node.id} := sdk.Transform(${inputVar}, "${node.nodeType}", map[string]interface{}{})`;
+    }
+  };
+
+  const generateSinkCode = (node: WorkflowNode): string => {
+    const inputConn = connections.find((c) => c.targetId === node.id);
+    const inputVar = inputConn ? `data_${inputConn.sourceId}` : 'data';
+    const { config } = node;
+
+    switch (node.nodeType) {
+      case 'postgresql_writer':
+        return `\tconnStr := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s",
+\t\t"${config.host || 'localhost'}", ${config.port || 5432}, 
+\t\t"${config.database || ''}", "${config.username || ''}", "${
+          config.password || ''
+        }")
+\t
+\tdb_${node.id}, err := sdk.Connect(j.Ctx, connStr)
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to connect to database: %w", err)
+\t}
+\tdefer db_${node.id}.Close()
+\t
+\terr = sdk.WriteTable(j.Ctx, db_${node.id}, "${
+          config.table || 'table_name'
+        }", ${inputVar}, "${config.writeMode || 'append'}")
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to write data: %w", err)
+\t}
+\tlog.Printf("💾 Wrote %d rows to ${
+          config.table || 'table'
+        }", len(${inputVar}))`;
+
+      case 'swarmchestrate_writer':
+        return `\terr := sdk.WriteToSwarmChestrate(j.Ctx, "${
+          config.collection || 'collection'
+        }", ${inputVar}, ${config.replicationFactor || 3})
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to write to SwarmChestrate: %w", err)
+\t}
+\tlog.Printf("🐝 Wrote %d records to SwarmChestrate", len(${inputVar}))`;
+
+      default:
+        return `\terr := sdk.WriteSink(j.Ctx, "${node.nodeType}", ${inputVar}, map[string]interface{}{})
+\tif err != nil {
+\t\treturn fmt.Errorf("failed to write sink: %w", err)
+\t}`;
+    }
+  };
+
+  // ============================================================================
+  // EXPORT TO TOSCA + GO CODE
+  // ============================================================================
   const exportToTOSCA = () => {
     const workflow: Workflow = {
       id: `wf_${Date.now()}`,
@@ -1003,18 +1410,36 @@ const WorkflowBuilder: React.FC = () => {
       },
     };
 
-    const blob = new Blob([JSON.stringify(toscaTemplate, null, 2)], {
+    // Export TOSCA JSON
+    const toscaBlob = new Blob([JSON.stringify(toscaTemplate, null, 2)], {
       type: 'application/json',
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const toscaUrl = URL.createObjectURL(toscaBlob);
+    const toscaLink = document.createElement('a');
 
-    a.href = url;
-    a.download = `${workflowName.replace(/\s+/g, '_')}_tosca.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    toscaLink.href = toscaUrl;
+    toscaLink.download = `${workflowName.replace(/\s+/g, '_')}_tosca.json`;
+    document.body.appendChild(toscaLink);
+    toscaLink.click();
+    document.body.removeChild(toscaLink);
+    URL.revokeObjectURL(toscaUrl);
+
+    // Export GO code
+    const goCode = generateGoCode();
+    const goBlob = new Blob([goCode], { type: 'text/plain' });
+    const goUrl = URL.createObjectURL(goBlob);
+    const goLink = document.createElement('a');
+
+    goLink.href = goUrl;
+    goLink.download = `${workflowName.replace(/\s+/g, '_')}_job.go`;
+    document.body.appendChild(goLink);
+    goLink.click();
+    document.body.removeChild(goLink);
+    URL.revokeObjectURL(goUrl);
+
+    alert(
+      `✅ Exported 2 files:\n• ${workflowName}_tosca.json\n• ${workflowName}_job.go`
+    );
   };
 
   const importFromTOSCA = () => {
@@ -1105,6 +1530,9 @@ const WorkflowBuilder: React.FC = () => {
     input.click();
   };
 
+  // ============================================================================
+  // RENDER
+  // ============================================================================
   return (
     <div className="workflow-builder">
       {/* Node Palette */}
@@ -1186,42 +1614,171 @@ const WorkflowBuilder: React.FC = () => {
       {/* Canvas */}
       <div
         ref={canvasRef}
-        className={`workflow-canvas ${isDraggingOver ? 'dragging-over' : ''}`}
+        className={`workflow-canvas ${isDraggingOver ? 'dragging-over' : ''} ${
+          isPanning ? 'panning' : ''
+        }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onMouseDown={handleCanvasMouseDown}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseUp={handleCanvasMouseUp}
+        onMouseLeave={handleCanvasMouseUp}
+        onClick={handleCanvasClick}
+        onWheel={handleWheel}
       >
-        {nodes.length === 0 ? (
-          <div className="canvas-placeholder">
-            <div className="placeholder-icon">⚙️</div>
-            <h3>Drag components to start building your workflow</h3>
-            <p>Connect sources → transforms → sinks to create data pipelines</p>
-          </div>
-        ) : (
-          <div className="canvas-nodes">
-            {nodes.map((node) => (
-              <div
-                key={node.id}
-                className={`canvas-node ${node.type} ${
-                  selectedNode === node.id ? 'selected' : ''
-                }`}
-                style={{
-                  left: `${node.position.x}px`,
-                  top: `${node.position.y}px`,
-                }}
-                onClick={() => handleNodeClick(node.id)}
-              >
-                <div className="node-icon">{node.icon}</div>
-                <div className="node-label">{node.label}</div>
-                <div className="node-ports">
-                  {node.type !== 'source' && <div className="port input" />}
-                  {node.type !== 'sink' && <div className="port output" />}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div
+          className="canvas-content"
+          style={{
+            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${
+              pan.y / zoom
+            }px)`,
+            transformOrigin: '0 0',
+          }}
+        >
+          {/* SVG Connections Layer */}
+          <svg
+            className="connections-layer"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 1,
+              overflow: 'visible',
+            }}
+          >
+            {/* Existing connections */}
+            {connections.map((conn) => {
+              const sourceNode = nodes.find((n) => n.id === conn.sourceId);
+              const targetNode = nodes.find((n) => n.id === conn.targetId);
 
+              if (!sourceNode || !targetNode) return null;
+
+              const x1 = sourceNode.position.x + 120;
+              const y1 = sourceNode.position.y + 40;
+              const x2 = targetNode.position.x;
+              const y2 = targetNode.position.y + 40;
+
+              const curve = Math.abs(x2 - x1) * 0.5;
+
+              return (
+                <g
+                  key={conn.id}
+                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                >
+                  <path
+                    d={`M ${x1} ${y1} C ${x1 + curve} ${y1}, ${
+                      x2 - curve
+                    } ${y2}, ${x2} ${y2}`}
+                    stroke="#667eea"
+                    strokeWidth="3"
+                    fill="none"
+                    opacity="0.8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('Delete this connection?')) {
+                        handleDeleteConnection(conn.id);
+                      }
+                    }}
+                  />
+                  <polygon
+                    points={`${x2},${y2} ${x2 - 8},${y2 - 4} ${x2 - 8},${
+                      y2 + 4
+                    }`}
+                    fill="#667eea"
+                  />
+                </g>
+              );
+            })}
+
+            {/* Drawing connection */}
+            {drawingConnection && (
+              <path
+                d={`M ${drawingConnection.sourceX} ${drawingConnection.sourceY} 
+                    L ${mousePosition.x} ${mousePosition.y}`}
+                stroke="#667eea"
+                strokeWidth="3"
+                strokeDasharray="5,5"
+                fill="none"
+                opacity="0.6"
+              />
+            )}
+          </svg>
+
+          {/* Nodes Layer */}
+          {nodes.length === 0 ? (
+            <div className="canvas-placeholder">
+              <div className="placeholder-icon">⚙️</div>
+              <h3>Drag components to start building your workflow</h3>
+              <p>
+                Connect sources → transforms → sinks to create data pipelines
+              </p>
+            </div>
+          ) : (
+            <div className="canvas-nodes">
+              {nodes.map((node) => (
+                <div
+                  key={node.id}
+                  className={`canvas-node ${node.type} ${
+                    selectedNode === node.id ? 'selected' : ''
+                  } ${draggingNode === node.id ? 'dragging' : ''}`}
+                  style={{
+                    left: `${node.position.x}px`,
+                    top: `${node.position.y}px`,
+                  }}
+                  onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
+                  onClick={() => handleNodeClick(node.id)}
+                >
+                  <div className="node-icon">{node.icon}</div>
+                  <div className="node-label">{node.label}</div>
+
+                  {/* Connection ports */}
+                  <div className="node-ports">
+                    {node.type !== 'source' && (
+                      <div
+                        className="port input"
+                        onClick={(e) => handlePortClick(node.id, 'input', e)}
+                        title="Input"
+                      />
+                    )}
+                    {node.type !== 'sink' && (
+                      <div
+                        className="port output"
+                        onClick={(e) => handlePortClick(node.id, 'output', e)}
+                        title="Output - Click to connect"
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Zoom Controls */}
+        <div className="zoom-controls">
+          <button
+            onClick={() => setZoom(Math.min(3, zoom * 1.2))}
+            title="Zoom In"
+          >
+            🔍 +
+          </button>
+          <span className="zoom-level">{Math.round(zoom * 100)}%</span>
+          <button
+            onClick={() => setZoom(Math.max(0.1, zoom / 1.2))}
+            title="Zoom Out"
+          >
+            🔍 −
+          </button>
+          <button onClick={handleResetView} title="Reset View">
+            ⊕ Reset
+          </button>
+        </div>
+
+        {/* Toolbar */}
         <div className="canvas-toolbar">
           <input
             type="text"
@@ -1245,6 +1802,7 @@ const WorkflowBuilder: React.FC = () => {
           </button>
         </div>
 
+        {/* Node Counter */}
         <div className="node-counter">
           <span>Sources: {nodeCounts.sources}</span>
           <span>Transforms: {nodeCounts.transforms}</span>
@@ -1429,7 +1987,7 @@ const WorkflowBuilder: React.FC = () => {
 };
 
 // ==============================================================================
-// Jobs Monitor Component
+// Jobs Monitor Component (UNCHANGED)
 // ==============================================================================
 
 const JobsMonitor: React.FC = () => {
