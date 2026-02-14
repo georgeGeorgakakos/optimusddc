@@ -1,5 +1,5 @@
 // ==============================================================================
-// AgentMetricsWidget Styles - FULLY CORRECTED
+// AgentMetricsWidget Styles - FIXED WITH PEER TOPOLOGY
 /////////////////////////////////////////////////////////////////////////////////
 
 .agent-metrics-widget {
@@ -30,7 +30,7 @@
 
       .header-left {
         h2 {
-          font-size: 32px; // ✅ HUGE: was 24px (+33%)
+          font-size: 32px;
           font-weight: 700;
           color: #ffffff;
           margin: 0 0 8px 0;
@@ -39,7 +39,7 @@
         }
 
         .header-subtitle {
-          font-size: 16px; // ✅ LARGER: was 14px (+14%)
+          font-size: 16px;
           color: rgba(255, 255, 255, 0.95);
           margin: 0;
           font-weight: 500;
@@ -50,7 +50,7 @@
         display: flex;
         align-items: center;
         gap: 16px;
-        font-size: 17px; // ✅ LARGER: was 14px (+21%)
+        font-size: 17px;
         font-weight: 600;
 
         .stat-item {
@@ -81,7 +81,7 @@
   }
 
   // ===========================================================================
-  // ✅ NEW: CLUSTER OVERVIEW SECTION
+  // CLUSTER OVERVIEW SECTION
   // ===========================================================================
   .cluster-overview {
     background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
@@ -96,14 +96,14 @@
       margin-bottom: 32px;
 
       h2 {
-        font-size: 28px; // ✅ LARGE
+        font-size: 28px;
         font-weight: 700;
         color: #1a1a2e;
         margin: 0 0 8px 0;
       }
 
       .overview-subtitle {
-        font-size: 16px; // ✅ READABLE
+        font-size: 16px;
         color: #6b7280;
         margin: 0;
       }
@@ -133,7 +133,7 @@
         }
 
         .stat-icon {
-          font-size: 36px; // ✅ LARGE
+          font-size: 36px;
           flex-shrink: 0;
         }
 
@@ -141,14 +141,14 @@
           flex: 1;
 
           .stat-value {
-            font-size: 32px; // ✅ HUGE
+            font-size: 32px;
             font-weight: 800;
             line-height: 1;
             margin-bottom: 6px;
           }
 
           .stat-label {
-            font-size: 14px; // ✅ READABLE
+            font-size: 14px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -234,7 +234,7 @@
   // ===========================================================================
   .individual-agents-section {
     .section-title {
-      font-size: 24px; // ✅ LARGE
+      font-size: 24px;
       font-weight: 700;
       color: #1a1a2e;
       margin: 0 0 24px 0;
@@ -278,7 +278,6 @@
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
     }
 
-    // ✅ COLOR FIX: Green = healthy (low utilization)
     &.healthy {
       border-left: 6px solid #10b981;
       background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
@@ -321,7 +320,7 @@
     }
 
     // =========================================================================
-    // CARD HEADER - LARGER FONTS
+    // CARD HEADER
     // =========================================================================
     .agent-card-header {
       display: flex;
@@ -333,14 +332,14 @@
 
       .agent-title {
         h3 {
-          font-size: 26px; // ✅ HUGE: was 20px (+30%)
+          font-size: 26px;
           font-weight: 700;
           color: #1a1a2e;
           margin: 0 0 8px 0;
         }
 
         .agent-role {
-          font-size: 15px; // ✅ LARGER: was 13px (+15%)
+          font-size: 15px;
           color: #667eea;
           text-transform: uppercase;
           letter-spacing: 1px;
@@ -353,7 +352,7 @@
       }
 
       .agent-peer-id {
-        font-size: 13px; // ✅ LARGER: was 11px (+18%)
+        font-size: 13px;
         color: #6b7280;
         font-family: 'Courier New', monospace;
         background: #f3f4f6;
@@ -364,7 +363,7 @@
     }
 
     // =========================================================================
-    // PREDICTION ALERT - ENHANCED
+    // PREDICTION ALERT
     // =========================================================================
     .prediction-alert {
       margin-bottom: 28px;
@@ -422,18 +421,18 @@
         margin-bottom: 16px;
 
         .alert-icon {
-          font-size: 28px; // ✅ HUGE: was 20px (+40%)
+          font-size: 28px;
         }
 
         .alert-title {
           font-weight: 700;
-          font-size: 18px; // ✅ LARGER: was 14px (+29%)
+          font-size: 18px;
           letter-spacing: 0.5px;
         }
       }
 
       .prediction-detail {
-        font-size: 16px; // ✅ LARGER: was 13px (+23%)
+        font-size: 16px;
         color: #1a1a2e;
         margin-bottom: 12px;
         line-height: 1.7;
@@ -452,7 +451,7 @@
           display: block;
           color: #1a1a2e;
           font-weight: 700;
-          font-size: 16px; // ✅ LARGER
+          font-size: 16px;
           margin-bottom: 12px;
         }
 
@@ -463,7 +462,7 @@
 
           li {
             padding: 10px 0;
-            font-size: 15px; // ✅ LARGER: was 13px (+15%)
+            font-size: 15px;
             color: #1a1a2e;
             display: flex;
             align-items: flex-start;
@@ -474,7 +473,7 @@
               display: inline-block;
               padding: 6px 12px;
               border-radius: 6px;
-              font-size: 12px; // ✅ LARGER: was 10px (+20%)
+              font-size: 12px;
               font-weight: 700;
               letter-spacing: 0.8px;
               flex-shrink: 0;
@@ -505,7 +504,7 @@
         margin-top: 16px;
         padding-top: 16px;
         border-top: 2px solid rgba(0, 0, 0, 0.1);
-        font-size: 16px; // ✅ LARGER: was 13px (+23%)
+        font-size: 16px;
         color: #1a1a2e;
         line-height: 1.7;
         font-weight: 600;
@@ -518,7 +517,7 @@
     }
 
     // =========================================================================
-    // HEALTH GAUGE - ✅ COLOR FIX APPLIED
+    // HEALTH GAUGE
     // =========================================================================
     .health-gauge {
       margin-bottom: 28px;
@@ -529,7 +528,7 @@
 
       .health-label {
         text-align: center;
-        font-size: 18px; // ✅ LARGER: was 14px (+29%)
+        font-size: 18px;
         color: #1a1a2e;
         font-weight: 700;
         margin-top: -4px;
@@ -538,7 +537,7 @@
 
       .health-status {
         text-align: center;
-        font-size: 15px; // ✅ LARGER
+        font-size: 15px;
         font-weight: 700;
         padding: 8px 16px;
         border-radius: 8px;
@@ -546,28 +545,212 @@
         width: 100%;
         box-sizing: border-box;
 
-        &.status-healthy {
+        .status-healthy {
           background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
           color: #065f46;
           border: 2px solid #10b981;
+          display: block;
+          padding: 8px 16px;
+          border-radius: 8px;
         }
 
-        &.status-warning {
+        .status-warning {
           background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
           color: #92400e;
           border: 2px solid #f59e0b;
+          display: block;
+          padding: 8px 16px;
+          border-radius: 8px;
         }
 
-        &.status-critical {
+        .status-critical {
           background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
           color: #991b1b;
           border: 2px solid #ef4444;
+          display: block;
+          padding: 8px 16px;
+          border-radius: 8px;
         }
       }
     }
 
     // =========================================================================
-    // METRICS CHARTS - ENHANCED
+    // ✅ NEW: PEER TOPOLOGY SECTION
+    // =========================================================================
+    .peer-topology {
+      margin-bottom: 28px;
+      background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+      border-radius: 12px;
+      padding: 20px;
+      border: 2px solid #e5e7eb;
+
+      .peer-topology-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e5e7eb;
+
+        .topology-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1a1a2e;
+        }
+
+        .peer-count {
+          font-size: 14px;
+          font-weight: 700;
+          padding: 6px 14px;
+          border-radius: 20px;
+
+          &.all-connected {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 2px solid #10b981;
+          }
+
+          &.partial {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            border: 2px solid #f59e0b;
+          }
+        }
+      }
+
+      .no-peers {
+        text-align: center;
+        color: #6b7280;
+        font-size: 14px;
+        padding: 16px;
+        font-style: italic;
+      }
+
+      .peer-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .peer-item {
+        background: white;
+        border-radius: 10px;
+        padding: 14px 18px;
+        border: 2px solid #e5e7eb;
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        &.connected {
+          border-left: 4px solid #10b981;
+        }
+
+        &.disconnected {
+          border-left: 4px solid #ef4444;
+          opacity: 0.7;
+        }
+
+        .peer-item-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 10px;
+
+          .connection-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+
+            &.online {
+              background: #10b981;
+              box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+            }
+
+            &.offline {
+              background: #ef4444;
+              box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+            }
+          }
+
+          .peer-short-id {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 600;
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+          }
+
+          .peer-role-badge {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-left: auto;
+
+            &.coordinator {
+              background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+              color: #6d28d9;
+              border: 1px solid #8b5cf6;
+            }
+
+            &.follower {
+              background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+              color: #166534;
+              border: 1px solid #22c55e;
+            }
+          }
+        }
+
+        .peer-item-metrics {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+
+          .peer-metric {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            .peer-metric-label {
+              font-size: 12px;
+              color: #6b7280;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
+            }
+
+            .peer-metric-value {
+              font-size: 14px;
+              font-weight: 700;
+              color: #1a1a2e;
+
+              &.good {
+                color: #10b981;
+              }
+
+              &.moderate {
+                color: #f59e0b;
+              }
+
+              &.high {
+                color: #ef4444;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // METRICS CHARTS
     // =========================================================================
     .metrics-charts {
       display: grid;
@@ -620,7 +803,7 @@
 
         .summary-label {
           display: block;
-          font-size: 13px; // ✅ READABLE
+          font-size: 13px;
           font-weight: 600;
           color: #6b7280;
           margin-bottom: 6px;
@@ -630,7 +813,7 @@
 
         .summary-value {
           display: block;
-          font-size: 22px; // ✅ HUGE: was 18px (+22%)
+          font-size: 22px;
           font-weight: 800;
           color: #1a1a2e;
         }
@@ -643,7 +826,7 @@
   }
 
   // ===========================================================================
-  // FOOTER - LARGER FONTS
+  // FOOTER
   // ===========================================================================
   .widget-footer {
     margin-top: 32px;
@@ -657,7 +840,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 16px; // ✅ LARGER: was 13px (+23%)
+      font-size: 16px;
       color: #6b7280;
       font-weight: 600;
       background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
@@ -666,7 +849,7 @@
       border: 2px solid #e5e7eb;
 
       .footer-icon {
-        font-size: 20px; // ✅ LARGER: was 16px (+25%)
+        font-size: 20px;
         animation: rotate 2s linear infinite;
       }
 
@@ -679,7 +862,7 @@
   }
 
   // ===========================================================================
-  // LOADING STATE - ENHANCED
+  // LOADING STATE
   // ===========================================================================
   .loading-state {
     display: flex;
@@ -689,7 +872,7 @@
     padding: 100px 20px;
 
     .loading-spinner {
-      width: 70px; // ✅ HUGE: was 50px (+40%)
+      width: 70px;
       height: 70px;
       border: 6px solid #e5e7eb;
       border-top-color: #667eea;
@@ -706,43 +889,8 @@
     p {
       margin-top: 28px;
       color: #1a1a2e;
-      font-size: 20px; // ✅ HUGE: was 16px (+25%)
+      font-size: 20px;
       font-weight: 600;
     }
   }
 }
-
-// ==============================================================================
-// FONT SIZE IMPROVEMENTS SUMMARY:
-// ==============================================================================
-// Widget title: 24px → 32px (+33%)
-// Header subtitle: 14px → 16px (+14%)
-// Header stats: 14px → 17px (+21%)
-// Overview title: NEW 28px
-// Stat card value: NEW 32px (huge)
-// Agent card title: 20px → 26px (+30%)
-// Agent role: 13px → 15px (+15%)
-// Peer ID: 11px → 13px (+18%)
-// Alert icon: 20px → 28px (+40%)
-// Alert title: 14px → 18px (+29%)
-// Prediction details: 13px → 16px (+23%)
-// Issues list: 13px → 15px (+15%)
-// Severity badge: 10px → 12px (+20%)
-// Recommendation: 13px → 16px (+23%)
-// Health label: 14px → 18px (+29%)
-// Health status: NEW 15px
-// Summary values: 18px → 22px (+22%)
-// Footer info: 13px → 16px (+23%)
-// Footer icon: 16px → 20px (+25%)
-// Loading text: 16px → 20px (+25%)
-// Loading spinner: 50px → 70px (+40%)
-// ==============================================================================
-// COLOR SCHEME:
-// ==============================================================================
-// Primary: #667eea → #764ba2 (purple gradient)
-// Success/Healthy: #10b981 (emerald green)
-// Warning: #f59e0b (amber)
-// Critical/Error: #ef4444 (red)
-// Background: #f9fafb → #ffffff (subtle gradient)
-// Text: #1a1a2e (dark), #6b7280 (gray)
-// ==============================================================================

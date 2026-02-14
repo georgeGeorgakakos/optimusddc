@@ -6,7 +6,8 @@ import * as DocumentTitle from 'react-document-title';
 
 import { shallow } from 'enzyme';
 
-import TagsListContainer from 'features/Tags';
+//import TagsListContainer from 'features/Tags';
+import { TagsListContainer } from '../../features/Tags';
 import BrowsePage from '.';
 
 describe('BrowsePage', () => {

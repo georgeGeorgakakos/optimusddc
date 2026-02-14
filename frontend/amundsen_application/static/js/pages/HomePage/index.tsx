@@ -11,7 +11,6 @@ import Announcements from 'features/AnnouncementsWidget';
 import { announcementsEnabled, getHomePageWidgets } from 'config/config-utils';
 import { HomePageWidgetsConfig } from 'config/config-types';
 import { HOMEPAGE_TITLE } from './constants';
-import DataCatalogAssistant from 'components/DataCatalogAssistant';
 import './styles.scss';
 
 export interface DispatchFromProps {

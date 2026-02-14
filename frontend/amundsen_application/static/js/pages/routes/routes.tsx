@@ -42,11 +42,11 @@ const AppRoutes: React.FC = () => (
     {/* Home page - main landing page */}
     <Route exact path="/" component={HomePage} />
 
-    {/* Search page - global search across all resources */}
-    <Route exact path="/search" component={SearchPage} />
-
     {/* Browse page - catalog browsing with filters */}
     <Route exact path="/browse" component={BrowsePage} />
+
+    {/* Search page - global search across all resources */}
+    <Route exact path="/search" component={SearchPage} />
 
     {/* ====================================================================
         DETAIL PAGES - Resource-specific information

@@ -139,23 +139,26 @@ function detectEnvironment(): EnvironmentConfig {
     // ========================================
     console.log('✅ Detected: K3S (Traefik mode - path-based routing)');
 
+    // ✅ FIX: All nodes now use /optimusdbN prefix for node-specific routing.
+    // Previously Node 1 used bare /swarmkb/* which hit the load-balanced route
+    // (Traefik priority 10) and could return data from ANY node.
     const nodes: OptimusDBNode[] = [
       {
         id: 1,
         name: 'optimusdb1',
-        url: `${baseUrl}`, // Uses /swarmkb routes (load-balanced or backward compat)
-        healthEndpoint: `${baseUrl}/swarmkb/agent/status`,
+        url: `${baseUrl}/optimusdb1`,
+        healthEndpoint: `${baseUrl}/optimusdb1/swarmkb/agent/status`,
       },
       {
         id: 2,
         name: 'optimusdb2',
-        url: `${baseUrl}/optimusdb2`, // Uses /optimusdb2 prefix
+        url: `${baseUrl}/optimusdb2`,
         healthEndpoint: `${baseUrl}/optimusdb2/swarmkb/agent/status`,
       },
       {
         id: 3,
         name: 'optimusdb3',
-        url: `${baseUrl}/optimusdb3`, // Uses /optimusdb3 prefix
+        url: `${baseUrl}/optimusdb3`,
         healthEndpoint: `${baseUrl}/optimusdb3/swarmkb/agent/status`,
       },
     ];
@@ -313,7 +316,7 @@ export function buildApiUrl(
 
     // Docker Desktop:  http://localhost:18001/swarmkb/command
     // K3s NodePort:    http://192.168.0.26:30001/swarmkb/command
-    // K3s Traefik:     http://192.168.0.26/optimusdb1/swarmkb/command
+    // K3s Traefik:     http://193.225.250.240/optimusdb1/swarmkb/command
 
     return `${node.url}${path}`;
   }
@@ -493,10 +496,10 @@ if (typeof window !== 'undefined') {
 //   Node 2: http://localhost:18002/swarmkb/command
 //
 // K3S TRAEFIK MODE (Auto-detected, default):
-//   Location: http://192.168.0.26
-//   Node 1: http://192.168.0.26/swarmkb/command (backward compat)
-//   Node 2: http://192.168.0.26/optimusdb2/swarmkb/command
-//   Node 3: http://192.168.0.26/optimusdb3/swarmkb/command
+//   Location: http://193.225.250.240
+//   Node 1: http://193.225.250.240/optimusdb1/swarmkb/command  ← FIXED: was bare /swarmkb
+//   Node 2: http://193.225.250.240/optimusdb2/swarmkb/command
+//   Node 3: http://193.225.250.240/optimusdb3/swarmkb/command
 //
 // K3S NODEPORT MODE (Manual switch):
 //   Location: http://192.168.0.26
@@ -510,4 +513,3 @@ if (typeof window !== 'undefined') {
 //   Switch back to Traefik mode:
 //   window.OptimusDDC.setConfig({k3sAccessMode: 'traefik'})
 //
-// ==============================================================================

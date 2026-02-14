@@ -62,7 +62,7 @@ const configDefault: AppConfig = {
           path: 'SwarmchestrateWidget/index',
         },
       },
-      {
+      /*{
         name: 'SearchBarWidget',
         options: {
           path: 'SearchBarWidget/index',
@@ -97,7 +97,7 @@ const configDefault: AppConfig = {
           },
           path: 'TagsWidget/index',
         },
-      },
+      },*/
     ],
   },
   indexDashboards: {
@@ -121,8 +121,8 @@ const configDefault: AppConfig = {
   logoPath: null,
   logoTitle: 'OptimusDDC',
   mailClientFeatures: {
-    feedbackEnabled: false,
-    notificationsEnabled: false,
+    feedbackEnabled: true,
+    notificationsEnabled: true,
   },
   navAppSuite: null,
   navLinks: [
@@ -134,6 +134,12 @@ const configDefault: AppConfig = {
       iconOnly: true,
     },
     {
+      href: '/search',
+      id: 'nav::search',
+      label: 'Semantic Search',
+      use_router: true,
+    },
+    {
       href: '/announcements',
       id: 'nav::announcements',
       label: 'Announcements',
@@ -142,7 +148,7 @@ const configDefault: AppConfig = {
     {
       href: '/browse',
       id: 'nav::browse',
-      label: 'Browse',
+      label: 'Analytics',
       use_router: true,
     },
     {
@@ -166,13 +172,13 @@ const configDefault: AppConfig = {
     {
       href: '/metrics',
       id: 'nav::metrics',
-      label: 'Metrics',
+      label: 'Agents Performance',
       use_router: true,
     },
     {
       href: '/logs',
       id: 'nav::logs',
-      label: 'Log Analytics',
+      label: 'Agent Logs',
       use_router: true,
     },
     {
