@@ -1,6 +1,13 @@
 /* eslint-disable no-debugger */
 // Copyright Contributors to the Amundsen project.
 // SPDX-License-Identifier: Apache-2.0
+
+// ==============================================================================
+// NavBar — Two-Row Redesign
+// Row 1 (white): Logo | ICCS + IMU + Avatar
+// Row 2 (dark):  Nav items with SVG icons (centered)
+// ==============================================================================
+
 import * as React from 'react';
 import * as Avatar from 'react-avatar';
 import { RouteComponentProps } from 'react-router';
@@ -8,7 +15,6 @@ import { Link, NavLink, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { Binoculars, GridIcon } from 'components/SVGIcons';
-import HomeIcon from 'components/HomeIcon';
 
 import { LinkConfig, TourConfig } from 'config/config-types';
 import {
@@ -16,27 +22,27 @@ import {
   feedbackEnabled,
   indexUsersEnabled,
   getNavLinks,
-  getNavTheme,
   getLogoTitle,
   getProductToursFor,
   getNavAppSuite,
 } from 'config/config-utils';
 
 import { GlobalState } from 'ducks/rootReducer';
-
 import { LoggedInUser } from 'interfaces';
-
 import { logClick, logAction } from 'utils/analytics';
 
 import Feedback from 'features/Feedback';
 import SearchBar from 'features/SearchBar';
 import { Tour } from 'components/Tour';
+import { NavIconMap } from './NavIcons';
 
 import './styles.scss';
 
+// ==============================================================================
+// Constants
+// ==============================================================================
+
 const NUM_CHARS_FOR_KEY = 9;
-const COLOR_LIGHT = '#ffffff';
-const COLOR_DARK = '#292936'; // gray100
 const DEFAULT_PAGE_TOUR_KEY = 'default-key';
 const DEFAULT_FEATURE_TOUR_KEY = 'default-feature-key';
 const PROFILE_LINK_TEXT = 'My Profile';
@@ -45,9 +51,10 @@ const APP_SUITE_BUTTON_TEXT = 'Related Apps';
 export const HOMEPAGE_PATH = '/';
 const AVATAR_SIZE = 32;
 
-const GENERIC_LIGHT_LOGO_PATH =
-  '/static/images/icons/optimusddc-logo-light.svg';
-const GENERIC_DARK_LOGO_PATH = '/static/images/icons/optimusddc-logo-dark.svg';
+const GENERIC_LOGO_PATH = '/static/images/optimus-logo.png';
+const ICCS_LOGO_PATH = '/static/images/logo3.png';
+const IMU_LOGO_PATH = '/static/images/imu-logo-white-full-black.png';
+
 const TRACKING_MESSAGES = {
   START_TOUR: 'Start Tour',
   END_TOUR: 'End Tour',
@@ -58,9 +65,10 @@ const TRACKING_MESSAGES = {
   followAppSuiteLink: (label: string) => `Follow App Suite Link: ${label}`,
 };
 
-/**
- * Gets the paths of pages with page tours
- */
+// ==============================================================================
+// Tour Helpers (unchanged)
+// ==============================================================================
+
 const reduceToPageTours = (acc: TourConfig[], tour: TourConfig) => {
   if (!tour.isFeatureTour) {
     return [...acc, tour];
@@ -69,140 +77,12 @@ const reduceToPageTours = (acc: TourConfig[], tour: TourConfig) => {
   return acc;
 };
 
-/**
- * Gets the paths of pages with feature tours
- */
 const reduceToFeatureTours = (acc: TourConfig[], tour: TourConfig) => {
   if (tour.isFeatureTour) {
     return [...acc, tour];
   }
 
   return acc;
-};
-
-type ProductTourButtonProps = {
-  onClick: () => void;
-  theme: 'dark' | 'light';
-};
-
-export const ProductTourButton: React.FC<ProductTourButtonProps> = ({
-  onClick,
-  theme,
-}) => (
-  <button
-    className="btn btn-nav-bar-icon btn-flat-icon"
-    type="button"
-    onClick={onClick}
-  >
-    <Binoculars fill={theme === 'dark' ? COLOR_LIGHT : COLOR_DARK} />
-    <span className="sr-only">{PRODUCT_TOUR_BUTTON_TEXT}</span>
-  </button>
-);
-
-type AppSuiteMenuProps = {
-  onClick: (isOpen: boolean) => void;
-  onItemClick?: (itemLabel: string) => void;
-  theme: 'dark' | 'light';
-};
-
-export const AppSuiteMenu: React.FC<AppSuiteMenuProps> = ({
-  onClick,
-  onItemClick,
-  theme,
-}) => {
-  const appList = getNavAppSuite();
-
-  if (appList?.length === 0) {
-    return null;
-  }
-
-  const handleItemClick = (_, e: React.MouseEvent) => {
-    onItemClick?.((e.target as HTMLAnchorElement).text);
-  };
-
-  return (
-    <Dropdown
-      id="app-suite-dropdown"
-      pullRight
-      onToggle={onClick}
-      onSelect={handleItemClick}
-    >
-      <Dropdown.Toggle noCaret className="btn btn-nav-bar-icon btn-flat-icon">
-        <GridIcon fill={theme === 'dark' ? COLOR_LIGHT : COLOR_DARK} />
-        <span className="sr-only">{APP_SUITE_BUTTON_TEXT}</span>
-      </Dropdown.Toggle>
-      <Dropdown.Menu className="app-suite-menu">
-        {appList?.map(({ label, id, href, target, iconPath }) => (
-          <MenuItem
-            key={id}
-            className="app-suite-link"
-            href={href}
-            target={target}
-          >
-            {iconPath && (
-              <img className="app-suite-logo" src={iconPath} alt="" />
-            )}
-            {label}
-          </MenuItem>
-        ))}
-      </Dropdown.Menu>
-    </Dropdown>
-  );
-};
-
-const generateNavLinks = (navLinks: LinkConfig[]) =>
-  navLinks.map((link, index) => {
-    if (link.use_router) {
-      return (
-        <NavLink
-          className="nav-bar-link"
-          key={index}
-          to={link.href}
-          target={link.target}
-          onClick={logClick}
-          data-test={`link-to-${link.label}`}
-          title={link.iconOnly ? link.label : undefined}
-          aria-label={link.iconOnly ? link.label : undefined}
-        >
-          {link.iconOnly ? (
-            <HomeIcon size={20} className="home-icon" />
-          ) : (
-            link.label
-          )}
-        </NavLink>
-      );
-    }
-
-    return (
-      <a
-        className="nav-bar-link"
-        key={index}
-        href={link.href}
-        target={link.target}
-        onClick={logClick}
-        data-test={`link-to-${link.label}`}
-        title={link.iconOnly ? link.label : undefined}
-        aria-label={link.iconOnly ? link.label : undefined}
-      >
-        {link.iconOnly ? (
-          <HomeIcon size={20} className="home-icon" />
-        ) : (
-          link.label
-        )}
-      </a>
-    );
-  });
-
-const renderSearchBar = (pathname: string) => {
-  if (pathname !== HOMEPAGE_PATH) {
-    return (
-      <div className="nav-search-bar">
-        <SearchBar size="small" />
-      </div>
-    );
-  }
-
-  return null;
 };
 
 const generateKeyFromSteps = (tourSteps: TourConfig[], pathname: string) =>
@@ -243,31 +123,111 @@ const getFeatureTourInfo = (pathname: string) => {
   return { hasFeatureTour, featureTourKey, featureTourSteps };
 };
 
-export const Logo: React.FC = () => {
-  const defaultLogo =
-    getNavTheme() === 'light'
-      ? GENERIC_DARK_LOGO_PATH
-      : GENERIC_LIGHT_LOGO_PATH;
+// ==============================================================================
+// Sub-Components
+// ==============================================================================
+
+type ProductTourButtonProps = {
+  onClick: () => void;
+};
+
+export const ProductTourButton: React.FC<ProductTourButtonProps> = ({
+  onClick,
+}) => (
+  <button
+    className="btn btn-nav-bar-icon btn-flat-icon nav-row2-action"
+    type="button"
+    onClick={onClick}
+  >
+    <Binoculars fill="#c8d6e5" />
+    <span className="sr-only">{PRODUCT_TOUR_BUTTON_TEXT}</span>
+  </button>
+);
+
+type AppSuiteMenuProps = {
+  onClick: (isOpen: boolean) => void;
+  onItemClick?: (itemLabel: string) => void;
+};
+
+export const AppSuiteMenu: React.FC<AppSuiteMenuProps> = ({
+  onClick,
+  onItemClick,
+}) => {
+  const appList = getNavAppSuite();
+
+  if (appList?.length === 0) {
+    return null;
+  }
+
+  const handleItemClick = (_, e: React.MouseEvent) => {
+    onItemClick?.((e.target as HTMLAnchorElement).text);
+  };
 
   return (
-    <Link className="logo-link" to="/" onClick={logClick}>
-      <img
-        id="logo-icon"
-        className="logo-icon"
-        src={getLogoPath() || defaultLogo}
-        alt=""
-      />
-      <span className="logo-text">{getLogoTitle()}</span>
-    </Link>
+    <Dropdown
+      id="app-suite-dropdown"
+      pullRight
+      onToggle={onClick}
+      onSelect={handleItemClick}
+    >
+      <Dropdown.Toggle
+        noCaret
+        className="btn btn-nav-bar-icon btn-flat-icon nav-row2-action"
+      >
+        <GridIcon fill="#c8d6e5" />
+        <span className="sr-only">{APP_SUITE_BUTTON_TEXT}</span>
+      </Dropdown.Toggle>
+      <Dropdown.Menu className="app-suite-menu">
+        {appList?.map(({ label, id, href, target, iconPath }) => (
+          <MenuItem
+            key={id}
+            className="app-suite-link"
+            href={href}
+            target={target}
+          >
+            {iconPath && (
+              <img className="app-suite-logo" src={iconPath} alt="" />
+            )}
+            {label}
+          </MenuItem>
+        ))}
+      </Dropdown.Menu>
+    </Dropdown>
   );
 };
 
+// ── Logo (Row 1 Left) — uses optimus-logo.png ──
+export const Logo: React.FC = () => (
+  <Link className="logo-link" to="/" onClick={logClick}>
+    <img
+      id="logo-icon"
+      className="logo-icon"
+      src={getLogoPath() || GENERIC_LOGO_PATH}
+      alt="Swarmchestrate"
+    />
+    {getLogoTitle() && <span className="logo-text">{getLogoTitle()}</span>}
+  </Link>
+);
+
+// ── Partner Logos (Row 1 Right) ──
+export const PartnerLogos: React.FC = () => (
+  <div className="partner-logos">
+    <img
+      className="partner-logo"
+      src={ICCS_LOGO_PATH}
+      alt="ICCS"
+      title="ICCS - Institute of Communication and Computer Systems"
+    />
+    <img className="partner-logo" src={IMU_LOGO_PATH} alt="IMU" title="IMU" />
+  </div>
+);
+
+// ── Profile Menu (Row 1 Right) ──
 type ProfileMenuProps = {
   loggedInUser: LoggedInUser;
 };
 
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ loggedInUser }) => {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { user_id, display_name, email } = loggedInUser;
   const userLink = `/user/${user_id}?source=navbar`;
 
@@ -304,7 +264,64 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ loggedInUser }) => {
   );
 };
 
-// Props
+// ── Nav Link Generator (Row 2) — with icons ──
+const generateNavLinks = (navLinks: LinkConfig[]) =>
+  navLinks.map((link, index) => {
+    const icon = link.icon ? NavIconMap[link.icon] : null;
+
+    if (link.use_router) {
+      return (
+        <NavLink
+          className="nav-bar-link"
+          key={index}
+          to={link.href}
+          exact={link.href === '/'}
+          target={link.target}
+          onClick={logClick}
+          data-test={`link-to-${link.label}`}
+          title={link.label}
+          aria-label={link.label}
+        >
+          {icon && <span className="nav-link-icon">{icon}</span>}
+          <span className="nav-link-label">{link.label}</span>
+        </NavLink>
+      );
+    }
+
+    return (
+      <a
+        className="nav-bar-link"
+        key={index}
+        href={link.href}
+        target={link.target}
+        onClick={logClick}
+        data-test={`link-to-${link.label}`}
+        title={link.label}
+        aria-label={link.label}
+      >
+        {icon && <span className="nav-link-icon">{icon}</span>}
+        <span className="nav-link-label">{link.label}</span>
+      </a>
+    );
+  });
+
+// ── SearchBar (inside Row 2, right side) ──
+const renderSearchBar = (pathname: string) => {
+  if (pathname !== HOMEPAGE_PATH) {
+    return (
+      <div className="nav-search-bar">
+        <SearchBar size="small" />
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// ==============================================================================
+// Main NavBar Component
+// ==============================================================================
+
 interface StateFromProps {
   loggedInUser: LoggedInUser;
 }
@@ -380,47 +397,59 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
     });
   };
 
-  const theme = getNavTheme();
-  const isLightTheme = theme === 'light';
   const hasAppSuite = getNavAppSuite() !== null;
 
   return (
-    <nav className="container-fluid">
-      <div className="row">
-        <div className={`nav-bar ${isLightTheme && 'is-light'}`}>
-          <div id="nav-bar-left" className="nav-bar-left">
-            <Logo />
-          </div>
-          {renderSearchBar(pathname)}
-          <div id="nav-bar-right" className="ml-auto nav-bar-right">
-            {generateNavLinks(getNavLinks())}
-            {hasPageTour && (
-              <ProductTourButton theme={theme} onClick={handleTourClick} />
-            )}
-            {feedbackEnabled() && <Feedback theme={theme} />}
-            {hasAppSuite && (
-              <AppSuiteMenu
-                theme={theme}
-                onClick={handleAppSuiteToggle}
-                onItemClick={handleAppSuiteItemClick}
-              />
-            )}
-            {loggedInUser && <ProfileMenu loggedInUser={loggedInUser} />}
-          </div>
+    <nav className="container-fluid nav-container">
+      {/* ════════════════════════════════════════════════
+          ROW 1: Logo Bar (White)
+          Left:  optimus-logo.png
+          Right: ICCS | IMU | divider | Avatar
+          ════════════════════════════════════════════════ */}
+      <div className="nav-row1">
+        <div className="nav-row1-left">
+          <Logo />
         </div>
-        {(hasPageTour || hasFeatureTour) && (
-          <Tour
-            run={runTour}
-            steps={hasPageTour ? pageTourSteps : featureTourSteps}
-            onTourEnd={handleTourEnd}
-            onTourClose={handleTourClose}
-            onNextStep={handleNextStep}
-            triggersOnFirstView
-            key={hasPageTour ? pageTourKey : featureTourKey} // Re-renders tour on each page
-            triggerFlagId={hasPageTour ? pageTourKey : featureTourKey}
-          />
-        )}
+        <div className="nav-row1-right">
+          <PartnerLogos />
+          <div className="nav-row1-divider" />
+          {loggedInUser && <ProfileMenu loggedInUser={loggedInUser} />}
+        </div>
       </div>
+
+      {/* ════════════════════════════════════════════════
+          ROW 2: Navigation Bar (Dark)
+          Center: Nav items with icons
+          Right:  SearchBar (non-home pages) + Tour + Feedback + AppSuite
+          ════════════════════════════════════════════════ */}
+      <div className="nav-row2">
+        <div className="nav-row2-links">{generateNavLinks(getNavLinks())}</div>
+        <div className="nav-row2-right">
+          {renderSearchBar(pathname)}
+          {hasPageTour && <ProductTourButton onClick={handleTourClick} />}
+          {feedbackEnabled() && <Feedback theme="dark" />}
+          {hasAppSuite && (
+            <AppSuiteMenu
+              onClick={handleAppSuiteToggle}
+              onItemClick={handleAppSuiteItemClick}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Tour overlay */}
+      {(hasPageTour || hasFeatureTour) && (
+        <Tour
+          run={runTour}
+          steps={hasPageTour ? pageTourSteps : featureTourSteps}
+          onTourEnd={handleTourEnd}
+          onTourClose={handleTourClose}
+          onNextStep={handleNextStep}
+          triggersOnFirstView
+          key={hasPageTour ? pageTourKey : featureTourKey}
+          triggerFlagId={hasPageTour ? pageTourKey : featureTourKey}
+        />
+      )}
     </nav>
   );
 };

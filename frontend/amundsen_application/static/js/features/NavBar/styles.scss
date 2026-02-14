@@ -1,186 +1,324 @@
-// Copyright Contributors to the Amundsen project.
-// SPDX-License-Identifier: Apache-2.0
+@import '../../../css/variables';
+@import '../../../css/typography';
 
-@import 'variables';
-@import 'typography';
+// ── Design Tokens ──
+$row1-bg: #ffffff;
+$row1-border: #e2e8f0;
+$row1-height: 56px;
 
-$shimmer-loader-circle-size: $spacer-4;
-$avatar-container-size: 40px;
-$avatar-hover-opacity: 0.8;
+$row2-bg: #2d3a4f;
+$row2-border: rgba(255, 255, 255, 0.07);
+$row2-height: 38px;
+
+$nav-link-color: #c8d6e5;
+$nav-link-hover-color: #f1f5f9;
+$nav-link-hover-bg: rgba(255, 255, 255, 0.08);
+$nav-link-active-color: #e0f2fe;
+$nav-link-active-bg: rgba(56, 189, 248, 0.15);
+$nav-link-active-icon: #7dd3fc;
+$nav-link-active-indicator: #38bdf8;
+$nav-link-font-size: 11.5px;
+$nav-link-icon-opacity: 0.65;
+
+$logo-max-height: 50px;
+$partner-logo-size: 36px;
+$avatar-size: 32px;
 $profile-menu-width: 200px;
-$search-bar-width: 560px;
-$max-logo-width: 144px;
-$logo-text-line-height: 36px;
-
-$dark-background: $nav-bar-color;
-$light-background: $light-nav-bar-color;
+$search-bar-width: 320px;
 
 $app-suite-menu-width: 285px;
 $app-suite-logo-size: 24px;
-$link-border-size: 2px;
 
-.nav-bar {
-  align-items: center;
-  background: $dark-background;
+$shimmer-loader-circle-size: $spacer-4;
+
+// ==============================================================================
+// Container
+// ==============================================================================
+
+.nav-container {
+  padding: 0 !important;
+  position: relative;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// ==============================================================================
+// ROW 1: Logo Bar (White Background)
+// ==============================================================================
+
+.nav-row1 {
   display: flex;
-  flex-direction: row;
-  //height: $nav-bar-height;
-  height: 120px;
-  padding: 0 $spacer-2;
-  box-shadow: 0 0 1px 0 rgba(0, 0, 0, 0.12), 0 2px 3px 0 rgba(0, 0, 0, 0.16);
+  align-items: center;
+  justify-content: space-between;
+  height: $row1-height;
+  padding: 0 $spacer-3;
+  background: $row1-bg;
+  border-bottom: 1px solid $row1-border;
+}
 
-  .nav-bar-left {
-    flex-basis: 234px;
-
-    .logo-text {
-      @extend %text-headline-w2;
-
-      color: $white;
-      line-height: $logo-text-line-height;
-    }
-  }
-
-  .nav-bar-right {
-    display: flex;
-    margin-left: auto;
-  }
-
-  .nav-bar-right > *:not(:last-child) {
-    margin-right: $spacer-1;
-  }
-
-  .nav-bar-link {
-    @extend %text-title-w3;
-
-    line-height: $navbar-item-line-height;
-    padding: 0 $spacer-1;
-    text-decoration: none;
-    //color: $white;
-    color: #243979;
-    font-size: large;
-    border-bottom: $link-border-size solid transparent;
-
-    &:hover,
-    &.active {
-      border-bottom: $link-border-size solid $white;
-    }
-  }
-
-  .btn-group {
-    display: flex;
-  }
-
-  .nav-bar-avatar {
-    background-color: $dark-background;
-    border-radius: 50%;
-    //border-style: groove;
-    padding: $spacer-half;
-    height: auto;
-
-    &:not(.avatar-dropdown) {
-      .sb-avatar {
-        margin: $spacer-half 0 0 $spacer-half;
-
-        div {
-          border: 0 !important;
-        }
-      }
-    }
-
-    &:hover,
-    &:focus {
-      background-color: transparent !important;
-
-      .sb-avatar {
-        opacity: $avatar-hover-opacity;
-      }
-    }
-  }
-
-  .nav-search-bar {
-    flex-grow: 1;
-    margin: auto $spacer-2 auto auto;
-
-    .search-bar {
-      max-width: $search-bar-width;
-      margin: auto 0 auto auto;
-    }
-  }
+.nav-row1-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 
   .logo-link {
-    text-decoration: none;
     display: flex;
+    align-items: center;
+    text-decoration: none;
   }
 
   .logo-icon {
-    align-self: center;
-    margin-right: $spacer-1;
-    //max-height: $spacer-4;
-    max-height: 85px;
-    //max-width: $max-logo-width;
+    max-height: $logo-max-height;
+    width: auto;
   }
 
-  .profile-menu {
-    width: $profile-menu-width;
-
-    .profile-menu-header {
-      padding: $spacer-2 $spacer-2 0;
-    }
-
-    li {
-      a {
-        color: $text-primary;
-        padding: $spacer-2;
-        width: 100%;
-      }
-    }
+  .logo-text {
+    @extend %text-headline-w2;
+    color: $text-primary;
+    margin-left: $spacer-1;
+    line-height: $logo-max-height;
   }
+}
 
-  .app-suite-menu {
-    width: $app-suite-menu-width;
+.nav-row1-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-    .app-suite-link {
-      @extend %text-headline-w3;
+// ── Partner Logos ──
+.partner-logos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-      a {
-        display: flex;
-        align-items: center;
-        padding: $spacer-1 $spacer-2;
-        width: 100%;
-      }
-    }
+.partner-logo {
+  height: $partner-logo-size;
+  width: auto;
+  border-radius: 50%;
+  object-fit: contain;
+  padding: 2px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  transition: transform 0.2s ease;
+  cursor: pointer;
 
-    .app-suite-logo {
-      margin-right: $spacer-1;
-      max-width: $app-suite-logo-size;
-      max-height: $app-suite-logo-size;
-    }
+  &:hover {
+    transform: scale(1.08);
+    border-color: #cbd5e1;
   }
+}
 
-  // For the Light Themed Navigation
-  &.is-light {
-    background: $light-background;
+// ── Row 1 Divider ──
+.nav-row1-divider {
+  width: 1px;
+  height: 28px;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
 
-    .nav-bar-left {
-      .logo-text {
-        color: $text-primary;
-      }
-    }
+// ── Avatar (Row 1) ──
+.nav-bar-avatar {
+  padding: 0;
+  height: auto;
+  background: transparent !important;
+  border: none;
 
-    .nav-bar-link {
-      color: $text-primary;
-
-      &:hover,
-      &.active {
-        border-bottom: $link-border-size solid $text-primary;
-      }
-    }
-
-    .nav-bar-avatar {
-      background-color: $light-background;
+  &:hover,
+  &:focus {
+    background: transparent !important;
+    .sb-avatar {
+      opacity: 0.85;
     }
   }
 }
+
+// ── Profile Menu ──
+.profile-menu {
+  width: $profile-menu-width;
+
+  .profile-menu-header {
+    padding: $spacer-2 $spacer-2 0;
+  }
+
+  li {
+    a {
+      color: $text-primary;
+      padding: $spacer-2;
+      width: 100%;
+    }
+  }
+}
+
+// ==============================================================================
+// ROW 2: Navigation Bar (Dark Background)
+// ==============================================================================
+
+.nav-row2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: $row2-height;
+  padding: 0 $spacer-2;
+  background: $row2-bg;
+  border-bottom: 1px solid $row2-border;
+  position: relative;
+}
+
+.nav-row2-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.nav-row2-right {
+  display: flex;
+  align-items: center;
+  gap: $spacer-1;
+  position: absolute;
+  right: $spacer-2;
+}
+
+// ── Nav Links (Row 2) ──
+.nav-bar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: $nav-link-color;
+  font-size: $nav-link-font-size;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  position: relative;
+  transition: all 0.18s ease;
+  line-height: 1.4;
+  border-bottom: none !important;
+
+  .nav-link-icon {
+    display: flex;
+    align-items: center;
+    opacity: $nav-link-icon-opacity;
+    transition: all 0.18s ease;
+  }
+
+  .nav-link-label {
+    transition: color 0.18s ease;
+  }
+
+  // Hover
+  &:hover {
+    background: $nav-link-hover-bg;
+    color: $nav-link-hover-color;
+    text-decoration: none;
+
+    .nav-link-icon {
+      opacity: 1;
+    }
+  }
+
+  // Active (current page)
+  &.active {
+    background: $nav-link-active-bg;
+    color: $nav-link-active-color;
+    font-weight: 700;
+
+    .nav-link-icon {
+      opacity: 1;
+      color: $nav-link-active-icon;
+    }
+
+    // Bottom indicator
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 2px;
+      background: $nav-link-active-indicator;
+      border-radius: 1px;
+    }
+  }
+}
+
+// ── Search Bar in Row 2 ──
+.nav-search-bar {
+  .search-bar {
+    max-width: $search-bar-width;
+
+    input {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+      font-size: 12px;
+      border-radius: 6px;
+      height: 28px;
+      padding: 0 10px 0 30px;
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      &:focus {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(56, 189, 248, 0.4);
+        outline: none;
+      }
+    }
+
+    .search-bar-icon {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+}
+
+// ── Row 2 Action Buttons (Tour, Feedback, AppSuite) ──
+.nav-row2-action {
+  padding: 4px 8px;
+  border-radius: 4px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+// ── App Suite Menu ──
+.app-suite-menu {
+  width: $app-suite-menu-width;
+
+  .app-suite-link {
+    @extend %text-headline-w3;
+
+    a {
+      display: flex;
+      align-items: center;
+      padding: $spacer-1 $spacer-2;
+      width: 100%;
+    }
+  }
+
+  .app-suite-logo {
+    margin-right: $spacer-1;
+    max-width: $app-suite-logo-size;
+    max-height: $app-suite-logo-size;
+  }
+}
+
+// ── Btn Group Fix ──
+.btn-group {
+  display: flex;
+}
+
+// ==============================================================================
+// Shimmer Loader
+// ==============================================================================
 
 .nav-shimmering-circle {
   height: $shimmer-loader-circle-size;
@@ -188,16 +326,45 @@ $link-border-size: 2px;
   border-radius: $shimmer-loader-circle-size;
 }
 
-// ================================
-// Home Icon Styling
-// ================================
-.nav-bar-link {
-  .home-icon {
-    color: inherit;  // ← Icon inherits nav color
-    transition: transform 0.2s ease;
-    vertical-align: middle;
+// ==============================================================================
+// Responsive adjustments
+// ==============================================================================
+
+@media (max-width: 1280px) {
+  .nav-bar-link {
+    padding: 6px 8px;
+    font-size: 10.5px;
+    gap: 4px;
   }
-  &:hover .home-icon {
-    transform: scale(1.1);
+
+  .nav-row1 {
+    padding: 0 $spacer-2;
+  }
+
+  .logo-icon {
+    max-height: 42px !important;
+  }
+
+  .partner-logo {
+    height: 30px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nav-bar-link {
+    padding: 5px 6px;
+    font-size: 10px;
+
+    .nav-link-icon {
+      display: none;
+    }
+  }
+
+  .partner-logos {
+    gap: 6px;
+  }
+
+  .partner-logo {
+    height: 26px;
   }
 }

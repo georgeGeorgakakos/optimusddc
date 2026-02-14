@@ -428,10 +428,16 @@ interface Link {
   target?: string;
 }
 
+//export interface LinkConfig extends Link {
+//  use_router: boolean;
+//  iconOnly?: boolean;
+//}
 export interface LinkConfig extends Link {
   use_router: boolean;
   iconOnly?: boolean;
+  icon?: string;       // ← ADD THIS LINE — maps to NavIconMap key
 }
+
 
 export interface VisualLinkConfig extends Link {
   iconPath?: string;
