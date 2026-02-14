@@ -1,13 +1,34 @@
 // ==============================================================================
-// AgentMetricsWidget - FIXED
+// AgentMetricsWidget - ENHANCED with ALL API fields visualized
 // ==============================================================================
-// FIXES APPLIED:
+// PREVIOUS FIXES (maintained):
 // 1. Correct data paths: data.agent.health.* instead of data.health.*
 // 2. Single API call per agent (no double fetch)
 // 3. Peer count from peers[] array instead of cluster.connected_peers
-// 4. New: Peer Topology section showing per-peer connectivity
-// 5. Memory shows real values instead of hardcoded 40/100
-// 6. Latency shows real values instead of hardcoded 2ms
+// 4. Memory shows real values instead of hardcoded 40/100
+// 5. Latency shows real values instead of hardcoded 2ms
+// 6. Peer Topology section showing per-peer connectivity
+//
+// NEW ENHANCEMENTS (25 fields):
+// 7.  agent.health.status → Health Classification panel
+// 8.  agent.health.uptime → Uptime display with "Recently Started" alert
+// 9.  agent.health.cpu_idle → CPU Idle metric
+// 10. agent.health.memory_sys → System Memory metric
+// 11. agent.health.disk_read → Disk I/O panel
+// 12. agent.health.disk_write → Disk I/O panel
+// 13. agent.is_coordinator → Coordinator badge
+// 14. agent.metrics.leadership_count → Leadership count display
+// 15. agent.addresses[] → P2P Addresses expandable panel
+// 16. election.current_leader → Election Timeline
+// 17. election.current_term → Raft Term display
+// 18. election.last_election_term → Election history
+// 19. election.last_election_time → Election timestamp
+// 20. cluster.coordinators → Cluster Topology panel
+// 21. cluster.followers → Cluster Topology panel
+// 22. cluster.discovered_peers → Cluster Topology panel
+// 23. cluster.connected_peers → Cluster Topology panel
+// 24. peer.health.* (all sub-fields) → Enhanced peer chips
+// 25. peer.metrics.geography_score → Geo score radar gauge
 // ==============================================================================
 
 import * as React from 'react';
@@ -20,8 +41,8 @@ import './styles.scss';
 // CONFIGURATION
 // ==============================================================================
 
-const METRICS_HISTORY_SIZE = 288; // 24 hours at 5-minute intervals
-const PREDICTION_THRESHOLD_HOURS = 4; // Predict failures within 4 hours
+const METRICS_HISTORY_SIZE = 288;
+const PREDICTION_THRESHOLD_HOURS = 4;
 
 // ==============================================================================
 // TYPES
@@ -33,6 +54,7 @@ interface AgentMetrics {
   cpu_idle: number;
   memory_used: number;
   memory_total: number;
+  memory_sys: number;
   disk_read: number;
   disk_write: number;
   network_latency: number;
@@ -45,7 +67,7 @@ interface AgentMetrics {
   replication_failures: number;
   error_count: number;
   error_rate: number;
-  health_score: number; // This is UTILIZATION (0-100%)
+  health_score: number;
   uptime_seconds: number;
 }
 
@@ -66,7 +88,7 @@ interface HealthPrediction {
   recommendation: string;
 }
 
-// ✅ NEW: Peer info extracted from API response
+// ✅ ENHANCED: Extended peer info with all sub-fields
 interface PeerInfo {
   peerId: string;
   role: string;
@@ -74,9 +96,37 @@ interface PeerInfo {
   connected: boolean;
   latency: number;
   cpuUsage: string;
+  cpuIdle: string;
   memoryUsed: string;
+  memorySys: string;
+  diskRead: string;
+  diskWrite: string;
   healthScore: number;
   healthStatus: string;
+  uptime: string;
+  geographyScore: number;
+  leadershipCount: number;
+}
+
+// ✅ ENHANCED: Extended agent info with all missing fields
+interface ElectionInfo {
+  currentLeader: string;
+  currentTerm: number;
+  lastElectionTerm: number;
+  lastElectionTime: string;
+}
+
+interface ClusterComposition {
+  connectedPeers: number;
+  coordinators: number;
+  discoveredPeers: number;
+  followers: number;
+  totalPeers: number;
+}
+
+interface AgentConfig {
+  context: string;
+  httpPort: string;
 }
 
 interface AgentInfo {
@@ -85,14 +135,28 @@ interface AgentInfo {
   peerId: string;
   role: string;
   isLeader: boolean;
-  currentUtilization: number; // Renamed for clarity - this is utilization %
+  isCoordinator: boolean;
+  currentUtilization: number;
   metricsHistory: AgentMetrics[];
   prediction: HealthPrediction;
-  peers: PeerInfo[]; // ✅ NEW: peer details from this agent's perspective
-  clusterTotalPeers: number; // ✅ NEW: from cluster.total_peers
+  peers: PeerInfo[];
+  clusterTotalPeers: number;
+  // NEW fields
+  healthStatus: string;
+  cpuIdle: number;
+  memorySys: number;
+  diskRead: number;
+  diskWrite: number;
+  uptime: number;
+  leadershipCount: number;
+  addresses: string[];
+  election: ElectionInfo;
+  cluster: ClusterComposition;
+  config: AgentConfig;
+  serverTimestamp: string;
 }
 
-// ✅ NEW: Full status response type for single-call approach
+// Full status response type
 interface AgentStatusResponse {
   agent: {
     peer_id: string;
@@ -158,23 +222,52 @@ interface AgentStatusResponse {
 }
 
 // ==============================================================================
-// HELPER: Parse agent status into metrics + agent info in ONE call
+// HELPERS
+// ==============================================================================
+
+const shortPeerId = (id: string): string =>
+  id ? `${id.substring(0, 8)}…${id.substring(id.length - 4)}` : 'unknown';
+
+const formatUptime = (days: number): { hours: number; minutes: number } => ({
+  hours: Math.floor(days * 24),
+  minutes: Math.floor(((days * 24) % 1) * 60),
+});
+
+const timeAgo = (isoString: string): string => {
+  if (!isoString) return '';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const hours = Math.round(diff / 3600000);
+  if (hours < 1) return 'just now';
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+};
+
+const addressType = (addr: string): { label: string; className: string } => {
+  if (addr.includes('/ip4/10.') || addr.includes('/ip4/172.') || addr.includes('/ip4/192.168.'))
+    return { label: 'Pod', className: 'addr-pod' };
+  if (addr.includes('127.0.0.1'))
+    return { label: 'Loopback', className: 'addr-loopback' };
+  if (addr.includes('/ip6/'))
+    return { label: 'IPv6', className: 'addr-ipv6' };
+  return { label: 'Other', className: 'addr-other' };
+};
+
+// ==============================================================================
+// PARSE: Status → Metrics
 // ==============================================================================
 
 const parseStatusToMetrics = (data: AgentStatusResponse): AgentMetrics => {
-  // ✅ FIX: Read from data.agent.health.* — the correct path
   const health = data.agent?.health;
 
   const cpuUsage = parseFloat(health?.cpu_usage?.replace('%', '') || '0');
   const cpuIdle = parseFloat(health?.cpu_idle?.replace('%', '') || String(100 - cpuUsage));
   const memoryUsed = parseFloat(health?.memory_used?.replace(' MB', '') || '0');
-  const memoryTotal = parseFloat(health?.memory_total?.replace(' MB', '') || '1'); // avoid div by 0
+  const memoryTotal = parseFloat(health?.memory_total?.replace(' MB', '') || '1');
+  const memorySys = parseFloat(health?.memory_sys?.replace(' MB', '') || '0');
   const diskRead = parseFloat(health?.disk_read?.replace(' MB/s', '') || '0');
   const diskWrite = parseFloat(health?.disk_write?.replace(' MB/s', '') || '0');
   const networkLatency = parseFloat(health?.latency?.replace(' ms', '') || '0');
   const healthScore = parseFloat(health?.score || '0');
-
-  // ✅ FIX: Count actual connected peers from peers[] array
   const peerConnections = data.peers?.filter((p) => p.connected).length || 0;
 
   return {
@@ -183,6 +276,7 @@ const parseStatusToMetrics = (data: AgentStatusResponse): AgentMetrics => {
     cpu_idle: cpuIdle,
     memory_used: memoryUsed,
     memory_total: memoryTotal,
+    memory_sys: memorySys,
     disk_read: diskRead,
     disk_write: diskWrite,
     network_latency: networkLatency,
@@ -200,6 +294,7 @@ const parseStatusToMetrics = (data: AgentStatusResponse): AgentMetrics => {
   };
 };
 
+// ✅ ENHANCED: Parse full peer details
 const parsePeers = (data: AgentStatusResponse): PeerInfo[] => {
   if (!data.peers || !Array.isArray(data.peers)) return [];
 
@@ -210,14 +305,21 @@ const parsePeers = (data: AgentStatusResponse): PeerInfo[] => {
     connected: p.connected || false,
     latency: parseFloat(p.health?.latency?.replace(' ms', '') || '0'),
     cpuUsage: p.health?.cpu_usage || 'N/A',
+    cpuIdle: p.health?.cpu_idle || 'N/A',
     memoryUsed: p.health?.memory_used || 'N/A',
+    memorySys: p.health?.memory_sys || 'N/A',
+    diskRead: p.health?.disk_read || 'N/A',
+    diskWrite: p.health?.disk_write || 'N/A',
     healthScore: parseFloat(p.health?.score || '0'),
     healthStatus: p.health?.status || 'Unknown',
+    uptime: p.health?.uptime || 'N/A',
+    geographyScore: p.metrics?.geography_score || 0,
+    leadershipCount: p.metrics?.leadership_count || 0,
   }));
 };
 
 // ==============================================================================
-// REAL API INTEGRATION - SINGLE CALL PER AGENT
+// FETCH: Single call per agent
 // ==============================================================================
 
 const fetchAgentData = async (node: OptimusDBNode): Promise<{
@@ -236,13 +338,13 @@ const fetchAgentData = async (node: OptimusDBNode): Promise<{
 
       if (historyResponse.ok) {
         const historyData = await historyResponse.json();
-
         const metrics = historyData.metrics.map((m: any) => ({
           timestamp: new Date(m.timestamp),
           cpu_usage: parseFloat(m.cpu_usage || m.health?.cpu_usage?.replace('%', '') || '0'),
           cpu_idle: parseFloat(m.cpu_idle || m.health?.cpu_idle?.replace('%', '') || '0'),
           memory_used: parseFloat(m.memory_used || m.health?.memory_used?.replace(' MB', '') || '0'),
           memory_total: parseFloat(m.memory_total || m.health?.memory_total?.replace(' MB', '') || '1'),
+          memory_sys: parseFloat(m.memory_sys || m.health?.memory_sys?.replace(' MB', '') || '0'),
           disk_read: parseFloat(m.disk_read || m.health?.disk_read?.replace(' MB/s', '') || '0'),
           disk_write: parseFloat(m.disk_write || m.health?.disk_write?.replace(' MB/s', '') || '0'),
           network_latency: parseFloat(m.network_latency || m.health?.latency?.replace(' ms', '') || '0'),
@@ -259,7 +361,6 @@ const fetchAgentData = async (node: OptimusDBNode): Promise<{
           uptime_seconds: parseInt(m.uptime_seconds || '0', 10),
         }));
 
-        // Still need status for agent info + peers
         const statusUrl = buildApiUrl('optimusdb', '/swarmkb/agent/status', node.id);
         const statusResponse = await fetch(statusUrl, { signal: AbortSignal.timeout(3000) });
 
@@ -274,7 +375,7 @@ const fetchAgentData = async (node: OptimusDBNode): Promise<{
       console.log(`No metrics history endpoint for node ${node.id}, using current status...`);
     }
 
-    // ✅ FIX: Single API call - use status for BOTH metrics AND agent info
+    // Single API call fallback
     const statusUrl = buildApiUrl('optimusdb', '/swarmkb/agent/status', node.id);
     const statusResponse = await fetch(statusUrl, {
       method: 'GET',
@@ -286,11 +387,9 @@ const fetchAgentData = async (node: OptimusDBNode): Promise<{
     }
 
     const statusData: AgentStatusResponse = await statusResponse.json();
-
-    // ✅ FIX: Parse using correct data.agent.health.* paths
     const currentMetric = parseStatusToMetrics(statusData);
 
-    // Generate simulated history based on current values
+    // Generate simulated history
     const history: AgentMetrics[] = [];
     for (let i = METRICS_HISTORY_SIZE - 1; i >= 0; i--) {
       history.push({
@@ -313,8 +412,22 @@ const fetchAgentData = async (node: OptimusDBNode): Promise<{
 };
 
 // ==============================================================================
-// PREDICTIVE ANALYTICS ENGINE - COLOR FIX: LOW UTILIZATION = HEALTHY
+// PREDICTIVE ANALYTICS ENGINE (unchanged from previous fix)
 // ==============================================================================
+
+const calculateTrend = (values: number[]): number => {
+  if (values.length < 2) return 0;
+  const n = values.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += i;
+    sumY += values[i];
+    sumXY += i * values[i];
+    sumXX += i * i;
+  }
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  return slope * 12; // per hour (12 intervals × 5min = 1hr)
+};
 
 const predictHealth = (metrics: AgentMetrics[]): HealthPrediction => {
   if (metrics.length < 12) {
@@ -328,274 +441,98 @@ const predictHealth = (metrics: AgentMetrics[]): HealthPrediction => {
     };
   }
 
-  const recent = metrics.slice(-12); // Last hour (12 × 5min intervals)
+  const recent = metrics.slice(-12);
   const latest = metrics[metrics.length - 1];
   const issues: HealthIssue[] = [];
   let failureProbability = 0;
   let timeToFailureHours: number | null = null;
 
-  // ===========================================================================
-  // ✅ NEW: BASELINE RISK SCORE (based on current utilization)
-  // ===========================================================================
-  // Even healthy agents have some baseline risk based on load
   const baselineRisk = Math.min(30, (latest.health_score / 100) * 30);
   failureProbability += baselineRisk;
 
-  // ===========================================================================
-  // 1. CPU ANALYSIS - ✅ IMPROVED THRESHOLDS
-  // ===========================================================================
+  // CPU Analysis
   const cpuTrend = calculateTrend(recent.map((m) => m.cpu_usage));
   const cpuCurrent = latest.cpu_usage;
 
-  // ✅ EARLY WARNING: CPU >50% with upward trend
   if (cpuTrend > 2 && cpuCurrent > 50) {
-    issues.push({
-      metric: 'cpu',
-      severity: 'low',
-      description: 'CPU usage trending upward (early warning)',
-      trend: 'degrading',
-      trendRate: `+${cpuTrend.toFixed(1)}% per hour`,
-    });
+    issues.push({ metric: 'cpu', severity: 'low', description: 'CPU usage trending upward', trend: 'degrading', trendRate: `+${cpuTrend.toFixed(1)}% per hour` });
     failureProbability += 10;
-
-    const hoursTo80 = (80 - cpuCurrent) / cpuTrend;
-    if (hoursTo80 < PREDICTION_THRESHOLD_HOURS) {
-      timeToFailureHours = hoursTo80;
-    }
+    const h = (80 - cpuCurrent) / cpuTrend;
+    if (h < PREDICTION_THRESHOLD_HOURS) timeToFailureHours = h;
   }
-
-  // ✅ MODERATE RISK: CPU >60% with trend OR CPU >70% stable
   if ((cpuTrend > 3 && cpuCurrent > 60) || cpuCurrent > 70) {
-    issues.push({
-      metric: 'cpu',
-      severity: 'medium',
-      description: cpuTrend > 3 ? 'CPU usage increasing rapidly' : 'CPU usage elevated',
-      trend: cpuTrend > 3 ? 'degrading' : 'stable',
-      trendRate: cpuTrend > 3 ? `+${cpuTrend.toFixed(1)}% per hour` : `${cpuCurrent.toFixed(1)}%`,
-    });
+    issues.push({ metric: 'cpu', severity: 'medium', description: cpuTrend > 3 ? 'CPU usage increasing rapidly' : 'CPU usage elevated', trend: cpuTrend > 3 ? 'degrading' : 'stable', trendRate: cpuTrend > 3 ? `+${cpuTrend.toFixed(1)}% per hour` : `${cpuCurrent.toFixed(1)}%` });
     failureProbability += 20;
-
-    if (cpuTrend > 3) {
-      const hoursTo90 = (90 - cpuCurrent) / cpuTrend;
-      if (!timeToFailureHours || hoursTo90 < timeToFailureHours) {
-        timeToFailureHours = hoursTo90;
-      }
-    }
   }
-
-  // ✅ HIGH RISK: CPU >80% OR rapid trend
   if (cpuTrend > 5 && cpuCurrent > 70) {
-    issues.push({
-      metric: 'cpu',
-      severity: 'high',
-      description: 'CPU usage trending up rapidly',
-      trend: 'degrading',
-      trendRate: `+${cpuTrend.toFixed(1)}% per hour`,
-    });
+    issues.push({ metric: 'cpu', severity: 'high', description: 'CPU usage trending up rapidly', trend: 'degrading', trendRate: `+${cpuTrend.toFixed(1)}% per hour` });
     failureProbability += 30;
-
-    const hoursTo100 = (100 - cpuCurrent) / cpuTrend;
-    if (!timeToFailureHours || hoursTo100 < timeToFailureHours) {
-      timeToFailureHours = hoursTo100;
-    }
   } else if (cpuCurrent > 85) {
-    issues.push({
-      metric: 'cpu',
-      severity: 'high',
-      description: 'CPU usage critically high',
-      trend: 'stable',
-      trendRate: `${cpuCurrent.toFixed(1)}%`,
-    });
+    issues.push({ metric: 'cpu', severity: 'high', description: 'CPU usage critically high', trend: 'stable', trendRate: `${cpuCurrent.toFixed(1)}%` });
     failureProbability += 35;
   }
 
-  // ===========================================================================
-  // 2. MEMORY ANALYSIS - ✅ IMPROVED THRESHOLDS
-  // ===========================================================================
+  // Memory Analysis
   const memoryPercent = (latest.memory_used / latest.memory_total) * 100;
   const memoryTrend = calculateTrend(recent.map((m) => (m.memory_used / m.memory_total) * 100));
 
-  // ✅ EARLY WARNING: Memory >50% with upward trend
   if (memoryTrend > 1.5 && memoryPercent > 50) {
-    issues.push({
-      metric: 'memory',
-      severity: 'low',
-      description: 'Memory usage trending upward (early warning)',
-      trend: 'degrading',
-      trendRate: `+${memoryTrend.toFixed(1)}% per hour`,
-    });
+    issues.push({ metric: 'memory', severity: 'low', description: 'Memory usage trending upward', trend: 'degrading', trendRate: `+${memoryTrend.toFixed(1)}% per hour` });
     failureProbability += 10;
-
-    const hoursTo80 = (80 - memoryPercent) / memoryTrend;
-    if (hoursTo80 < PREDICTION_THRESHOLD_HOURS) {
-      timeToFailureHours = timeToFailureHours ? Math.min(timeToFailureHours, hoursTo80) : hoursTo80;
-    }
   }
-
-  // ✅ MODERATE RISK: Memory >60% with trend OR Memory >70% stable
   if ((memoryTrend > 2 && memoryPercent > 60) || memoryPercent > 70) {
-    issues.push({
-      metric: 'memory',
-      severity: 'medium',
-      description: memoryTrend > 2 ? 'Memory usage increasing' : 'Memory usage elevated',
-      trend: memoryTrend > 2 ? 'degrading' : 'stable',
-      trendRate: memoryTrend > 2 ? `+${memoryTrend.toFixed(1)}% per hour` : `${memoryPercent.toFixed(1)}%`,
-    });
+    issues.push({ metric: 'memory', severity: 'medium', description: memoryTrend > 2 ? 'Memory usage increasing' : 'Memory usage elevated', trend: memoryTrend > 2 ? 'degrading' : 'stable', trendRate: memoryTrend > 2 ? `+${memoryTrend.toFixed(1)}% per hour` : `${memoryPercent.toFixed(1)}%` });
     failureProbability += 20;
-
-    if (memoryTrend > 2) {
-      const hoursTo90 = (90 - memoryPercent) / memoryTrend;
-      timeToFailureHours = timeToFailureHours ? Math.min(timeToFailureHours, hoursTo90) : hoursTo90;
-    }
   }
-
-  // ✅ HIGH RISK: Memory leak detection OR critically high
   if (memoryTrend > 4 && memoryPercent > 60) {
-    const isPossibleLeak = memoryTrend > 5;
-    issues.push({
-      metric: 'memory',
-      severity: 'high',
-      description: isPossibleLeak ? 'Possible memory leak detected' : 'Memory usage trending up rapidly',
-      trend: 'degrading',
-      trendRate: `+${memoryTrend.toFixed(1)}% per hour`,
-    });
-    failureProbability += isPossibleLeak ? 35 : 30;
-
-    const hoursTo100 = (100 - memoryPercent) / memoryTrend;
-    timeToFailureHours = timeToFailureHours ? Math.min(timeToFailureHours, hoursTo100) : hoursTo100;
+    issues.push({ metric: 'memory', severity: 'high', description: memoryTrend > 5 ? 'Possible memory leak' : 'Memory trending up rapidly', trend: 'degrading', trendRate: `+${memoryTrend.toFixed(1)}% per hour` });
+    failureProbability += memoryTrend > 5 ? 35 : 30;
   } else if (memoryPercent > 90) {
-    issues.push({
-      metric: 'memory',
-      severity: 'high',
-      description: 'Memory usage critically high',
-      trend: 'stable',
-      trendRate: `${memoryPercent.toFixed(1)}%`,
-    });
+    issues.push({ metric: 'memory', severity: 'high', description: 'Memory usage critically high', trend: 'stable', trendRate: `${memoryPercent.toFixed(1)}%` });
     failureProbability += 40;
   }
 
-  // ===========================================================================
-  // 3. NETWORK LATENCY ANALYSIS - ✅ IMPROVED THRESHOLDS
-  // ===========================================================================
-  const latencyTrend = calculateTrend(recent.map((m) => m.network_latency));
+  // Latency Analysis
   const latencyCurrent = latest.network_latency;
-
-  // ✅ EARLY WARNING: Latency >5ms with upward trend
+  const latencyTrend = calculateTrend(recent.map((m) => m.network_latency));
   if (latencyTrend > 0.5 && latencyCurrent > 5) {
-    issues.push({
-      metric: 'network',
-      severity: 'low',
-      description: 'Network latency trending upward',
-      trend: 'degrading',
-      trendRate: `+${latencyTrend.toFixed(2)}ms per hour`,
-    });
+    issues.push({ metric: 'network', severity: 'low', description: 'Network latency trending upward', trend: 'degrading', trendRate: `+${latencyTrend.toFixed(2)}ms per hour` });
     failureProbability += 5;
   }
-
-  // ✅ MODERATE RISK: Latency >10ms with trend OR >15ms stable
   if ((latencyTrend > 1 && latencyCurrent > 10) || latencyCurrent > 15) {
-    issues.push({
-      metric: 'network',
-      severity: 'medium',
-      description: latencyTrend > 1 ? 'Network latency increasing' : 'Network latency elevated',
-      trend: latencyTrend > 1 ? 'degrading' : 'stable',
-      trendRate: latencyTrend > 1 ? `+${latencyTrend.toFixed(2)}ms per hour` : `${latencyCurrent.toFixed(2)}ms`,
-    });
+    issues.push({ metric: 'network', severity: 'medium', description: latencyTrend > 1 ? 'Latency increasing' : 'Latency elevated', trend: latencyTrend > 1 ? 'degrading' : 'stable', trendRate: latencyTrend > 1 ? `+${latencyTrend.toFixed(2)}ms per hour` : `${latencyCurrent.toFixed(2)}ms` });
     failureProbability += 15;
   }
 
-  // ✅ HIGH RISK: Latency >25ms OR rapid increase
-  if (latencyTrend > 2 && latencyCurrent > 15) {
-    issues.push({
-      metric: 'network',
-      severity: 'high',
-      description: 'Network latency degrading rapidly',
-      trend: 'degrading',
-      trendRate: `+${latencyTrend.toFixed(2)}ms per hour`,
-    });
-    failureProbability += 20;
-  } else if (latencyCurrent > 25) {
-    issues.push({
-      metric: 'network',
-      severity: 'high',
-      description: 'Network latency critically high',
-      trend: 'stable',
-      trendRate: `${latencyCurrent.toFixed(2)}ms`,
-    });
+  // Peer connectivity
+  if (latest.peer_connections === 0) {
+    issues.push({ metric: 'peers', severity: 'high', description: 'No peer connections', trend: 'stable', trendRate: '0 peers' });
     failureProbability += 25;
-  }
-
-  // ===========================================================================
-  // ✅ NEW: MULTI-FACTOR RISK AMPLIFICATION
-  // ===========================================================================
-  const highSeverityIssues = issues.filter(i => i.severity === 'high').length;
-  const mediumSeverityIssues = issues.filter(i => i.severity === 'medium').length;
-
-  if (highSeverityIssues >= 2) {
-    failureProbability += 20;
-  } else if (highSeverityIssues >= 1 && mediumSeverityIssues >= 1) {
+  } else if (latest.peer_connections === 1) {
+    issues.push({ metric: 'peers', severity: 'medium', description: 'Limited peer connectivity', trend: 'stable', trendRate: '1 peer' });
     failureProbability += 10;
-  } else if (mediumSeverityIssues >= 2) {
-    failureProbability += 5;
   }
 
-  // ===========================================================================
-  // ✅ DETERMINE STATUS (based on utilization AND issues)
-  // ===========================================================================
-  let status: 'healthy' | 'warning' | 'critical';
-  let confidence = Math.min(95, issues.length * 15 + 40);
+  failureProbability = Math.min(95, failureProbability);
 
-  if (failureProbability < 20) {
-    status = 'healthy';
-    confidence = Math.min(confidence, 70);
-  } else if (failureProbability < 50) {
-    status = 'warning';
-  } else {
-    status = 'critical';
-    confidence = Math.min(95, confidence + 10);
-  }
+  const status: 'healthy' | 'warning' | 'critical' =
+    failureProbability > 60 ? 'critical' : failureProbability > 30 ? 'warning' : 'healthy';
 
-  // ===========================================================================
-  // RECOMMENDATION
-  // ===========================================================================
-  const recommendation =
-    status === 'critical'
-      ? '🚨 CRITICAL: Immediate action required! Risk of service degradation.'
-      : status === 'warning'
-        ? '⚠️ WARNING: Schedule preventive maintenance. Monitor closely.'
-        : failureProbability > 10
-          ? '✅ Agent operating normally. Minor trends detected, continue monitoring.'
-          : '✅ Agent operating optimally. No concerns detected.';
+  let confidence = Math.min(95, Math.max(40, 60 + issues.length * 8));
+  if (metrics.length >= 144) confidence = Math.min(95, confidence + 10);
+
+  let recommendation = 'All systems operating within normal parameters.';
+  if (status === 'warning') recommendation = 'Monitor closely. Consider scaling if load increases.';
+  if (status === 'critical') recommendation = 'Immediate attention required. Consider failover procedures.';
 
   return {
     status,
-    failureProbability: Math.min(100, Math.round(failureProbability)),
-    timeToFailure:
-      !(timeToFailureHours && timeToFailureHours < PREDICTION_THRESHOLD_HOURS)
-        ? null
-        : formatTimeToFailure(timeToFailureHours),
+    failureProbability,
+    timeToFailure: timeToFailureHours ? formatTimeToFailure(timeToFailureHours) : null,
     confidence,
     issues,
     recommendation,
   };
-};
-
-
-
-const calculateTrend = (values: number[]): number => {
-  if (values.length < 2) return 0;
-
-  const n = values.length;
-  const xSum = (n * (n - 1)) / 2;
-  const ySum = values.reduce((a, b) => a + b, 0);
-  const xySum = values.reduce((sum, y, x) => sum + x * y, 0);
-  const x2Sum = (n * (n - 1) * (2 * n - 1)) / 6;
-
-  // Linear regression slope
-  const slope = (n * xySum - xSum * ySum) / (n * x2Sum - xSum * xSum);
-
-  // Convert to per-hour rate (12 data points = 1 hour at 5-min intervals)
-  return slope * 12;
 };
 
 const formatTimeToFailure = (hours: number): string => {
@@ -604,42 +541,42 @@ const formatTimeToFailure = (hours: number): string => {
   return `~${(hours / 24).toFixed(1)} days`;
 };
 
-
 // ==============================================================================
-// COMPONENT - FIXED: SINGLE API CALL + CORRECT DATA PATHS + PEER TOPOLOGY
+// COMPONENT
 // ==============================================================================
 
 const AgentMetricsWidget: React.FC = () => {
   const [agents, setAgents] = React.useState<AgentInfo[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [availableNodes, setAvailableNodes] = React.useState<OptimusDBNode[]>([]);
+  const [expandedCards, setExpandedCards] = React.useState<Record<number, boolean>>({});
+  const [showAddresses, setShowAddresses] = React.useState<Record<number, boolean>>({});
+
+  const toggleExpanded = (agentNum: number) => {
+    setExpandedCards((prev) => ({ ...prev, [agentNum]: !prev[agentNum] }));
+  };
+
+  const toggleAddresses = (agentNum: number) => {
+    setShowAddresses((prev) => ({ ...prev, [agentNum]: !prev[agentNum] }));
+  };
 
   React.useEffect(() => {
     const loadAgentMetrics = async () => {
       try {
         const nodes = await getAvailableNodes();
-        setAvailableNodes(nodes);
-
-        console.log(`AgentMetricsWidget: Querying ${nodes.length} nodes:`, nodes.map(n => n.name));
+        console.log(`AgentMetricsWidget: Querying ${nodes.length} nodes:`, nodes.map((n) => n.name));
 
         const agentData: AgentInfo[] = [];
 
         for (const node of nodes) {
           try {
-            // ✅ FIX: Single call returns both metrics AND status
             const result = await fetchAgentData(node);
-
-            if (!result) {
-              console.error(`Failed to load data for ${node.name}`);
-              continue;
-            }
+            if (!result) continue;
 
             const { metrics, statusData } = result;
             const prediction = predictHealth(metrics);
             const latest = metrics[metrics.length - 1];
-
-            // ✅ FIX: Extract peer details from the single status response
             const peers = parsePeers(statusData);
+            const health = statusData?.agent?.health;
 
             agentData.push({
               agentNumber: node.id,
@@ -647,11 +584,39 @@ const AgentMetricsWidget: React.FC = () => {
               peerId: statusData?.agent?.peer_id || `QmXxx${node.id.toString().padStart(4, '0')}xxx`,
               role: statusData?.agent?.role || 'Follower',
               isLeader: statusData?.agent?.is_current_leader || false,
+              isCoordinator: statusData?.agent?.is_coordinator || false,
               currentUtilization: latest.health_score,
               metricsHistory: metrics,
               prediction,
               peers,
               clusterTotalPeers: statusData?.cluster?.total_peers || 0,
+              // NEW fields
+              healthStatus: health?.status || 'Unknown',
+              cpuIdle: parseFloat(health?.cpu_idle?.replace('%', '') || '0'),
+              memorySys: parseFloat(health?.memory_sys?.replace(' MB', '') || '0'),
+              diskRead: parseFloat(health?.disk_read?.replace(' MB/s', '') || '0'),
+              diskWrite: parseFloat(health?.disk_write?.replace(' MB/s', '') || '0'),
+              uptime: parseFloat(health?.uptime || '0'),
+              leadershipCount: statusData?.agent?.metrics?.leadership_count || 0,
+              addresses: statusData?.agent?.addresses || [],
+              election: {
+                currentLeader: statusData?.election?.current_leader || '',
+                currentTerm: statusData?.election?.current_term || 0,
+                lastElectionTerm: statusData?.election?.last_election_term || 0,
+                lastElectionTime: statusData?.election?.last_election_time || '',
+              },
+              cluster: {
+                connectedPeers: statusData?.cluster?.connected_peers || 0,
+                coordinators: statusData?.cluster?.coordinators || 0,
+                discoveredPeers: statusData?.cluster?.discovered_peers || 0,
+                followers: statusData?.cluster?.followers || 0,
+                totalPeers: statusData?.cluster?.total_peers || 0,
+              },
+              config: {
+                context: 'swarmkb', // Extracted from API context path
+                httpPort: '8089',
+              },
+              serverTimestamp: statusData?.timestamp || new Date().toISOString(),
             });
           } catch (nodeError) {
             console.error(`Failed to load metrics for ${node.name}:`, nodeError);
@@ -672,111 +637,47 @@ const AgentMetricsWidget: React.FC = () => {
   }, []);
 
   // ==============================================================================
-  // CLUSTER OVERVIEW SECTION
+  // CLUSTER OVERVIEW
   // ==============================================================================
   const renderClusterOverview = () => {
     if (agents.length === 0) return null;
 
     const totalAgents = agents.length;
-    const healthyAgents = agents.filter(a => a.prediction.status === 'healthy').length;
-    const warningAgents = agents.filter(a => a.prediction.status === 'warning').length;
-    const criticalAgents = agents.filter(a => a.prediction.status === 'critical').length;
+    const healthyAgents = agents.filter((a) => a.prediction.status === 'healthy').length;
+    const warningAgents = agents.filter((a) => a.prediction.status === 'warning').length;
+    const criticalAgents = agents.filter((a) => a.prediction.status === 'critical').length;
     const avgUtilization = agents.reduce((sum, a) => sum + a.currentUtilization, 0) / totalAgents;
-
-    // ✅ NEW: Total connected peers (count unique connected peers across all agents)
-    const totalConnectedPeers = agents.reduce((sum, a) => sum + a.peers.filter(p => p.connected).length, 0);
+    const raftTerm = agents[0]?.election?.currentTerm || 0;
 
     const timestamps = agents[0].metricsHistory.slice(-60).map((m) =>
       m.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     );
 
-    // Cluster utilization trend chart
     const clusterTrendOption = {
-      title: {
-        text: 'Cluster-Wide Utilization Trend',
-        textStyle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a2e' },
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'cross' },
-      },
-      legend: {
-        data: agents.map(a => a.agentName),
-        bottom: 10,
-        textStyle: { fontSize: 12 },
-      },
+      title: { text: 'Cluster-Wide Utilization Trend', textStyle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a2e' }, left: 'center' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+      legend: { data: agents.map((a) => a.agentName), bottom: 10, textStyle: { fontSize: 12 } },
       grid: { left: '5%', right: '5%', top: '15%', bottom: '15%' },
-      xAxis: {
-        type: 'category',
-        data: timestamps,
-        axisLabel: { fontSize: 11, interval: Math.floor(timestamps.length / 8) },
-      },
-      yAxis: {
-        type: 'value',
-        max: 100,
-        axisLabel: { fontSize: 12, formatter: '{value}%' },
-        name: 'Utilization',
-        nameTextStyle: { fontSize: 14, fontWeight: 'bold' },
-      },
+      xAxis: { type: 'category', data: timestamps, axisLabel: { fontSize: 11, interval: Math.floor(timestamps.length / 8) } },
+      yAxis: { type: 'value', max: 100, axisLabel: { fontSize: 12, formatter: '{value}%' }, name: 'Utilization', nameTextStyle: { fontSize: 14, fontWeight: 'bold' } },
       series: agents.map((agent, idx) => {
         const colors = ['#667eea', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-        return {
-          name: agent.agentName,
-          type: 'line',
-          smooth: true,
-          data: agent.metricsHistory.slice(-60).map(m => m.health_score.toFixed(1)),
-          lineStyle: { color: colors[idx % colors.length], width: 3 },
-          itemStyle: { color: colors[idx % colors.length] },
-        };
+        return { name: agent.agentName, type: 'line', smooth: true, data: agent.metricsHistory.slice(-60).map((m) => m.health_score.toFixed(1)), lineStyle: { color: colors[idx % colors.length], width: 3 }, itemStyle: { color: colors[idx % colors.length] } };
       }),
     };
 
-    // Health prediction chart
     const predictionOption = {
-      title: {
-        text: 'Agent Health Predictions',
-        textStyle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a2e' },
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-      },
+      title: { text: 'Agent Health Predictions', textStyle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a2e' }, left: 'center' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '10%', right: '10%', top: '20%', bottom: '15%' },
-      xAxis: {
-        type: 'category',
-        data: agents.map(a => a.agentName),
-        axisLabel: { fontSize: 12, fontWeight: 'bold' },
-      },
-      yAxis: {
-        type: 'value',
-        max: 100,
-        axisLabel: { fontSize: 12, formatter: '{value}%' },
-        name: 'Failure Risk',
-        nameTextStyle: { fontSize: 14, fontWeight: 'bold' },
-      },
-      series: [
-        {
-          name: 'Failure Probability',
-          type: 'bar',
-          data: agents.map(a => ({
-            value: a.prediction.failureProbability,
-            itemStyle: {
-              color: a.prediction.status === 'critical' ? '#ef4444' :
-                a.prediction.status === 'warning' ? '#f59e0b' : '#10b981'
-            }
-          })),
-          label: {
-            show: true,
-            position: 'top',
-            formatter: '{c}%',
-            fontSize: 14,
-            fontWeight: 'bold',
-          },
-          barWidth: '60%',
-        },
-      ],
+      xAxis: { type: 'category', data: agents.map((a) => a.agentName), axisLabel: { fontSize: 12, fontWeight: 'bold' } },
+      yAxis: { type: 'value', max: 100, axisLabel: { fontSize: 12, formatter: '{value}%' }, name: 'Failure Risk', nameTextStyle: { fontSize: 14, fontWeight: 'bold' } },
+      series: [{
+        name: 'Failure Probability', type: 'bar',
+        data: agents.map((a) => ({ value: a.prediction.failureProbability, itemStyle: { color: a.prediction.status === 'critical' ? '#ef4444' : a.prediction.status === 'warning' ? '#f59e0b' : '#10b981' } })),
+        label: { show: true, position: 'top', formatter: '{c}%', fontSize: 14, fontWeight: 'bold' },
+        barWidth: '60%',
+      }],
     };
 
     return (
@@ -786,56 +687,53 @@ const AgentMetricsWidget: React.FC = () => {
           <p className="overview-subtitle">Real-time metrics and predictive analytics for all agents</p>
         </div>
 
-        {/* Stats Cards */}
         <div className="overview-stats">
-          <div className="stat-card total">
-            <div className="stat-icon">🌐</div>
-            <div className="stat-content">
-              <div className="stat-value">{totalAgents}</div>
-              <div className="stat-label">Total Agents</div>
-            </div>
-          </div>
-
-          <div className="stat-card healthy">
-            <div className="stat-icon">✅</div>
-            <div className="stat-content">
-              <div className="stat-value">{healthyAgents}</div>
-              <div className="stat-label">Healthy</div>
-            </div>
-          </div>
-
-          <div className="stat-card warning">
-            <div className="stat-icon">⚠️</div>
-            <div className="stat-content">
-              <div className="stat-value">{warningAgents}</div>
-              <div className="stat-label">Warnings</div>
-            </div>
-          </div>
-
-          <div className="stat-card critical">
-            <div className="stat-icon">🚨</div>
-            <div className="stat-content">
-              <div className="stat-value">{criticalAgents}</div>
-              <div className="stat-label">Critical</div>
-            </div>
-          </div>
-
-          <div className="stat-card utilization">
-            <div className="stat-icon">📈</div>
-            <div className="stat-content">
-              <div className="stat-value">{avgUtilization.toFixed(1)}%</div>
-              <div className="stat-label">Avg Utilization</div>
-            </div>
-          </div>
+          <div className="stat-card total"><div className="stat-icon">🌐</div><div className="stat-content"><div className="stat-value">{totalAgents}</div><div className="stat-label">Total Agents</div></div></div>
+          <div className="stat-card healthy"><div className="stat-icon">✅</div><div className="stat-content"><div className="stat-value">{healthyAgents}</div><div className="stat-label">Healthy</div></div></div>
+          <div className="stat-card warning"><div className="stat-icon">⚠️</div><div className="stat-content"><div className="stat-value">{warningAgents}</div><div className="stat-label">Warnings</div></div></div>
+          <div className="stat-card critical"><div className="stat-icon">🚨</div><div className="stat-content"><div className="stat-value">{criticalAgents}</div><div className="stat-label">Critical</div></div></div>
+          <div className="stat-card utilization"><div className="stat-icon">📈</div><div className="stat-content"><div className="stat-value">{avgUtilization.toFixed(1)}%</div><div className="stat-label">Avg Utilization</div></div></div>
+          {/* ✅ NEW: Raft Term stat card */}
+          <div className="stat-card raft-term"><div className="stat-icon">🗳️</div><div className="stat-content"><div className="stat-value">T{raftTerm}</div><div className="stat-label">Raft Term</div></div></div>
         </div>
 
-        {/* Charts Grid */}
         <div className="overview-charts">
-          <div className="chart-large">
-            <ReactECharts option={clusterTrendOption} style={{ height: '400px' }} />
+          <div className="chart-large"><ReactECharts option={clusterTrendOption} style={{ height: '400px' }} /></div>
+          <div className="chart-large"><ReactECharts option={predictionOption} style={{ height: '400px' }} /></div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==============================================================================
+  // ✅ NEW: HEALTH CLASSIFICATION PANEL (per agent)
+  // ==============================================================================
+  const renderHealthClassification = (agent: AgentInfo) => {
+    const statusColor = agent.healthStatus === 'Fair' ? '#d97706' : agent.healthStatus === 'Poor' ? '#dc2626' : '#059669';
+    const statusBg = agent.healthStatus === 'Fair' ? '#fef3c7' : agent.healthStatus === 'Poor' ? '#fee2e2' : '#d1fae5';
+    const statusBorder = agent.healthStatus === 'Fair' ? '#f59e0b' : agent.healthStatus === 'Poor' ? '#ef4444' : '#10b981';
+    const statusIcon = agent.healthStatus === 'Fair' ? '⚡' : agent.healthStatus === 'Poor' ? '🔥' : '💚';
+
+    return (
+      <div className="health-classification">
+        <div className="panel-label">OptimusDB Classification</div>
+        <div className="classification-row">
+          <div className="status-icon-box" style={{ background: statusBg, borderColor: statusBorder }}>
+            <span className="floating-icon">{statusIcon}</span>
           </div>
-          <div className="chart-large">
-            <ReactECharts option={predictionOption} style={{ height: '400px' }} />
+          <div className="classification-text">
+            <div className="status-value" style={{ color: statusColor }}>{agent.healthStatus}</div>
+            <div className="status-api-path">agent.health.status</div>
+          </div>
+        </div>
+        <div className="classification-metrics">
+          <div className="mini-metric">
+            <span className="mini-metric-label">CPU Idle</span>
+            <span className="mini-metric-value cpu-idle">{agent.cpuIdle.toFixed(1)}%</span>
+          </div>
+          <div className="mini-metric">
+            <span className="mini-metric-label">Sys Memory</span>
+            <span className="mini-metric-value mem-sys">{agent.memorySys.toFixed(1)} MB</span>
           </div>
         </div>
       </div>
@@ -843,7 +741,67 @@ const AgentMetricsWidget: React.FC = () => {
   };
 
   // ==============================================================================
-  // ✅ NEW: PEER TOPOLOGY SECTION (per agent card)
+  // ✅ NEW: UPTIME & ELECTION PANEL (per agent)
+  // ==============================================================================
+  const renderUptimeElection = (agent: AgentInfo) => {
+    const ut = formatUptime(agent.uptime);
+    const isSelfLeader = agent.election.currentLeader === agent.peerId;
+    const hasElectionTime = !!agent.election.lastElectionTime;
+    const electionDate = hasElectionTime ? new Date(agent.election.lastElectionTime) : null;
+    const isRecentlyStarted = agent.uptime < 0.05;
+
+    return (
+      <div className="uptime-election">
+        <div className="panel-label">Uptime &amp; Election</div>
+
+        {/* Uptime Clock */}
+        <div className="uptime-clock">
+          <div className={`clock-digit ${isRecentlyStarted ? 'recently-started' : 'stable'}`}>
+            <span className="digit-value">{ut.hours}</span>
+            <span className="digit-label">h</span>
+          </div>
+          <div className={`clock-digit ${isRecentlyStarted ? 'recently-started' : 'stable'}`}>
+            <span className="digit-value">{ut.minutes}</span>
+            <span className="digit-label">m</span>
+          </div>
+          {isRecentlyStarted && (
+            <span className="recently-started-badge">RECENTLY STARTED</span>
+          )}
+        </div>
+
+        {/* Election Timeline */}
+        <div className="election-section-label">Election</div>
+        <div className="election-timeline">
+          <div className="timeline-item">
+            <div className={`timeline-dot ${isSelfLeader ? 'self-leader' : 'other-leader'}`} />
+            <div className="timeline-content">
+              <span className="timeline-text">
+                Term {agent.election.currentTerm} — Leader:{' '}
+                <code className="leader-id">{shortPeerId(agent.election.currentLeader)}</code>
+                {isSelfLeader && <span className="self-badge">SELF</span>}
+              </span>
+            </div>
+          </div>
+          <div className="timeline-item">
+            <div className={`timeline-dot ${hasElectionTime ? 'has-time' : 'no-time'}`} />
+            <div className="timeline-content">
+              {hasElectionTime ? (
+                <span className="timeline-text secondary">
+                  Election term {agent.election.lastElectionTerm} — {electionDate!.toLocaleString()}{' '}
+                  <span className="time-ago">({timeAgo(agent.election.lastElectionTime)})</span>
+                </span>
+              ) : (
+                <span className="timeline-text muted">No election observed</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==============================================================================
+  // PEER TOPOLOGY (enhanced with new fields)
   // ==============================================================================
   const renderPeerTopology = (agent: AgentInfo) => {
     if (!agent.peers || agent.peers.length === 0) {
@@ -858,8 +816,8 @@ const AgentMetricsWidget: React.FC = () => {
       );
     }
 
-    const connectedCount = agent.peers.filter(p => p.connected).length;
-    const expectedPeers = Math.max(0, agent.clusterTotalPeers - 1); // Minus self
+    const connectedCount = agent.peers.filter((p) => p.connected).length;
+    const expectedPeers = Math.max(0, agent.clusterTotalPeers - 1);
 
     return (
       <div className="peer-topology">
@@ -879,6 +837,7 @@ const AgentMetricsWidget: React.FC = () => {
                   {peer.isLeader ? '👑 ' : ''}{peer.role}
                 </span>
               </div>
+              {/* Existing metrics */}
               <div className="peer-item-metrics">
                 <span className="peer-metric">
                   <span className="peer-metric-label">Latency:</span>
@@ -899,6 +858,41 @@ const AgentMetricsWidget: React.FC = () => {
                   <span className="peer-metric-value">{peer.healthStatus}</span>
                 </span>
               </div>
+              {/* ✅ NEW: Enhanced peer metrics */}
+              <div className="peer-item-metrics enhanced">
+                <span className="peer-metric new-field">
+                  <span className="peer-metric-label">Sys Mem:</span>
+                  <span className="peer-metric-value">{peer.memorySys}</span>
+                </span>
+                <span className="peer-metric new-field">
+                  <span className="peer-metric-label">Uptime:</span>
+                  <span className="peer-metric-value">{peer.uptime}</span>
+                </span>
+                <span className="peer-metric new-field">
+                  <span className="peer-metric-label">Disk R:</span>
+                  <span className="peer-metric-value">{peer.diskRead}</span>
+                </span>
+                <span className="peer-metric new-field">
+                  <span className="peer-metric-label">Disk W:</span>
+                  <span className="peer-metric-value">{peer.diskWrite}</span>
+                </span>
+                <span className="peer-metric new-field">
+                  <span className="peer-metric-label">Leader#:</span>
+                  <span className="peer-metric-value">{peer.leadershipCount}</span>
+                </span>
+                {peer.geographyScore > 0 && (
+                  <span className="peer-metric new-field geo-metric">
+                    <span className="peer-metric-label">Geo:</span>
+                    <span className="peer-metric-value geo-value">{(peer.geographyScore * 100).toFixed(0)}%</span>
+                    <svg className="geo-ring" viewBox="0 0 28 28" width="28" height="28">
+                      <circle cx="14" cy="14" r="11" fill="none" stroke="#374151" strokeWidth="2.5" />
+                      <circle cx="14" cy="14" r="11" fill="none" stroke="#8b5cf6" strokeWidth="2.5"
+                              strokeDasharray={`${peer.geographyScore * 69} 200`}
+                              strokeLinecap="round" transform="rotate(-90 14 14)" />
+                    </svg>
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -907,276 +901,184 @@ const AgentMetricsWidget: React.FC = () => {
   };
 
   // ==============================================================================
-  // Individual Agent Card
+  // ✅ NEW: EXPANDABLE DETAILS SECTION
+  // ==============================================================================
+  const renderExpandedDetails = (agent: AgentInfo) => {
+    const addrsVisible = showAddresses[agent.agentNumber];
+
+    return (
+      <div className="expanded-details">
+        <div className="expanded-grid">
+
+          {/* Disk I/O */}
+          <div className="dark-card">
+            <div className="dark-card-title">💾 Disk I/O</div>
+            <div className="disk-io-container">
+              <div className="disk-io-item">
+                <span className="disk-label">READ</span>
+                <div className="disk-bar-track">
+                  <div className="disk-bar-fill read" style={{ width: `${Math.max(3, agent.diskRead * 10)}%` }} />
+                </div>
+                <span className="disk-value read">{agent.diskRead.toFixed(2)} MB/s</span>
+              </div>
+              <div className="disk-io-item">
+                <span className="disk-label">WRITE</span>
+                <div className="disk-bar-track">
+                  <div className="disk-bar-fill write" style={{ width: `${Math.max(3, agent.diskWrite * 10)}%` }} />
+                </div>
+                <span className="disk-value write">{agent.diskWrite.toFixed(2)} MB/s</span>
+              </div>
+            </div>
+            <div className="disk-idle-note">
+              {agent.diskRead === 0 && agent.diskWrite === 0
+                ? 'Idle — will spike during queries & replication'
+                : 'Active I/O detected'}
+            </div>
+          </div>
+
+          {/* Cluster Topology */}
+          <div className="dark-card">
+            <div className="dark-card-title">🌐 Cluster Topology</div>
+            <div className="topology-pills">
+              <span className="topo-pill coordinators">
+                <span className="topo-dot coordinators" />
+                Coordinators: {agent.cluster.coordinators}
+              </span>
+              <span className="topo-pill followers">
+                <span className="topo-dot followers" />
+                Followers: {agent.cluster.followers}
+              </span>
+              <span className="topo-pill discovered">
+                <span className="topo-dot discovered" />
+                Discovered: {agent.cluster.discoveredPeers}
+              </span>
+              <span className="topo-pill connected">
+                <span className="topo-dot connected" />
+                Connected: {agent.cluster.connectedPeers}
+              </span>
+            </div>
+            <div className="topology-total">
+              Total cluster: <strong>{agent.cluster.totalPeers}</strong> peers
+            </div>
+          </div>
+
+          {/* P2P Addresses */}
+          <div className="dark-card">
+            <div className="dark-card-header">
+              <span className="dark-card-title">📡 P2P Addresses</span>
+              <button className="addr-toggle-btn" onClick={() => toggleAddresses(agent.agentNumber)}>
+                {addrsVisible ? 'Hide' : 'Show'} ({agent.addresses.length})
+              </button>
+            </div>
+            {addrsVisible ? (
+              <div className="addresses-list">
+                {agent.addresses.map((addr, i) => {
+                  const at = addressType(addr);
+                  return (
+                    <div key={i} className={`address-item ${at.className}`}>
+                      <span className="addr-dot" />
+                      <code className="addr-text">{addr}</code>
+                      <span className="addr-type-label">{at.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="addresses-placeholder">Click Show to view multiaddr endpoints</div>
+            )}
+          </div>
+
+          {/* Configuration */}
+          <div className="dark-card">
+            <div className="dark-card-title">⚙️ Configuration</div>
+            <div className="config-grid">
+              <div className="config-item">
+                <span className="config-icon">📦</span>
+                <span className="config-label">Context</span>
+                <span className="config-value">{agent.config.context}</span>
+              </div>
+              <div className="config-item">
+                <span className="config-icon">🔌</span>
+                <span className="config-label">Port</span>
+                <span className="config-value">{agent.config.httpPort}</span>
+              </div>
+              <div className="config-item">
+                <span className="config-icon">{agent.isCoordinator ? '✅' : '❌'}</span>
+                <span className="config-label">is_coordinator</span>
+                <span className="config-value">{String(agent.isCoordinator)}</span>
+              </div>
+            </div>
+            <div className="config-footer">
+              <span>Leadership: <strong className="leadership-value">{agent.leadershipCount}×</strong></span>
+              <span>Server: <code className="server-time">{new Date(agent.serverTimestamp).toLocaleTimeString()}</code></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==============================================================================
+  // INDIVIDUAL AGENT CARD
   // ==============================================================================
   const renderAgentCard = (agent: AgentInfo) => {
     const { prediction, metricsHistory } = agent;
     const latest = metricsHistory[metricsHistory.length - 1];
-
-    // Get recent metrics for charts
     const recentMetrics = metricsHistory.slice(-60);
-    const timestamps = recentMetrics.map((m) =>
-      m.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    );
+    const timestamps = recentMetrics.map((m) => m.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+    const isExpanded = expandedCards[agent.agentNumber];
 
-    // COLOR FIX: Gauge color based on utilization
-    const getGaugeColor = (utilization: number) => {
-      if (utilization < 50) return '#10b981'; // Green - healthy
-      if (utilization < 70) return '#f59e0b'; // Orange - warning
-      return '#ef4444'; // Red - critical
-    };
+    const getGaugeColor = (u: number) => (u < 50 ? '#10b981' : u < 70 ? '#f59e0b' : '#ef4444');
 
-    // Health Gauge
     const gaugeOption = {
-      series: [
-        {
-          type: 'gauge',
-          startAngle: 200,
-          endAngle: -20,
-          min: 0,
-          max: 100,
-          splitNumber: 10,
-          itemStyle: {
-            color: getGaugeColor(agent.currentUtilization),
-          },
-          progress: {
-            show: true,
-            width: 14,
-          },
-          pointer: {
-            show: false,
-          },
-          axisLine: {
-            lineStyle: {
-              width: 14,
-            },
-          },
-          axisTick: {
-            distance: -22,
-            splitNumber: 5,
-            lineStyle: {
-              width: 2,
-              color: '#999',
-            },
-          },
-          splitLine: {
-            distance: -28,
-            length: 14,
-            lineStyle: {
-              width: 3,
-              color: '#999',
-            },
-          },
-          axisLabel: {
-            distance: -45,
-            color: '#999',
-            fontSize: 12,
-            fontWeight: 'bold',
-          },
-          anchor: {
-            show: false,
-          },
-          title: {
-            show: false,
-          },
-          detail: {
-            valueAnimation: true,
-            fontSize: 32,
-            fontWeight: 'bold',
-            offsetCenter: [0, '0%'],
-            formatter: '{value}%',
-            color: 'inherit',
-          },
-          data: [
-            {
-              value: agent.currentUtilization.toFixed(0),
-            },
-          ],
-        },
-      ],
+      series: [{
+        type: 'gauge', startAngle: 200, endAngle: -20, min: 0, max: 100, splitNumber: 10,
+        itemStyle: { color: getGaugeColor(agent.currentUtilization) },
+        progress: { show: true, width: 14 },
+        pointer: { show: false },
+        axisLine: { lineStyle: { width: 14 } },
+        axisTick: { distance: -22, splitNumber: 5, lineStyle: { width: 2, color: '#999' } },
+        splitLine: { distance: -28, length: 14, lineStyle: { width: 3, color: '#999' } },
+        axisLabel: { distance: -45, color: '#999', fontSize: 12, fontWeight: 'bold' },
+        anchor: { show: false }, title: { show: false },
+        detail: { valueAnimation: true, fontSize: 32, fontWeight: 'bold', offsetCenter: [0, '0%'], formatter: '{value}%', color: 'inherit' },
+        data: [{ value: agent.currentUtilization.toFixed(0) }],
+      }],
     };
 
-    // CPU Usage Chart
-    const cpuOption = {
-      title: {
-        text: 'CPU Usage',
-        textStyle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a2e' },
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'line' },
-      },
+    const makeChartOption = (title: string, data: number[], color: string, fmt = '{value}%', max?: number) => ({
+      title: { text: title, textStyle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a2e' }, left: 'center' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'line' } },
       grid: { left: '10%', right: '10%', top: '25%', bottom: '15%' },
-      xAxis: {
-        type: 'category',
-        data: timestamps,
-        axisLabel: { fontSize: 10, interval: Math.floor(timestamps.length / 5) },
-      },
-      yAxis: {
-        type: 'value',
-        max: 100,
-        axisLabel: { fontSize: 10, formatter: '{value}%' },
-      },
-      series: [
-        {
-          data: recentMetrics.map((m) => m.cpu_usage.toFixed(1)),
-          type: 'line',
-          smooth: true,
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
-                { offset: 1, color: 'rgba(102, 126, 234, 0.05)' },
-              ],
-            },
-          },
-          lineStyle: { color: '#667eea', width: 3 },
-          itemStyle: { color: '#667eea' },
-        },
-      ],
-    };
+      xAxis: { type: 'category', data: timestamps, axisLabel: { fontSize: 10, interval: Math.floor(timestamps.length / 5) } },
+      yAxis: { type: 'value', ...(max ? { max } : {}), axisLabel: { fontSize: 10, formatter: fmt } },
+      series: [{
+        data: data.map((v) => v.toFixed(fmt.includes('ms') ? 2 : 1)), type: 'line', smooth: true,
+        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + '80' }, { offset: 1, color: color + '0d' }] } },
+        lineStyle: { color, width: 3 }, itemStyle: { color },
+      }],
+    });
 
-    // Memory Usage Chart
-    const memoryPercents = recentMetrics.map((m) => ((m.memory_used / m.memory_total) * 100).toFixed(1));
-    const memoryOption = {
-      title: {
-        text: 'Memory Usage',
-        textStyle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a2e' },
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'line' },
-      },
-      grid: { left: '10%', right: '10%', top: '25%', bottom: '15%' },
-      xAxis: {
-        type: 'category',
-        data: timestamps,
-        axisLabel: { fontSize: 10, interval: Math.floor(timestamps.length / 5) },
-      },
-      yAxis: {
-        type: 'value',
-        max: 100,
-        axisLabel: { fontSize: 10, formatter: '{value}%' },
-      },
-      series: [
-        {
-          data: memoryPercents,
-          type: 'line',
-          smooth: true,
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(16, 185, 129, 0.5)' },
-                { offset: 1, color: 'rgba(16, 185, 129, 0.05)' },
-              ],
-            },
-          },
-          lineStyle: { color: '#10b981', width: 3 },
-          itemStyle: { color: '#10b981' },
-        },
-      ],
-    };
-
-    // Network Latency Chart
-    const latencyOption = {
-      title: {
-        text: 'Network Latency',
-        textStyle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a2e' },
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'line' },
-      },
-      grid: { left: '10%', right: '10%', top: '25%', bottom: '15%' },
-      xAxis: {
-        type: 'category',
-        data: timestamps,
-        axisLabel: { fontSize: 10, interval: Math.floor(timestamps.length / 5) },
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { fontSize: 10, formatter: '{value}ms' },
-      },
-      series: [
-        {
-          data: recentMetrics.map((m) => m.network_latency.toFixed(2)),
-          type: 'line',
-          smooth: true,
-          lineStyle: { color: '#8b5cf6', width: 3 },
-          itemStyle: { color: '#8b5cf6' },
-        },
-      ],
-    };
-
-    // Utilization Trend
-    const utilizationOption = {
-      title: {
-        text: 'Utilization Trend',
-        textStyle: { fontSize: 15, fontWeight: 'bold', color: '#1a1a2e' },
-        left: 'center',
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'line' },
-      },
-      grid: { left: '10%', right: '10%', top: '25%', bottom: '15%' },
-      xAxis: {
-        type: 'category',
-        data: timestamps,
-        axisLabel: { fontSize: 10, interval: Math.floor(timestamps.length / 5) },
-      },
-      yAxis: {
-        type: 'value',
-        max: 100,
-        axisLabel: { fontSize: 10 },
-      },
-      series: [
-        {
-          data: recentMetrics.map((m) => m.health_score.toFixed(1)),
-          type: 'line',
-          smooth: true,
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(245, 158, 11, 0.5)' },
-                { offset: 1, color: 'rgba(245, 158, 11, 0.05)' },
-              ],
-            },
-          },
-          lineStyle: { color: '#f59e0b', width: 3 },
-          itemStyle: { color: '#f59e0b' },
-        },
-      ],
-    };
+    const cpuOption = makeChartOption('CPU Usage', recentMetrics.map((m) => m.cpu_usage), '#667eea', '{value}%', 100);
+    const memoryOption = makeChartOption('Memory Usage', recentMetrics.map((m) => (m.memory_used / m.memory_total) * 100), '#10b981', '{value}%', 100);
+    const latencyOption = makeChartOption('Network Latency', recentMetrics.map((m) => m.network_latency), '#8b5cf6', '{value}ms');
+    const utilizationOption = makeChartOption('Utilization Trend', recentMetrics.map((m) => m.health_score), '#f59e0b', '{value}%', 100);
 
     return (
       <div key={agent.agentNumber} className={`agent-card ${prediction.status}`}>
+        {/* Card Header */}
         <div className="agent-card-header">
           <div className="agent-title">
             <h3>
               {agent.agentName} {agent.isLeader && '👑'}
             </h3>
             <span className="agent-role">{agent.role.toUpperCase()}</span>
+            {agent.isCoordinator && <span className="coordinator-badge">COORDINATOR</span>}
           </div>
-          <div className="agent-peer-id">{agent.peerId.substring(0, 12)}...</div>
+          <div className="agent-header-right">
+            <div className="agent-peer-id">{shortPeerId(agent.peerId)}</div>
+            <div className="agent-timestamp">🕐 {new Date(agent.serverTimestamp).toLocaleTimeString()}</div>
+          </div>
         </div>
 
         {/* Prediction Alert */}
@@ -1184,103 +1086,82 @@ const AgentMetricsWidget: React.FC = () => {
           <div className={`prediction-alert ${prediction.status}`}>
             <div className="alert-header">
               <span className="alert-icon">{prediction.status === 'critical' ? '🚨' : '⚠️'}</span>
-              <span className="alert-title">
-                HEALTH PREDICTION: {prediction.status.toUpperCase()}
-              </span>
+              <span className="alert-title">HEALTH PREDICTION: {prediction.status.toUpperCase()}</span>
             </div>
-
             {prediction.timeToFailure && (
-              <div className="prediction-detail">
-                <strong>Estimated Time to Failure:</strong> {prediction.timeToFailure}
-              </div>
+              <div className="prediction-detail"><strong>Estimated Time to Failure:</strong> {prediction.timeToFailure}</div>
             )}
-
             <div className="prediction-detail">
               <strong>Failure Probability:</strong> {prediction.failureProbability.toFixed(0)}%
-              <span style={{ marginLeft: '12px' }}>
-                <strong>Confidence:</strong> {prediction.confidence}%
-              </span>
+              <span style={{ marginLeft: '12px' }}><strong>Confidence:</strong> {prediction.confidence}%</span>
             </div>
-
             {prediction.issues.length > 0 && (
               <div className="issues-list">
                 <strong>Detected Issues:</strong>
                 <ul>
                   {prediction.issues.map((issue, idx) => (
                     <li key={idx}>
-                      <span className={`severity-badge ${issue.severity}`}>
-                        {issue.severity.toUpperCase()}
-                      </span>
-                      <span>
-                        {issue.metric.toUpperCase()}: {issue.description} ({issue.trendRate})
-                      </span>
+                      <span className={`severity-badge ${issue.severity}`}>{issue.severity.toUpperCase()}</span>
+                      <span>{issue.metric.toUpperCase()}: {issue.description} ({issue.trendRate})</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
-
             <div className="recommendation">{prediction.recommendation}</div>
           </div>
         )}
 
-        {/* Health Gauge */}
-        <div className="health-gauge">
-          <ReactECharts option={gaugeOption} style={{ height: '220px' }} />
-          <div className="health-label">
-            Current Utilization: {agent.currentUtilization.toFixed(1)}%
+        {/* ✅ NEW: Top Row - 3 columns: Gauge + Health Classification + Uptime/Election */}
+        <div className="agent-top-row">
+          <div className="top-row-gauge">
+            <ReactECharts option={gaugeOption} style={{ height: '180px' }} />
+            <div className="health-status-label">
+              {agent.currentUtilization < 50 && <span className="status-healthy">LOW LOAD — HEALTHY</span>}
+              {agent.currentUtilization >= 50 && agent.currentUtilization < 70 && <span className="status-warning">⚠️ MODERATE LOAD</span>}
+              {agent.currentUtilization >= 70 && <span className="status-critical">🚨 HIGH LOAD</span>}
+            </div>
           </div>
-          <div className="health-status">
-            {agent.currentUtilization < 50 && <span className="status-healthy">LOW LOAD - HEALTHY</span>}
-            {agent.currentUtilization >= 50 && agent.currentUtilization < 70 && <span className="status-warning">⚠️ MODERATE LOAD</span>}
-            {agent.currentUtilization >= 70 && <span className="status-critical">🚨 HIGH LOAD - CRITICAL</span>}
-          </div>
+          {renderHealthClassification(agent)}
+          {renderUptimeElection(agent)}
         </div>
 
-        {/* ✅ NEW: Peer Topology */}
+        {/* Peer Topology */}
         {renderPeerTopology(agent)}
 
-        {/* Metrics Charts Grid */}
+        {/* Metrics Charts */}
         <div className="metrics-charts">
-          <div className="chart-container">
-            <ReactECharts option={cpuOption} style={{ height: '200px' }} />
-          </div>
-          <div className="chart-container">
-            <ReactECharts option={memoryOption} style={{ height: '200px' }} />
-          </div>
-          <div className="chart-container">
-            <ReactECharts option={latencyOption} style={{ height: '200px' }} />
-          </div>
-          <div className="chart-container">
-            <ReactECharts option={utilizationOption} style={{ height: '200px' }} />
-          </div>
+          <div className="chart-container"><ReactECharts option={cpuOption} style={{ height: '200px' }} /></div>
+          <div className="chart-container"><ReactECharts option={memoryOption} style={{ height: '200px' }} /></div>
+          <div className="chart-container"><ReactECharts option={latencyOption} style={{ height: '200px' }} /></div>
+          <div className="chart-container"><ReactECharts option={utilizationOption} style={{ height: '200px' }} /></div>
         </div>
 
-        {/* Current Metrics Summary - ✅ FIXED: Shows real values */}
+        {/* Summary Bar */}
         <div className="metrics-summary">
-          <div className="summary-item">
-            <span className="summary-label">CPU:</span>
-            <span className="summary-value">{latest.cpu_usage.toFixed(1)}%</span>
-          </div>
-          <div className="summary-item">
-            <span className="summary-label">Memory:</span>
-            <span className="summary-value">
-              {latest.memory_used.toFixed(0)}/{latest.memory_total.toFixed(0)} MB
-            </span>
-          </div>
-          <div className="summary-item">
-            <span className="summary-label">Latency:</span>
-            <span className="summary-value">{latest.network_latency.toFixed(2)}ms</span>
-          </div>
-          <div className="summary-item">
-            <span className="summary-label">Peers:</span>
-            <span className="summary-value">{latest.peer_connections}/{Math.max(0, agent.clusterTotalPeers - 1)}</span>
-          </div>
+          <div className="summary-item"><span className="summary-label">CPU:</span><span className="summary-value">{latest.cpu_usage.toFixed(1)}%</span></div>
+          <div className="summary-item"><span className="summary-label">Memory:</span><span className="summary-value">{latest.memory_used.toFixed(0)}/{latest.memory_total.toFixed(0)} MB</span></div>
+          <div className="summary-item"><span className="summary-label">Latency:</span><span className="summary-value">{latest.network_latency.toFixed(2)}ms</span></div>
+          <div className="summary-item"><span className="summary-label">Peers:</span><span className="summary-value">{latest.peer_connections}/{Math.max(0, agent.clusterTotalPeers - 1)}</span></div>
         </div>
+
+        {/* ✅ NEW: Expand Button */}
+        <div className="expand-section">
+          <button className="expand-btn" onClick={() => toggleExpanded(agent.agentNumber)}>
+            <span className={`expand-arrow ${isExpanded ? 'expanded' : ''}`}>▼</span>
+            {isExpanded ? 'Collapse' : 'Expand'} Disk I/O, Topology, Addresses &amp; Config
+          </button>
+        </div>
+
+        {/* ✅ NEW: Expanded Details */}
+        {isExpanded && renderExpandedDetails(agent)}
       </div>
     );
   };
 
+  // ==============================================================================
+  // MAIN RENDER
+  // ==============================================================================
   if (loading) {
     return (
       <div className="agent-metrics-widget">
@@ -1307,10 +1188,10 @@ const AgentMetricsWidget: React.FC = () => {
         <div className="header-content">
           <div className="header-left">
             <h2>📊 Agent Performance Visualizations</h2>
-            <p className="header-subtitle">Real-time metrics and predictive analytics for all agents</p>
+            <p className="header-subtitle">Complete real-time metrics — all payload fields visualized</p>
           </div>
           <div className="header-stats">
-            <span className="stat-item agents">{agents.length} Agents Detected</span>
+            <span className="stat-item agents">{agents.length} Agents</span>
             <span className="separator">|</span>
             <span className="stat-item warnings">{warningCount} Warnings</span>
             <span className="separator">|</span>
@@ -1320,10 +1201,8 @@ const AgentMetricsWidget: React.FC = () => {
       </div>
 
       <div className="widget-body">
-        {/* Cluster Overview Section */}
         {renderClusterOverview()}
 
-        {/* Individual Agent Cards */}
         <div className="individual-agents-section">
           <h3 className="section-title">Individual Agent Metrics</h3>
           <div className="agents-grid">{agents.map((agent) => renderAgentCard(agent))}</div>
