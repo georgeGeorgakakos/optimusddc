@@ -142,19 +142,44 @@ $text-muted: #9ca3af;
   border: 1px solid $border;
 
   .overview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 24px;
 
-    h2 {
-      font-size: 22px;
-      font-weight: 700;
-      color: $dark;
-      margin: 0;
+    .overview-header-left {
+      h2 {
+        font-size: 22px;
+        font-weight: 700;
+        color: $dark;
+        margin: 0;
+      }
+
+      .overview-subtitle {
+        color: $text-secondary;
+        font-size: 13px;
+        margin: 4px 0 0;
+      }
     }
 
-    .overview-subtitle {
-      color: $text-secondary;
-      font-size: 13px;
-      margin: 4px 0 0;
+    .overview-header-stats {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 600;
+
+      .stat-item {
+        &.agents { color: $primary; }
+        &.warnings { color: $warning; }
+        &.critical { color: $danger; }
+      }
+
+      .separator {
+        color: $border;
+      }
     }
   }
 

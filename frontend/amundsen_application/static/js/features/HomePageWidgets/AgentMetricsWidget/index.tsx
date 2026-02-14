@@ -674,8 +674,8 @@ const AgentMetricsWidget: React.FC = () => {
       yAxis: { type: 'value', max: 100, axisLabel: { fontSize: 12, formatter: '{value}%' }, name: 'Failure Risk', nameTextStyle: { fontSize: 14, fontWeight: 'bold' } },
       series: [{
         name: 'Failure Probability', type: 'bar',
-        data: agents.map((a) => ({ value: a.prediction.failureProbability, itemStyle: { color: a.prediction.status === 'critical' ? '#ef4444' : a.prediction.status === 'warning' ? '#f59e0b' : '#10b981' } })),
-        label: { show: true, position: 'top', formatter: '{c}%', fontSize: 14, fontWeight: 'bold' },
+        data: agents.map((a) => ({ value: parseFloat(a.prediction.failureProbability.toFixed(2)), itemStyle: { color: a.prediction.status === 'critical' ? '#ef4444' : a.prediction.status === 'warning' ? '#f59e0b' : '#10b981' } })),
+        label: { show: true, position: 'top', formatter: (params: any) => `${parseFloat(params.value).toFixed(2)}%`, fontSize: 14, fontWeight: 'bold' },
         barWidth: '60%',
       }],
     };
@@ -683,8 +683,17 @@ const AgentMetricsWidget: React.FC = () => {
     return (
       <div className="cluster-overview">
         <div className="overview-header">
-          <h2>📊 Cluster Overview</h2>
-          <p className="overview-subtitle">Real-time metrics and predictive analytics for all agents</p>
+          <div className="overview-header-left">
+            <h2>📊 Cluster Overview</h2>
+            <p className="overview-subtitle">Complete real-time metrics — all payload fields visualized</p>
+          </div>
+          <div className="overview-header-stats">
+            <span className="stat-item agents">{totalAgents} Agents</span>
+            <span className="separator">|</span>
+            <span className="stat-item warnings">{warningAgents} Warnings</span>
+            <span className="separator">|</span>
+            <span className="stat-item critical">{criticalAgents} Critical</span>
+          </div>
         </div>
 
         <div className="overview-stats">
@@ -1165,10 +1174,6 @@ const AgentMetricsWidget: React.FC = () => {
   if (loading) {
     return (
       <div className="agent-metrics-widget">
-        <div className="widget-header">
-          <h2>📊 Agent Performance Visualizations</h2>
-          <p className="header-subtitle">Real-time metrics and predictive analytics for all agents</p>
-        </div>
         <div className="widget-body">
           <div className="loading-state">
             <div className="loading-spinner" />
@@ -1179,27 +1184,8 @@ const AgentMetricsWidget: React.FC = () => {
     );
   }
 
-  const warningCount = agents.filter((a) => a.prediction.status === 'warning').length;
-  const criticalCount = agents.filter((a) => a.prediction.status === 'critical').length;
-
   return (
     <div className="agent-metrics-widget">
-      <div className="widget-header">
-        <div className="header-content">
-          <div className="header-left">
-            <h2>📊 Agent Performance Visualizations</h2>
-            <p className="header-subtitle">Complete real-time metrics — all payload fields visualized</p>
-          </div>
-          <div className="header-stats">
-            <span className="stat-item agents">{agents.length} Agents</span>
-            <span className="separator">|</span>
-            <span className="stat-item warnings">{warningCount} Warnings</span>
-            <span className="separator">|</span>
-            <span className="stat-item critical">{criticalCount} Critical</span>
-          </div>
-        </div>
-      </div>
-
       <div className="widget-body">
         {renderClusterOverview()}
 
