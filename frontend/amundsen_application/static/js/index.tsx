@@ -39,6 +39,7 @@ import metricsPage from './pages/MetricsPage';
 import DataCatalogAssistant from './components/DataCatalogAssistant';
 import WikiPage from './pages/WikiPage';
 import ETLWorkbenchPage from './pages/ETLWorkbenchPage';
+import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
 
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
@@ -82,6 +83,7 @@ const Routes: React.FC = () => {
         <Route path="/search" component={SearchPage} />
         <Route path="/metrics" component={metricsPage} />
         <Route path="/api-testing" component={PostmanInterface} />
+        <Route path="/analytics" component={AnalyticsDashboardPage} />
         <Route path="/wiki" component={WikiPage} />
         <Route
           path="/table_detail/:cluster/:database/:schema/:table"

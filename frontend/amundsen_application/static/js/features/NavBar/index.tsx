@@ -53,7 +53,9 @@ const AVATAR_SIZE = 32;
 
 const GENERIC_LOGO_PATH = '/static/images/optimus-logo.png';
 const ICCS_LOGO_PATH = '/static/images/logo3.png';
-const IMU_LOGO_PATH = '/static/images/imu-logo-white-full-black.png';
+// const IMU_LOGO_PATH = '/static/images/imu-logo-white-full-black.png';
+const IMU_LOGO_PATH = 'imu.png';
+
 
 const TRACKING_MESSAGES = {
   START_TOUR: 'Start Tour',

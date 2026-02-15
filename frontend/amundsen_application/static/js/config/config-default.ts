@@ -129,7 +129,7 @@ const configDefault: AppConfig = {
     {
       href: '/',
       id: 'nav::home',
-      label: 'Home',
+      label: '',
       use_router: true,
       iconOnly: false,
       icon: 'home',
@@ -148,13 +148,13 @@ const configDefault: AppConfig = {
       use_router: true,
       icon: 'announcements',
     },
-    {
-      href: '/browse',
-      id: 'nav::browse',
-      label: 'Analytics',
-      use_router: true,
-      icon: 'analytics',
-    },
+    //{
+    //  href: '/browse',
+    //  id: 'nav::browse',
+    //  label: 'Analytics',
+    //  use_router: true,
+    //  icon: 'analytics',
+    //},
     {
       href: '/cluster/topology',
       id: 'nav::cluster-topology',
@@ -183,12 +183,19 @@ const configDefault: AppConfig = {
       use_router: true,
       icon: 'performance',
     },
+    //{
+    //  href: '/logs',
+    //  id: 'nav::logs',
+    //  label: 'Agent Logs',
+    //  use_router: true,
+    //  icon: 'logs',
+    //},
     {
-      href: '/logs',
-      id: 'nav::logs',
-      label: 'Agent Logs',
+      href: '/analytics',
+      id: 'nav::analytics-dashboard',
+      label: 'Log Analytics',
       use_router: true,
-      icon: 'logs',
+      icon: 'analytics_dashboard',
     },
     {
       href: '/api-testing',
