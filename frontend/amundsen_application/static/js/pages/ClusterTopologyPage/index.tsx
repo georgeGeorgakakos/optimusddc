@@ -112,28 +112,52 @@ interface MeshLibP2P {
 }
 
 interface MeshHealthInfo {
-  coverage: string;
-  replication_capability: boolean;
-  missing_connections: number;
+  coverage?: string;
+  coverage_pct?: number;
+  replication_capability?: boolean;
+  can_replicate?: boolean;
+  missing_connections?: number;
+  missing?: number;
   status: string;  // "EXCELLENT" | "GOOD" | "POOR"
 }
 
 interface MeshDiscovery {
-  discovered_peers: string[];
+  discovered_peers?: string[];
+  discovered?: number;
+  peers?: string[];
 }
 
 interface MeshDiagnostics {
-  system_status: string;
+  system_status?: string;
+  // API may also return a string[] of diagnostic lines
+  [key: string]: any;
 }
 
 /** Response from /debug/optimusdb/mesh */
 interface MeshData {
-  orbitdb_stores: OrbitDBStore[];
+  orbitdb_stores: OrbitDBStore[] | Record<string, { initialized: boolean; type: string | null; address?: string; access_controller?: string; entry_count?: number }>;
   gossipsub: MeshGossipSub;
   libp2p: MeshLibP2P;
   mesh_health: MeshHealthInfo;
   discovery: MeshDiscovery;
   diagnostics: MeshDiagnostics;
+}
+
+/** Normalize orbitdb_stores from API (may be object or array) into a flat array */
+function normalizeOrbitDBStores(
+  stores: MeshData['orbitdb_stores']
+): OrbitDBStore[] {
+  if (!stores) return [];
+  if (Array.isArray(stores)) return stores;
+  // Object format: { storeName: { initialized, type, ... } }
+  return Object.entries(stores).map(([name, info]) => ({
+    name,
+    type: info.type || 'unknown',
+    initialized: info.initialized ?? false,
+    address: info.address,
+    access_controller: info.access_controller,
+    entry_count: info.entry_count,
+  }));
 }
 
 interface RDBMSTable {
@@ -312,7 +336,13 @@ const ClusterTopologyPage: React.FC = () => {
               const meshUrl = buildApiUrl('optimusdb', `/${settings.apiContext}/debug/optimusdb/mesh`, nodeId);
               const meshRes = await fetch(meshUrl);
               if (meshRes.ok) {
-                info.mesh = await meshRes.json();
+                const meshJson = await meshRes.json();
+                // The response might be the mesh data directly, or wrapped
+                info.mesh = meshJson;
+                // Ensure orbitdb_stores is normalized for downstream use
+                if (meshJson.orbitdb_stores && !Array.isArray(meshJson.orbitdb_stores)) {
+                  // Keep raw format — normalizeOrbitDBStores() handles conversion at render time
+                }
               }
             } catch { /* continue */ }
 
@@ -637,6 +667,7 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
   const [showPlanned, setShowPlanned] = useState(false);
   const [expandedDb, setExpandedDb] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   // Zoom/Pan state
   const [zoom, setZoom] = useState(1);
@@ -703,10 +734,11 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
     if (inventoryAgent?.inventory?.orbitdb_stores) {
       return inventoryAgent.inventory.orbitdb_stores;
     }
-    // Fallback from mesh data
+    // Fallback from mesh data — normalize object-or-array format
     if (meshAgent?.mesh?.orbitdb_stores) {
+      const normalized = normalizeOrbitDBStores(meshAgent.mesh.orbitdb_stores);
       return {
-        active: meshAgent.mesh.orbitdb_stores.map((s) => ({
+        active: normalized.map((s) => ({
           name: s.name,
           type: s.type,
           access: 'unknown',
@@ -741,6 +773,16 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
       <div className="mesh-loading">
         <div className="loading-spinner" />
         <p>Loading Communication Mesh data from all agents...</p>
+      </div>
+    );
+  }
+
+  // Error state — catches render issues from unexpected API data shapes
+  if (renderError) {
+    return (
+      <div className="mesh-loading">
+        <p style={{ color: '#dc2626' }}>⚠️ Error rendering Communication Mesh: {renderError}</p>
+        <button className="btn btn-default btn-sm" onClick={() => { setRenderError(null); onRefresh(); }}>🔄 Retry</button>
       </div>
     );
   }
@@ -987,7 +1029,9 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
 
                     {agentPositions.map((pos, idx) => {
                       const storeY = agentY + 105;
-                      const storeCount = pos.mesh?.orbitdb_stores?.length || crudStores.active.length || 0;
+                      const storeCount = pos.mesh?.orbitdb_stores
+                        ? normalizeOrbitDBStores(pos.mesh.orbitdb_stores).length
+                        : crudStores.active.length || 0;
                       const meshStatus = pos.mesh?.mesh_health?.status || '—';
 
                       return (
