@@ -730,10 +730,49 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
   const meshAgent = agents.find((a) => a.mesh);
 
   // Build CRUD stores list from mesh or inventory data
+  // ALWAYS returns { active: InventoryOrbitDBStore[], planned: Array<{name,description}> }
   const crudStores = useMemo(() => {
+    const empty = { active: [] as InventoryOrbitDBStore[], planned: [] as Array<{ name: string; description: string }> };
+
+    // Try inventory data first
     if (inventoryAgent?.inventory?.orbitdb_stores) {
-      return inventoryAgent.inventory.orbitdb_stores;
+      const raw = inventoryAgent.inventory.orbitdb_stores;
+      // If it already has { active: [...], planned: [...] } structure, use it
+      if (raw.active && Array.isArray(raw.active)) {
+        return {
+          active: raw.active as InventoryOrbitDBStore[],
+          planned: Array.isArray(raw.planned) ? raw.planned : [],
+        };
+      }
+      // If it's an array of stores, wrap it
+      if (Array.isArray(raw)) {
+        return {
+          active: raw.map((s: any) => ({
+            name: s.name || 'unknown',
+            type: s.type || 'unknown',
+            access: s.access || 'unknown',
+            replicated: s.replicated ?? s.initialized ?? false,
+            entry_count: s.entry_count,
+          })),
+          planned: [],
+        };
+      }
+      // If it's an object map like { storeName: { initialized, type } }, normalize it
+      if (typeof raw === 'object') {
+        const normalized = normalizeOrbitDBStores(raw as any);
+        return {
+          active: normalized.map((s) => ({
+            name: s.name,
+            type: s.type,
+            access: 'unknown',
+            replicated: s.initialized,
+            entry_count: s.entry_count,
+          })),
+          planned: [],
+        };
+      }
     }
+
     // Fallback from mesh data — normalize object-or-array format
     if (meshAgent?.mesh?.orbitdb_stores) {
       const normalized = normalizeOrbitDBStores(meshAgent.mesh.orbitdb_stores);
@@ -745,10 +784,11 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
           replicated: s.initialized,
           entry_count: s.entry_count,
         })),
-        planned: [] as Array<{ name: string; description: string }>,
+        planned: [],
       };
     }
-    return { active: [] as InventoryOrbitDBStore[], planned: [] as Array<{ name: string; description: string }> };
+
+    return empty;
   }, [inventoryAgent, meshAgent]);
 
   // Build RDBMS data
@@ -1031,7 +1071,7 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
                       const storeY = agentY + 105;
                       const storeCount = pos.mesh?.orbitdb_stores
                         ? normalizeOrbitDBStores(pos.mesh.orbitdb_stores).length
-                        : crudStores.active.length || 0;
+                        : (crudStores.active?.length || 0);
                       const meshStatus = pos.mesh?.mesh_health?.status || '—';
 
                       return (
@@ -1139,7 +1179,7 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
             {[
               { label: 'External Access', color: '#059669', bg: '#f0fdf4', border: '#a7f3d0', items: ['K3s Ingress', 'HTTP REST :8089', 'NGINX Proxy', '/optimusdb{N} routes'] },
               { label: 'Application', color: '#b45309', bg: '#fffbeb', border: '#fde68a', items: ['OptimusDB API', 'Agent Status', 'Query Engine', 'TinyLlama LLM'] },
-              { label: 'Data — CRUD Store', color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe', items: ['OrbitDB', 'CRDT Merge', 'IPFS Blocks', `${crudStores.active.length || 6} DocStores + EventLog`] },
+              { label: 'Data — CRUD Store', color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe', items: ['OrbitDB', 'CRDT Merge', 'IPFS Blocks', `${crudStores.active?.length || 6} DocStores + EventLog`] },
               { label: 'Data — RDBMS', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', items: ['SQLite', `knowledgebase (${rdbmsDatabases[0]?.tables?.length || 16} tbl)`, `logger (${rdbmsDatabases[1]?.tables?.[0]?.rows?.toLocaleString() || '76K'} rows)`, `reputation (${rdbmsDatabases[2]?.tables?.[0]?.rows || 3} nodes)`] },
               { label: 'Messaging', color: '#b45309', bg: '#fffbeb', border: '#fde68a', items: ['GossipSub', 'PubSub Topics', 'mDNS Discovery', 'Peer Heartbeat'] },
               { label: 'Network', color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe', items: ['LibP2P', 'TCP :4001', 'Multiaddr', 'NAT Traversal'] },
@@ -1163,14 +1203,14 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
         <div className="mesh-detail-card">
           <h3 className="mesh-dc-title">
             CRUD Stores <span className="mesh-dc-badge purple">OrbitDB / CRDT</span>
-            {crudStores.planned.length > 0 && (
+            {(crudStores.planned?.length || 0) > 0 && (
               <button className="mesh-dc-toggle" onClick={() => setShowPlanned(!showPlanned)}>
-                {showPlanned ? 'Hide Planned' : `Show Planned (${crudStores.planned.length})`}
+                {showPlanned ? 'Hide Planned' : `Show Planned (${crudStores.planned?.length || 0})`}
               </button>
             )}
           </h3>
           <div className="mesh-store-list">
-            {crudStores.active.map((s) => (
+            {(crudStores.active || []).map((s) => (
               <div key={s.name} className="mesh-store-row">
                 <div className="mesh-sr-status active" />
                 <div className="mesh-sr-info">
@@ -1187,10 +1227,10 @@ const CommunicationMesh: React.FC<CommunicationMeshProps> = ({ agents, loading, 
                 </div>
               </div>
             ))}
-            {showPlanned && crudStores.planned.length > 0 && (
+            {showPlanned && (crudStores.planned?.length || 0) > 0 && (
               <>
                 <div className="mesh-planned-divider">Planned / Dynamic Stores</div>
-                {crudStores.planned.map((s) => (
+                {(crudStores.planned || []).map((s) => (
                   <div key={s.name} className="mesh-store-row planned">
                     <div className="mesh-sr-status planned" />
                     <div className="mesh-sr-info">
