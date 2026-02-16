@@ -49,9 +49,17 @@ interface EmsLogEntry {
 }
 
 interface EmsEventEntry {
-  timestamp: string;
-  type: string;
-  detail: string;
+  id: number;
+  timestamp: string; // mapped from received_at
+  type: string; // derived from raw metricValue range or topic
+  detail: string; // parsed from raw JSON
+  client_id: string;
+  action: string;
+  resource: string;
+  topic: string;
+  raw: string;
+  metricValue?: number;
+  metricLevel?: number;
 }
 
 interface BenchmarkData {
@@ -97,6 +105,8 @@ interface PeerInfo {
   latency_ms?: number;
   agent_name?: string;
   protocols?: string[];
+  health?: Record<string, string>;
+  role?: string;
 }
 
 interface NodePeerData {
@@ -104,6 +114,14 @@ interface NodePeerData {
   nodeName: string;
   peerId: string;
   peers: PeerInfo[];
+  addresses?: string[];
+  cluster?: {
+    total_peers: number;
+    connected_peers: number;
+    discovered_peers: number;
+    coordinators: number;
+    followers: number;
+  };
 }
 
 interface ContributionData {
@@ -198,6 +216,9 @@ const EVENT_COLORS: Record<string, string> = {
   CACHE: '#667eea',
   BENCHMARK: '#d946ef',
   CREDENTIAL: '#0891b2',
+  CPU: '#f59e0b',
+  MEMORY: '#8b5cf6',
+  METRIC: '#6366f1',
 };
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
@@ -467,21 +488,71 @@ const AnalyticsDashboardPage: React.FC = () => {
       try {
         const url = buildApiUrl('optimusdb', `/${CONTEXT}/ems/logs`, nodeId);
         const resp = await axios.get(url, {
-          params: { limit: 100, since_min: 120 },
+          params: { limit: 100, since_min: 30 },
           timeout: 8000,
         });
 
-        let logs: EmsLogEntry[] = [];
+        let rawLogs: any[] = [];
 
         if (Array.isArray(resp.data)) {
-          logs = resp.data;
+          rawLogs = resp.data;
         } else if (resp.data?.records) {
-          logs = resp.data.records;
+          rawLogs = resp.data.records;
         } else if (resp.data?.logs) {
-          logs = resp.data.logs;
+          rawLogs = resp.data.logs;
         } else if (resp.data?.results) {
-          logs = resp.data.results;
+          rawLogs = resp.data.results;
         }
+
+        // Map raw API fields → EmsLogEntry
+        const logs: EmsLogEntry[] = rawLogs.map((r: any) => {
+          // If it already has the expected fields (timestamp, level as string, message), use as-is
+          if (r.timestamp && r.message && typeof r.level === 'string') {
+            return r as EmsLogEntry;
+          }
+
+          // Otherwise map from raw EMS format
+          let level = 'INFO';
+          let message = r.raw || r.message || '';
+          const source = r.client_id || r.source || '';
+
+          // Parse the raw JSON field if present
+          if (r.raw && typeof r.raw === 'string') {
+            try {
+              const parsed = JSON.parse(r.raw);
+
+              // Classify by metric value
+              if (parsed.metricValue !== undefined) {
+                const mv = parsed.metricValue;
+
+                if (mv < 100) {
+                  level = mv > 80 ? 'WARN' : mv > 95 ? 'ERROR' : 'INFO';
+                  message = `CPU utilization: ${mv.toFixed(2)}%`;
+                } else if (mv > 100000) {
+                  level = mv > 2000000 ? 'WARN' : 'INFO';
+                  message = `Memory: ${(mv / 1024).toFixed(1)} KB`;
+                } else {
+                  message = `Metric: ${mv.toFixed(2)}`;
+                }
+              }
+              // Use numeric level if present
+              if (parsed.level !== undefined) {
+                const nl = parsed.level;
+
+                level = nl >= 3 ? 'ERROR' : nl >= 2 ? 'WARN' : 'INFO';
+              }
+            } catch {
+              /* keep raw string */
+            }
+          }
+
+          return {
+            timestamp: r.received_at || r.timestamp || '',
+            level,
+            message,
+            source,
+          };
+        });
 
         setEmsLogs(logs);
       } catch (err) {
@@ -501,22 +572,72 @@ const AnalyticsDashboardPage: React.FC = () => {
       try {
         const url = buildApiUrl('optimusdb', `/${CONTEXT}/ems/events`, nodeId);
         const resp = await axios.get(url, {
-          params: { limit: 50, since_min: 60 },
+          params: { limit: 50, since_min: 30 },
           timeout: 8000,
         });
 
-        let events: EmsEventEntry[] = [];
+        let rawEvents: any[] = [];
 
         if (Array.isArray(resp.data)) {
-          events = resp.data;
+          rawEvents = resp.data;
         } else if (resp.data?.records) {
-          events = resp.data.records;
+          rawEvents = resp.data.records;
         } else if (resp.data?.events) {
-          events = resp.data.events;
+          rawEvents = resp.data.events;
         } else if (resp.data?.results) {
-          events = resp.data.results;
+          rawEvents = resp.data.results;
         }
 
+        // Map raw API fields → EmsEventEntry
+        const events: EmsEventEntry[] = rawEvents.map((r: any) => {
+          let metricValue: number | undefined;
+          let metricLevel: number | undefined;
+          let detail = r.raw || r.detail || '';
+          let eventType = r.type || r.action || 'METRIC';
+
+          // Parse the raw JSON field if present
+          if (r.raw && typeof r.raw === 'string') {
+            try {
+              const parsed = JSON.parse(r.raw);
+
+              metricValue = parsed.metricValue;
+              metricLevel = parsed.level;
+              // Classify event type by metric value range
+              if (metricValue !== undefined) {
+                if (metricValue < 100) {
+                  eventType = 'CPU';
+                  detail = `CPU utilization: ${metricValue.toFixed(2)}%`;
+                } else if (metricValue > 100000) {
+                  eventType = 'MEMORY';
+                  detail = `Memory usage: ${(metricValue / 1024).toFixed(
+                    1
+                  )} KB`;
+                } else {
+                  eventType = 'METRIC';
+                  detail = `Metric value: ${metricValue.toFixed(2)}`;
+                }
+              }
+            } catch {
+              /* keep raw string as detail */
+            }
+          }
+
+          return {
+            id: r.id || 0,
+            timestamp: r.received_at || r.timestamp || '',
+            type: eventType,
+            detail,
+            client_id: r.client_id || '',
+            action: r.action || '',
+            resource: r.resource || '',
+            topic: r.topic || '',
+            raw: r.raw || '',
+            metricValue,
+            metricLevel,
+          };
+        });
+
+        events.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
         setEmsEvents(events);
       } catch (err) {
         console.error('Failed to fetch EMS events:', err);
@@ -750,47 +871,49 @@ const AnalyticsDashboardPage: React.FC = () => {
       await Promise.all(
         nodes.map(async (node) => {
           try {
-            // Fetch peers
-            const peersUrl = buildApiUrl(
-              'optimusdb',
-              `/${CONTEXT}/peers`,
-              node.id
-            );
-            const peersResp = await axios.get(peersUrl, { timeout: 5000 });
-            const peersRaw = peersResp.data;
-
-            // Peers response may be an array or { peers: [...] }
-            const peersList: PeerInfo[] = Array.isArray(peersRaw)
-              ? peersRaw
-              : Array.isArray(peersRaw?.peers)
-              ? peersRaw.peers
-              : [];
-
-            // Get this node's agent info for its peer_id
+            // /agent/status already contains all peer data embedded
             const statusUrl = buildApiUrl(
               'optimusdb',
               `/${CONTEXT}/agent/status`,
               node.id
             );
             const statusResp = await axios.get(statusUrl, { timeout: 5000 });
-            const agentData = statusResp.data?.agent || {};
+            const sd = statusResp.data;
+            const agentData = sd?.agent || {};
+            const clusterData = sd?.cluster || {};
+            const peersArray: any[] = sd?.peers || [];
+
+            // Build peer list from the embedded peers array
+            const peersList: PeerInfo[] = peersArray.map((p: any) => ({
+              peer_id: p.peer_id || '',
+              addrs: Array.isArray(p.addrs)
+                ? p.addrs
+                : Array.isArray(p.addresses)
+                ? p.addresses
+                : [],
+              connected: p.connected === true,
+              latency_ms: p.health?.latency
+                ? parseFloat(p.health.latency)
+                : undefined,
+              agent_name: p.role || (p.is_leader ? 'Coordinator' : 'Follower'),
+              protocols: Array.isArray(p.protocols) ? p.protocols : [],
+              health: p.health || {},
+              role: p.role || (p.is_leader ? 'Coordinator' : 'Follower'),
+            }));
 
             peerResults.push({
               nodeId: node.id,
-              nodeName: node.name || `OptimusDB-${node.id}`,
+              nodeName: node.name || `optimusdb${node.id}`,
               peerId: agentData.peer_id || '',
-              peers: peersList.map((p: any) => ({
-                peer_id: p.peer_id || p.id || p.ID || '',
-                addrs: Array.isArray(p.addrs)
-                  ? p.addrs
-                  : p.address
-                  ? [p.address]
-                  : [],
-                connected: p.connected !== false,
-                latency_ms: p.latency_ms || p.latency || undefined,
-                agent_name: p.agent_name || p.name || undefined,
-                protocols: Array.isArray(p.protocols) ? p.protocols : [],
-              })),
+              peers: peersList,
+              addresses: agentData.addresses || [],
+              cluster: {
+                total_peers: clusterData.total_peers || 0,
+                connected_peers: clusterData.connected_peers || 0,
+                discovered_peers: clusterData.discovered_peers || 0,
+                coordinators: clusterData.coordinators || 0,
+                followers: clusterData.followers || 0,
+              },
             });
 
             // Fetch contributions
@@ -808,16 +931,30 @@ const AnalyticsDashboardPage: React.FC = () => {
                 },
                 { timeout: 5000 }
               );
-              const cd = contriResp.data?.result || contriResp.data || {};
+              const cd =
+                contriResp.data?.data ||
+                contriResp.data?.result ||
+                contriResp.data ||
+                {};
 
               contriResults.push({
                 nodeId: node.id,
-                nodeName: node.name || `OptimusDB-${node.id}`,
-                queries_served: cd.queries_served || cd.queries || 0,
-                replications: cd.replications || cd.replication_count || 0,
-                uploads: cd.uploads || cd.upload_count || 0,
-                uptime_hours: cd.uptime_hours || cd.uptime || 0,
-                score: cd.score || cd.contribution_score || 0,
+                nodeName: node.name || `optimusdb${node.id}`,
+                queries_served:
+                  cd.queries_served || cd.queries || cd.queriesServed || 0,
+                replications:
+                  cd.replications ||
+                  cd.replication_count ||
+                  cd.replicationsCount ||
+                  0,
+                uploads: cd.uploads || cd.upload_count || cd.uploadsCount || 0,
+                uptime_hours:
+                  cd.uptime_hours || cd.uptime || cd.uptimeHours || 0,
+                score:
+                  cd.score ||
+                  cd.contribution_score ||
+                  cd.contributionScore ||
+                  0,
               });
             } catch {
               /* contribution data optional */
@@ -2004,7 +2141,7 @@ const AnalyticsDashboardPage: React.FC = () => {
 
           {/* ═══════════════════════════════════════════════
               TAB: EMS LOGS
-              Source: GET /ems/logs?limit=100&since_min=120
+              Source: GET /ems/logs?limit=100&since_min=30
               ═══════════════════════════════════════════════ */}
           {activeTab === 'ems-logs' && (
             <div className="adp-tab-body">
@@ -2013,7 +2150,7 @@ const AnalyticsDashboardPage: React.FC = () => {
                   <h3 className="adp-card-title">
                     📄 EMS Filtered Logs{' '}
                     <span className="adp-card-src">
-                      GET /ems/logs?limit=100&since_min=120
+                      GET /ems/logs?limit=100&since_min=30
                     </span>
                   </h3>
                   <div className="adp-filter-chips">
@@ -2108,7 +2245,7 @@ const AnalyticsDashboardPage: React.FC = () => {
 
           {/* ═══════════════════════════════════════════════
               TAB: EVENTS
-              Source: GET /ems/events?limit=50&since_min=60
+              Source: GET /ems/events?limit=50&since_min=30
               ═══════════════════════════════════════════════ */}
           {activeTab === 'events' && (
             <div className="adp-tab-body">
@@ -2117,14 +2254,14 @@ const AnalyticsDashboardPage: React.FC = () => {
                   <h3 className="adp-card-title">
                     ⚡ System Events{' '}
                     <span className="adp-card-src">
-                      GET /ems/events?limit=50&since_min=60
+                      GET /ems/events?limit=50&since_min=30
                     </span>
                   </h3>
                   {emsEventsLoading && <span className="adp-spinner-sm" />}
                 </div>
                 <div className="adp-timeline">
                   {emsEvents.map((ev, i) => (
-                    <div key={i} className="adp-timeline-item">
+                    <div key={ev.id || i} className="adp-timeline-item">
                       <div className="adp-timeline-track">
                         <div
                           className="adp-timeline-dot"
@@ -2148,6 +2285,14 @@ const AnalyticsDashboardPage: React.FC = () => {
                           >
                             {ev.type}
                           </span>
+                          {ev.client_id && (
+                            <span
+                              className="adp-muted"
+                              style={{ fontSize: 11, fontFamily: 'monospace' }}
+                            >
+                              {ev.client_id}
+                            </span>
+                          )}
                           <span className="adp-muted">
                             {fmtRelative(ev.timestamp)}
                           </span>
@@ -2250,7 +2395,7 @@ const AnalyticsDashboardPage: React.FC = () => {
                             className="adp-strategy-bar-fill"
                             style={{ width: `${pct}%`, background: barColor }}
                           >
-                            {parseInt(pct) > 30 && (
+                            {parseInt(pct, 10) > 30 && (
                               <span className="adp-bar-label">
                                 {s.ops} ops/s
                               </span>
@@ -2489,39 +2634,46 @@ const AnalyticsDashboardPage: React.FC = () => {
           {/* ═══════ PEER NETWORK TAB ═══════ */}
           {activeTab === 'peers' && (
             <div className="adp-tab-content adp-fade-in">
-              {/* Peer network overview KPIs */}
-              <div className="adp-kpi-row">
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Total Peers</div>
-                  <div className="adp-kpi-value">
-                    {peerData.reduce((sum, nd) => sum + nd.peers.length, 0)}
+              {/* Peer network overview KPIs — use cluster data from /agent/status */}
+              {(() => {
+                const cl = peerData[0]?.cluster;
+                const totalPeers =
+                  cl?.total_peers ||
+                  peerData.reduce((s, nd) => Math.max(s, nd.peers.length), 0);
+                const connectedPeers =
+                  cl?.connected_peers ||
+                  peerData.reduce(
+                    (s, nd) =>
+                      Math.max(s, nd.peers.filter((p) => p.connected).length),
+                    0
+                  );
+                const disconnected = totalPeers - connectedPeers;
+
+                return (
+                  <div className="adp-kpi-row">
+                    <div className="adp-kpi-card">
+                      <div className="adp-kpi-label">Total Peers</div>
+                      <div className="adp-kpi-value">{totalPeers}</div>
+                    </div>
+                    <div className="adp-kpi-card">
+                      <div className="adp-kpi-label">Connected</div>
+                      <div className="adp-kpi-value adp-green">
+                        {connectedPeers}
+                      </div>
+                    </div>
+                    <div className="adp-kpi-card">
+                      <div className="adp-kpi-label">Disconnected</div>
+                      <div className="adp-kpi-value adp-red">
+                        {disconnected}
+                      </div>
+                    </div>
+                    <div className="adp-kpi-card">
+                      <div className="adp-kpi-label">Nodes Reporting</div>
+                      <div className="adp-kpi-value">{peerData.length}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Connected</div>
-                  <div className="adp-kpi-value adp-green">
-                    {peerData.reduce(
-                      (sum, nd) =>
-                        sum + nd.peers.filter((p) => p.connected).length,
-                      0
-                    )}
-                  </div>
-                </div>
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Disconnected</div>
-                  <div className="adp-kpi-value adp-red">
-                    {peerData.reduce(
-                      (sum, nd) =>
-                        sum + nd.peers.filter((p) => !p.connected).length,
-                      0
-                    )}
-                  </div>
-                </div>
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Nodes Reporting</div>
-                  <div className="adp-kpi-value">{peerData.length}</div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Connectivity matrix */}
               <div className="adp-card">
@@ -2585,16 +2737,19 @@ const AnalyticsDashboardPage: React.FC = () => {
                                           ? 'connected'
                                           : 'disconnected'
                                       }`}
-                                      title={`${p.peer_id}\n${p.addrs.join(
-                                        ', '
-                                      )}`}
+                                      title={`${p.peer_id}\nRole: ${
+                                        p.role || 'Unknown'
+                                      }\nHealth: ${p.health?.score || 'N/A'} (${
+                                        p.health?.status || '—'
+                                      })\nCPU: ${
+                                        p.health?.cpu_usage || '—'
+                                      } | Mem: ${p.health?.memory_used || '—'}`}
                                     >
                                       {p.connected ? '●' : '○'}{' '}
-                                      {p.agent_name ||
-                                        p.peer_id.slice(0, 12) + '…'}
-                                      {p.latency_ms !== undefined && (
+                                      {p.role || p.peer_id.slice(0, 12) + '…'}
+                                      {p.health?.score && (
                                         <span className="adp-peer-latency">
-                                          {p.latency_ms}ms
+                                          {p.health.score}%
                                         </span>
                                       )}
                                     </span>
@@ -2630,34 +2785,24 @@ const AnalyticsDashboardPage: React.FC = () => {
                   {peerData.map((nd) => (
                     <div key={nd.nodeId} className="adp-addr-block">
                       <div className="adp-addr-node-label">{nd.nodeName}</div>
-                      {nd.peers.map((p, i) => (
-                        <div key={i} className="adp-addr-row">
-                          <span
-                            className={`adp-addr-dot ${
-                              p.connected ? 'green' : 'red'
-                            }`}
-                          >
-                            ●
-                          </span>
+                      {/* Node's own listening addresses */}
+                      {(nd.addresses || []).map((addr, i) => (
+                        <div key={`own-${i}`} className="adp-addr-row">
+                          <span className="adp-addr-dot green">●</span>
                           <span
                             className="adp-mono"
                             style={{ fontSize: '11px' }}
                           >
-                            {p.addrs.length > 0 ? p.addrs[0] : p.peer_id}
+                            {addr}
                           </span>
-                          {p.addrs.length > 1 && (
-                            <span className="adp-addr-more">
-                              +{p.addrs.length - 1} more
-                            </span>
-                          )}
                         </div>
                       ))}
-                      {nd.peers.length === 0 && (
+                      {(!nd.addresses || nd.addresses.length === 0) && (
                         <div
                           className="adp-muted"
                           style={{ padding: '4px 0 4px 16px' }}
                         >
-                          No peers
+                          No addresses
                         </div>
                       )}
                     </div>
@@ -3316,7 +3461,7 @@ const AnalyticsDashboardPage: React.FC = () => {
               : activeTab === 'stores'
               ? 'GET /debug/optimusdb/mesh · /ems/sql'
               : activeTab === 'peers'
-              ? 'GET /peers · POST /command (contri)'
+              ? 'GET /agent/status · POST /command (contri)'
               : activeTab === 'credentials'
               ? 'GET /credentials'
               : activeTab === 'metadata'
