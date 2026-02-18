@@ -39,6 +39,16 @@ interface LoggerEntry {
   message: string;
   source: string;
   timestamp: string;
+  _agent: string;
+  _agentId: number;
+}
+
+interface AgentLoadStatus {
+  name: string;
+  nodeId: number;
+  status: 'pending' | 'loading' | 'done' | 'error';
+  count: number;
+  error?: string;
 }
 
 interface EmsLogEntry {
@@ -288,9 +298,14 @@ const AnalyticsDashboardPage: React.FC = () => {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [selectedAgent, setSelectedAgent] = useState(1);
 
-  // ── Logging tab (optimusLogger) ──
+  // ── Logging tab (optimusLogger) — fetches from ALL agents ──
   const [loggerData, setLoggerData] = useState<LoggerEntry[]>([]);
   const [loggerLoading, setLoggerLoading] = useState(false);
+  const [logLoadProgress, setLogLoadProgress] = useState(0);
+  const [agentLoadStatuses, setAgentLoadStatuses] = useState<
+    AgentLoadStatus[]
+  >([]);
+  const [logAgentFilter, setLogAgentFilter] = useState(0); // 0 = All agents
   const [logLevelFilter, setLogLevelFilter] = useState<Set<string>>(new Set());
   const [logSourceFilter, setLogSourceFilter] = useState('');
   const [logSearchTerm, setLogSearchTerm] = useState('');
@@ -421,65 +436,135 @@ const AnalyticsDashboardPage: React.FC = () => {
     }
   }, []);
 
-  // ── Fetch optimusLogger via EMS SQL ──
-  const fetchLoggerData = useCallback(
-    async (nodeId: number = selectedAgent) => {
-      setLoggerLoading(true);
-      try {
-        const url = buildApiUrl('optimusdb', `/${CONTEXT}/ems/sql`, nodeId);
-        const resp = await axios.get(url, {
-          params: { q: 'SELECT * FROM optimusLogger' },
-          timeout: 10000,
-        });
+  // ── Fetch optimusLogger from ALL agents with progress tracking ──
+  const fetchLoggerData = useCallback(async () => {
+    setLoggerLoading(true);
+    setLogLoadProgress(0);
 
-        let entries: LoggerEntry[] = [];
+    try {
+      const nodes = await getAvailableNodes();
 
-        if (resp.data && Array.isArray(resp.data)) {
-          entries = resp.data;
-        } else if (
-          resp.data &&
-          resp.data.records &&
-          Array.isArray(resp.data.records)
-        ) {
-          entries = resp.data.records;
-        } else if (
-          resp.data &&
-          resp.data.results &&
-          Array.isArray(resp.data.results)
-        ) {
-          entries = resp.data.results;
-        } else if (
-          resp.data &&
-          resp.data.data &&
-          Array.isArray(resp.data.data)
-        ) {
-          entries = resp.data.data;
+      // Initialize agent load statuses
+      const initialStatuses: AgentLoadStatus[] = nodes.map((node) => ({
+        name: node.name || `optimusdb${node.id}`,
+        nodeId: node.id,
+        status: 'pending' as const,
+        count: 0,
+      }));
+      setAgentLoadStatuses(initialStatuses);
+
+      const allEntries: LoggerEntry[] = [];
+      let completedCount = 0;
+
+      // Fetch from each agent sequentially for progress visibility
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const agentName = node.name || `optimusdb${node.id}`;
+
+        // Mark this agent as loading
+        setAgentLoadStatuses((prev) =>
+          prev.map((a, idx) =>
+            idx === i ? { ...a, status: 'loading' as const } : a
+          )
+        );
+
+        try {
+          const url = buildApiUrl(
+            'optimusdb',
+            `/${CONTEXT}/ems/sql`,
+            node.id
+          );
+          const resp = await axios.get(url, {
+            params: { q: 'SELECT * FROM optimusLogger' },
+            timeout: 15000,
+          });
+
+          let entries: any[] = [];
+
+          if (resp.data && Array.isArray(resp.data)) {
+            entries = resp.data;
+          } else if (
+            resp.data &&
+            resp.data.records &&
+            Array.isArray(resp.data.records)
+          ) {
+            entries = resp.data.records;
+          } else if (
+            resp.data &&
+            resp.data.results &&
+            Array.isArray(resp.data.results)
+          ) {
+            entries = resp.data.results;
+          } else if (
+            resp.data &&
+            resp.data.data &&
+            Array.isArray(resp.data.data)
+          ) {
+            entries = resp.data.data;
+          }
+
+          // Map entries with agent info
+          const mapped: LoggerEntry[] = entries
+            .filter((e: any) => e && e.timestamp)
+            .map((e: any, idx: number) => ({
+              date: e.date || '',
+              hour: e.hour || '',
+              id: e.id || idx + 1,
+              level: e.level || 'INFO',
+              message: e.message || '',
+              source: e.source || '',
+              timestamp: e.timestamp || '',
+              _agent: agentName,
+              _agentId: node.id,
+            }));
+
+          allEntries.push(...mapped);
+
+          // Mark done
+          completedCount++;
+          setAgentLoadStatuses((prev) =>
+            prev.map((a, idx) =>
+              idx === i
+                ? { ...a, status: 'done' as const, count: mapped.length }
+                : a
+            )
+          );
+        } catch (err: any) {
+          completedCount++;
+          console.warn(
+            `Failed to fetch logs from ${agentName}:`,
+            err.message || err
+          );
+          setAgentLoadStatuses((prev) =>
+            prev.map((a, idx) =>
+              idx === i
+                ? {
+                  ...a,
+                  status: 'error' as const,
+                  error: err.message || 'Timeout',
+                }
+                : a
+            )
+          );
         }
 
-        // Ensure each entry has required fields
-        entries = entries
-          .filter((e) => e && e.timestamp)
-          .map((e, idx) => ({
-            date: e.date || '',
-            hour: e.hour || '',
-            id: e.id || idx + 1,
-            level: e.level || 'INFO',
-            message: e.message || '',
-            source: e.source || '',
-            timestamp: e.timestamp || '',
-          }));
-
-        entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-        setLoggerData(entries);
-      } catch (err: any) {
-        console.error('Failed to fetch optimusLogger:', err);
-        setLoggerData([]);
-      } finally {
-        setLoggerLoading(false);
+        // Update progress
+        setLogLoadProgress(
+          Math.round((completedCount / nodes.length) * 100)
+        );
       }
-    },
-    [selectedAgent]
-  );
+
+      // Sort all entries by timestamp descending
+      allEntries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+      setLoggerData(allEntries);
+      setLogLoadProgress(100);
+    } catch (err: any) {
+      console.error('Failed to fetch optimusLogger:', err);
+      setLoggerData([]);
+    } finally {
+      setLoggerLoading(false);
+    }
+  }, []);
 
   // ── Fetch EMS filtered logs ──
   const fetchEmsLogs = useCallback(
@@ -871,7 +956,6 @@ const AnalyticsDashboardPage: React.FC = () => {
       await Promise.all(
         nodes.map(async (node) => {
           try {
-            // /agent/status already contains all peer data embedded
             const statusUrl = buildApiUrl(
               'optimusdb',
               `/${CONTEXT}/agent/status`,
@@ -883,14 +967,13 @@ const AnalyticsDashboardPage: React.FC = () => {
             const clusterData = sd?.cluster || {};
             const peersArray: any[] = sd?.peers || [];
 
-            // Build peer list from the embedded peers array
             const peersList: PeerInfo[] = peersArray.map((p: any) => ({
               peer_id: p.peer_id || '',
               addrs: Array.isArray(p.addrs)
                 ? p.addrs
                 : Array.isArray(p.addresses)
-                ? p.addresses
-                : [],
+                  ? p.addresses
+                  : [],
               connected: p.connected === true,
               latency_ms: p.health?.latency
                 ? parseFloat(p.health.latency)
@@ -986,13 +1069,12 @@ const AnalyticsDashboardPage: React.FC = () => {
       const resp = await axios.get(url, { timeout: 8000 });
       const rawCreds = resp.data;
 
-      // Response may be an array directly or { credentials: [...] }
       const credList: CredentialEntry[] = (
         Array.isArray(rawCreds)
           ? rawCreds
           : Array.isArray(rawCreds?.credentials)
-          ? rawCreds.credentials
-          : []
+            ? rawCreds.credentials
+            : []
       ).map((c: any) => ({
         id: c.id || c['@id'] || '',
         type: Array.isArray(c.type)
@@ -1085,6 +1167,11 @@ const AnalyticsDashboardPage: React.FC = () => {
     try {
       await fetchClusterStatus();
       // Fetch tab-specific data based on active tab
+      if (activeTab === 'overview') {
+        // Also fetch logger data for overview preview
+        await fetchLoggerData();
+        await fetchEmsEvents();
+      }
       if (activeTab === 'logging') await fetchLoggerData();
       if (activeTab === 'ems-logs') await fetchEmsLogs();
       if (activeTab === 'events') await fetchEmsEvents();
@@ -1153,6 +1240,24 @@ const AnalyticsDashboardPage: React.FC = () => {
     [loggerData]
   );
 
+  // Available agents from log data
+  const allLogAgents = useMemo(() => {
+    const agents = new Map<number, string>();
+    loggerData.forEach((l) => agents.set(l._agentId, l._agent));
+    return Array.from(agents.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([id, name]) => ({ id, name }));
+  }, [loggerData]);
+
+  // Per-agent log counts
+  const logAgentCounts = useMemo(() => {
+    const c: Record<number, number> = {};
+    loggerData.forEach((l) => {
+      c[l._agentId] = (c[l._agentId] || 0) + 1;
+    });
+    return c;
+  }, [loggerData]);
+
   const logLevelCounts = useMemo(() => {
     const c: Record<string, number> = {};
 
@@ -1166,6 +1271,10 @@ const AnalyticsDashboardPage: React.FC = () => {
   const filteredLoggerData = useMemo(() => {
     let data = [...loggerData];
 
+    // Agent filter
+    if (logAgentFilter > 0) {
+      data = data.filter((l) => l._agentId === logAgentFilter);
+    }
     if (logLevelFilter.size > 0) {
       data = data.filter((l) => logLevelFilter.has(l.level));
     }
@@ -1184,7 +1293,8 @@ const AnalyticsDashboardPage: React.FC = () => {
         (l) =>
           l.message.toLowerCase().includes(q) ||
           l.source.toLowerCase().includes(q) ||
-          l.level.toLowerCase().includes(q)
+          l.level.toLowerCase().includes(q) ||
+          l._agent.toLowerCase().includes(q)
       );
     }
     data.sort((a, b) => {
@@ -1203,6 +1313,7 @@ const AnalyticsDashboardPage: React.FC = () => {
     return data;
   }, [
     loggerData,
+    logAgentFilter,
     logLevelFilter,
     logHourFilter,
     logSourceFilter,
@@ -1233,7 +1344,8 @@ const AnalyticsDashboardPage: React.FC = () => {
     logLevelFilter.size > 0 ||
     logSourceFilter !== '' ||
     logSearchTerm !== '' ||
-    logHourFilter !== 'ALL';
+    logHourFilter !== 'ALL' ||
+    logAgentFilter > 0;
 
   const toggleLogLevel = (level: string) => {
     const next = new Set(logLevelFilter);
@@ -1258,6 +1370,7 @@ const AnalyticsDashboardPage: React.FC = () => {
     setLogSourceFilter('');
     setLogSearchTerm('');
     setLogHourFilter('ALL');
+    setLogAgentFilter(0);
     setLogPage(1);
   };
 
@@ -1275,12 +1388,12 @@ const AnalyticsDashboardPage: React.FC = () => {
       a.click();
     } else {
       const csv = [
-        'id,date,hour,timestamp,level,source,message',
+        'id,date,hour,timestamp,level,agent,source,message',
         ...data.map(
           (r) =>
             `${r.id},"${r.date}","${r.hour}","${r.timestamp}","${r.level}","${
-              r.source
-            }","${r.message.replace(/"/g, '""')}"`
+              r._agent
+            }","${r.source}","${r.message.replace(/"/g, '""')}"`
         ),
       ].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -1413,8 +1526,8 @@ const AnalyticsDashboardPage: React.FC = () => {
                 onChange={(e) => setSelectedAgent(Number(e.target.value))}
               >
                 {(agents.length > 0
-                  ? agents
-                  : ([
+                    ? agents
+                    : ([
                       { nodeId: 1, name: 'optimusdb1' },
                       { nodeId: 2, name: 'optimusdb2' },
                       { nodeId: 3, name: 'optimusdb3' },
@@ -1613,6 +1726,7 @@ const AnalyticsDashboardPage: React.FC = () => {
                         >
                           {log.level}
                         </span>
+                        <span className="adp-mini-agent">{log._agent}</span>
                         <span className="adp-mini-msg">{log.message}</span>
                         <span className="adp-mini-time">
                           {fmtTime(log.timestamp)}
@@ -1663,11 +1777,85 @@ const AnalyticsDashboardPage: React.FC = () => {
 
           {/* ═══════════════════════════════════════════════
               TAB: LOGGING — Full optimusLogger Dashboard
-              Source: GET /ems/sql?q=SELECT * FROM optimusLogger
+              Source: GET /ems/sql?q=SELECT * FROM optimusLogger (×N agents)
               Schema: { date, hour, id, level, message, source, timestamp }
               ═══════════════════════════════════════════════ */}
           {activeTab === 'logging' && (
             <div className="adp-tab-body">
+              {/* ═══ LOADING PROGRESS BAR ═══ */}
+              {loggerLoading && (
+                <div className="adp-card adp-progress-card">
+                  <div className="adp-progress-header">
+                    <span className="adp-progress-title">
+                      ⏳ Loading Logs from Cluster...
+                    </span>
+                    <span className="adp-progress-pct">
+                      {logLoadProgress}%
+                    </span>
+                  </div>
+                  <div className="adp-progress-track">
+                    <div
+                      className="adp-progress-fill"
+                      style={{ width: `${logLoadProgress}%` }}
+                    />
+                  </div>
+                  <div className="adp-progress-label">
+                    Fetching via GET /ems/sql?q=SELECT * FROM optimusLogger
+                  </div>
+                  <div className="adp-progress-agents">
+                    {agentLoadStatuses.map((a) => (
+                      <span
+                        key={a.nodeId}
+                        className={`adp-progress-agent-chip ${a.status}`}
+                        title={
+                          a.status === 'error'
+                            ? `Error: ${a.error}`
+                            : a.status === 'done'
+                              ? `${a.count} entries`
+                              : ''
+                        }
+                      >
+                        {a.status === 'done' && '✓ '}
+                        {a.status === 'loading' && (
+                          <span className="adp-spinner-xs" />
+                        )}
+                        {a.status === 'error' && '✗ '}
+                        {a.status === 'pending' && '○ '}
+                        {a.name}
+                        {a.status === 'done' && (
+                          <span className="adp-agent-count">({a.count})</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ LOADED COMPLETE BANNER ═══ */}
+              {!loggerLoading && logLoadProgress === 100 && loggerData.length > 0 && (
+                <div className="adp-card adp-progress-card done">
+                  <div className="adp-progress-header">
+                    <span className="adp-progress-title">
+                      ✅ Logs Loaded — {loggerData.length.toLocaleString()} entries from {allLogAgents.length} agents
+                    </span>
+                  </div>
+                  <div className="adp-progress-agents">
+                    {agentLoadStatuses.map((a) => (
+                      <span
+                        key={a.nodeId}
+                        className={`adp-progress-agent-chip ${a.status}`}
+                      >
+                        {a.status === 'done' ? '✓' : a.status === 'error' ? '✗' : '○'}{' '}
+                        {a.name}
+                        {a.status === 'done' && (
+                          <span className="adp-agent-count">({a.count})</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* KPI strip */}
               <div className="adp-kpi-row compact">
                 {[
@@ -1714,7 +1902,11 @@ const AnalyticsDashboardPage: React.FC = () => {
                       <span className="adp-kpi-icon">{m.i}</span>
                     </div>
                     <div className="adp-kpi-value" style={{ color: m.c }}>
-                      {m.v}
+                      {loggerLoading && m.l === 'Total Entries' ? (
+                        <span className="adp-spinner-sm" />
+                      ) : (
+                        m.v.toLocaleString()
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1722,6 +1914,56 @@ const AnalyticsDashboardPage: React.FC = () => {
 
               {/* Filters */}
               <div className="adp-card adp-log-filters">
+                {/* Agent filter row */}
+                <div className="adp-filter-row">
+                  <span className="adp-filter-label">Agent:</span>
+                  <button
+                    className={`adp-chip ${logAgentFilter === 0 ? 'active' : ''}`}
+                    onClick={() => {
+                      setLogAgentFilter(0);
+                      setLogPage(1);
+                    }}
+                    style={
+                      logAgentFilter === 0
+                        ? {
+                          borderColor: '#667eea',
+                          background: '#667eea15',
+                          color: '#667eea',
+                        }
+                        : {}
+                    }
+                  >
+                    All ({loggerData.length})
+                  </button>
+                  {allLogAgents.map((a) => (
+                    <button
+                      key={a.id}
+                      className={`adp-chip ${
+                        logAgentFilter === a.id ? 'active' : ''
+                      }`}
+                      onClick={() => {
+                        setLogAgentFilter(a.id);
+                        setLogPage(1);
+                      }}
+                      style={
+                        logAgentFilter === a.id
+                          ? {
+                            borderColor: '#2563eb',
+                            background: '#2563eb15',
+                            color: '#2563eb',
+                          }
+                          : {}
+                      }
+                    >
+                      {a.name}{' '}
+                      <span className="adp-chip-count">
+                        ({logAgentCounts[a.id] || 0})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Level filter row */}
                 <div className="adp-filter-row">
                   <span className="adp-filter-label">Level:</span>
                   {allLogLevels.map((lv) => {
@@ -1760,7 +2002,7 @@ const AnalyticsDashboardPage: React.FC = () => {
                   <input
                     type="text"
                     className="adp-search-input"
-                    placeholder="🔍 Search messages, sources, levels..."
+                    placeholder="🔍 Search messages, sources, levels, agents..."
                     value={logSearchTerm}
                     onChange={(e) => {
                       setLogSearchTerm(e.target.value);
@@ -1833,8 +2075,8 @@ const AnalyticsDashboardPage: React.FC = () => {
                     const pct =
                       filteredLoggerData.length > 0
                         ? ((filteredLogLevelCounts[lv] || 0) /
-                            filteredLoggerData.length) *
-                          100
+                          filteredLoggerData.length) *
+                        100
                         : 0;
 
                     return pct > 0 ? (
@@ -1875,7 +2117,7 @@ const AnalyticsDashboardPage: React.FC = () => {
                   <h3 className="adp-card-title">
                     📋 optimusLogger{' '}
                     <span className="adp-card-src">
-                      /ems/sql?q=SELECT * FROM optimusLogger
+                      /ems/sql?q=SELECT * FROM optimusLogger (×{allLogAgents.length} agents)
                     </span>
                   </h3>
                   <div className="adp-table-info">
@@ -1910,44 +2152,45 @@ const AnalyticsDashboardPage: React.FC = () => {
                 <div className="adp-table-wrap">
                   <table className="adp-table">
                     <thead>
-                      <tr>
-                        {[
-                          { k: 'id', l: 'ID', w: 50 },
-                          { k: 'timestamp', l: 'Timestamp', w: 170 },
-                          { k: 'hour', l: 'Hour', w: 55 },
-                          { k: 'level', l: 'Level', w: 95 },
-                          { k: 'source', l: 'Source', w: 230 },
-                          { k: 'message', l: 'Message', w: undefined },
-                        ].map((col) => (
-                          <th
-                            key={col.k}
-                            style={{ width: col.w }}
-                            onClick={() => toggleLogSort(col.k)}
-                            className="adp-sortable"
-                          >
-                            {col.l}{' '}
-                            {logSortField === col.k && (
-                              <span className="adp-sort-arrow">
+                    <tr>
+                      {[
+                        { k: 'id', l: 'ID', w: 55 },
+                        { k: 'timestamp', l: 'Timestamp', w: 170 },
+                        { k: 'hour', l: 'Hour', w: 55 },
+                        { k: 'level', l: 'Level', w: 95 },
+                        { k: '_agent', l: 'Agent', w: 110 },
+                        { k: 'source', l: 'Source', w: 230 },
+                        { k: 'message', l: 'Message', w: undefined },
+                      ].map((col) => (
+                        <th
+                          key={col.k}
+                          style={{ width: col.w }}
+                          onClick={() => toggleLogSort(col.k)}
+                          className="adp-sortable"
+                        >
+                          {col.l}{' '}
+                          {logSortField === col.k && (
+                            <span className="adp-sort-arrow">
                                 {logSortDir === 'asc' ? '▲' : '▼'}
                               </span>
-                            )}
-                          </th>
-                        ))}
-                      </tr>
+                          )}
+                        </th>
+                      ))}
+                    </tr>
                     </thead>
                     <tbody>
-                      {pagedLogData.map((log, i) => (
-                        <tr
-                          key={log.id}
-                          onClick={() => setLogDetailEntry(log)}
-                          className={i % 2 === 1 ? 'adp-row-alt' : ''}
-                        >
-                          <td className="adp-td-muted">{log.id}</td>
-                          <td className="adp-td-mono">
-                            {fmtDateTime(log.timestamp)}
-                          </td>
-                          <td className="adp-td-center">{log.hour}:00</td>
-                          <td>
+                    {pagedLogData.map((log, i) => (
+                      <tr
+                        key={`${log._agentId}-${log.id}`}
+                        onClick={() => setLogDetailEntry(log)}
+                        className={i % 2 === 1 ? 'adp-row-alt' : ''}
+                      >
+                        <td className="adp-td-muted">{log.id}</td>
+                        <td className="adp-td-mono">
+                          {fmtDateTime(log.timestamp)}
+                        </td>
+                        <td className="adp-td-center">{log.hour}:00</td>
+                        <td>
                             <span
                               className="adp-level-badge"
                               style={{
@@ -1957,20 +2200,26 @@ const AnalyticsDashboardPage: React.FC = () => {
                             >
                               {log.level}
                             </span>
-                          </td>
-                          <td className="adp-td-source">{log.source}</td>
-                          <td className="adp-td-message">{log.message}</td>
-                        </tr>
-                      ))}
-                      {pagedLogData.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="adp-td-empty">
-                            {loggerLoading
-                              ? 'Loading...'
-                              : 'No log entries match the current filters'}
-                          </td>
-                        </tr>
-                      )}
+                        </td>
+                        <td className="adp-td-agent">{log._agent}</td>
+                        <td className="adp-td-source">{log.source}</td>
+                        <td className="adp-td-message">{log.message}</td>
+                      </tr>
+                    ))}
+                    {pagedLogData.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="adp-td-empty">
+                          {loggerLoading ? (
+                            <div className="adp-loading-inline">
+                              <span className="adp-spinner-sm" />
+                              <span>Loading logs from cluster...</span>
+                            </div>
+                          ) : (
+                            'No log entries match the current filters'
+                          )}
+                        </td>
+                      </tr>
+                    )}
                     </tbody>
                   </table>
                 </div>
@@ -2054,6 +2303,15 @@ const AnalyticsDashboardPage: React.FC = () => {
                     <span className="adp-modal-title">
                       Log Entry #{logDetailEntry.id}
                     </span>
+                    <span
+                      className="adp-level-badge"
+                      style={{
+                        background: '#2563eb15',
+                        color: '#2563eb',
+                      }}
+                    >
+                      {logDetailEntry._agent}
+                    </span>
                   </div>
                   <button
                     className="adp-close-btn"
@@ -2079,6 +2337,10 @@ const AnalyticsDashboardPage: React.FC = () => {
                     <span className="adp-detail-key">Hour:</span>
                     <span className="adp-detail-val mono">
                       {logDetailEntry.hour}:00
+                    </span>
+                    <span className="adp-detail-key">Agent:</span>
+                    <span className="adp-detail-val mono">
+                      {logDetailEntry._agent} (Node {logDetailEntry._agentId})
                     </span>
                     <span className="adp-detail-key">Level:</span>
                     <span
@@ -2163,10 +2425,10 @@ const AnalyticsDashboardPage: React.FC = () => {
                         style={
                           emsLogLevelFilter === lv
                             ? {
-                                borderColor: getLevelColor(lv),
-                                background: `${getLevelColor(lv)}15`,
-                                color: getLevelColor(lv),
-                              }
+                              borderColor: getLevelColor(lv),
+                              background: `${getLevelColor(lv)}15`,
+                              color: getLevelColor(lv),
+                            }
                             : {}
                         }
                         onClick={() => setEmsLogLevelFilter(lv)}
@@ -2185,23 +2447,23 @@ const AnalyticsDashboardPage: React.FC = () => {
                 <div className="adp-table-wrap">
                   <table className="adp-table">
                     <thead>
-                      <tr>
-                        <th style={{ width: 130 }}>Time</th>
-                        <th style={{ width: 80 }}>Level</th>
-                        <th style={{ width: 180 }}>Source</th>
-                        <th>Message</th>
-                      </tr>
+                    <tr>
+                      <th style={{ width: 130 }}>Time</th>
+                      <th style={{ width: 80 }}>Level</th>
+                      <th style={{ width: 180 }}>Source</th>
+                      <th>Message</th>
+                    </tr>
                     </thead>
                     <tbody>
-                      {filteredEmsLogs.map((log, i) => (
-                        <tr
-                          key={i}
-                          className={i % 2 === 1 ? 'adp-row-alt' : ''}
-                        >
-                          <td className="adp-td-mono">
-                            {fmtTime(log.timestamp)}
-                          </td>
-                          <td>
+                    {filteredEmsLogs.map((log, i) => (
+                      <tr
+                        key={i}
+                        className={i % 2 === 1 ? 'adp-row-alt' : ''}
+                      >
+                        <td className="adp-td-mono">
+                          {fmtTime(log.timestamp)}
+                        </td>
+                        <td>
                             <span
                               className="adp-level-badge"
                               style={{
@@ -2211,20 +2473,20 @@ const AnalyticsDashboardPage: React.FC = () => {
                             >
                               {log.level}
                             </span>
-                          </td>
-                          <td className="adp-td-source">{log.source}</td>
-                          <td className="adp-td-message">{log.message}</td>
-                        </tr>
-                      ))}
-                      {filteredEmsLogs.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="adp-td-empty">
-                            {emsLogsLoading
-                              ? 'Loading...'
-                              : 'No EMS logs available'}
-                          </td>
-                        </tr>
-                      )}
+                        </td>
+                        <td className="adp-td-source">{log.source}</td>
+                        <td className="adp-td-message">{log.message}</td>
+                      </tr>
+                    ))}
+                    {filteredEmsLogs.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="adp-td-empty">
+                          {emsLogsLoading
+                            ? 'Loading...'
+                            : 'No EMS logs available'}
+                        </td>
+                      </tr>
+                    )}
                     </tbody>
                   </table>
                 </div>
@@ -2382,10 +2644,10 @@ const AnalyticsDashboardPage: React.FC = () => {
                       s.avg_ms < 10
                         ? '#16a34a'
                         : s.avg_ms < 30
-                        ? '#2563eb'
-                        : s.avg_ms < 50
-                        ? '#d97706'
-                        : '#dc2626';
+                          ? '#2563eb'
+                          : s.avg_ms < 50
+                            ? '#d97706'
+                            : '#dc2626';
 
                     return (
                       <div key={i} className="adp-strategy-row">
@@ -2470,160 +2732,63 @@ const AnalyticsDashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* ═══════════════════════════════════════════════
-              TAB: DATA STORES
-              Sources: /debug/optimusdb/mesh (×N), SQL on datacatalog, toscametadata
-              ═══════════════════════════════════════════════ */}
+          {/* ═══════ REMAINING TABS: stores, peers, credentials, metadata ═══════ */}
+          {/* These tabs remain unchanged from the original implementation */}
+
           {activeTab === 'stores' && (
             <div className="adp-tab-body">
-              {/* Summary cards */}
               <div className="adp-two-col">
                 <div className="adp-card adp-store-summary">
-                  <span className="adp-store-title">
-                    💾 Data Catalog (OptimusDB-RDBMS)
-                  </span>
+                  <span className="adp-store-title">💾 Data Catalog (OptimusDB-RDBMS)</span>
                   <div className="adp-store-stats">
-                    <div>
-                      <span className="adp-muted">Entries:</span>{' '}
-                      <strong>{catalogStats?.total ?? '–'}</strong>
-                    </div>
-                    <div>
-                      <span className="adp-muted">Tables:</span>{' '}
-                      <strong>{catalogStats?.tables ?? '–'}</strong>
-                    </div>
-                    <div>
-                      <span className="adp-muted">Updated:</span>{' '}
-                      <strong>
-                        {catalogStats?.updated
-                          ? fmtRelative(catalogStats.updated)
-                          : '–'}
-                      </strong>
-                    </div>
+                    <div><span className="adp-muted">Entries:</span> <strong>{catalogStats?.total ?? '–'}</strong></div>
+                    <div><span className="adp-muted">Tables:</span> <strong>{catalogStats?.tables ?? '–'}</strong></div>
+                    <div><span className="adp-muted">Updated:</span> <strong>{catalogStats?.updated ? fmtRelative(catalogStats.updated) : '–'}</strong></div>
                   </div>
                 </div>
                 <div className="adp-card adp-store-summary">
-                  <span className="adp-store-title">
-                    📄 TOSCA Metadata (OptimusDB-RDBMS)
-                  </span>
+                  <span className="adp-store-title">📄 TOSCA Metadata (OptimusDB-RDBMS)</span>
                   <div className="adp-store-stats">
-                    <div>
-                      <span className="adp-muted">Files:</span>{' '}
-                      <strong>{toscaStats?.files ?? '–'}</strong>
-                    </div>
-                    <div>
-                      <span className="adp-muted">Size:</span>{' '}
-                      <strong>
-                        {toscaStats
-                          ? `${(toscaStats.size / 1024).toFixed(1)}KB`
-                          : '–'}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="adp-muted">Uploaders:</span>{' '}
-                      <strong>{toscaStats?.uploaders ?? '–'}</strong>
-                    </div>
-                    <div>
-                      <span className="adp-muted">Last:</span>{' '}
-                      <strong>
-                        {toscaStats?.last ? fmtRelative(toscaStats.last) : '–'}
-                      </strong>
-                    </div>
+                    <div><span className="adp-muted">Files:</span> <strong>{toscaStats?.files ?? '–'}</strong></div>
+                    <div><span className="adp-muted">Size:</span> <strong>{toscaStats ? `${(toscaStats.size / 1024).toFixed(1)}KB` : '–'}</strong></div>
+                    <div><span className="adp-muted">Uploaders:</span> <strong>{toscaStats?.uploaders ?? '–'}</strong></div>
+                    <div><span className="adp-muted">Last:</span> <strong>{toscaStats?.last ? fmtRelative(toscaStats.last) : '–'}</strong></div>
                   </div>
                 </div>
               </div>
-
-              {/* OptimusDB-CRUD Replication */}
               <div className="adp-card">
                 <div className="adp-card-header">
-                  <h3 className="adp-card-title">
-                    🗄️ OptimusDB-CRUD Replication{' '}
-                    <span className="adp-card-src">
-                      GET /debug/optimusdb/mesh (×{meshData.length})
-                    </span>
-                  </h3>
+                  <h3 className="adp-card-title">🗄️ OptimusDB-CRUD Replication <span className="adp-card-src">GET /debug/optimusdb/mesh (×{meshData.length})</span></h3>
                   {storesLoading && <span className="adp-spinner-sm" />}
                 </div>
                 <div className="adp-table-wrap">
                   <table className="adp-table">
                     <thead>
-                      <tr>
-                        <th>Store</th>
-                        <th>Type</th>
-                        {meshData.map((n) => (
-                          <th key={n.nodeId}>{n.nodeName}</th>
-                        ))}
-                        <th>Δ</th>
-                        <th>Status</th>
-                      </tr>
+                    <tr>
+                      <th>Store</th><th>Type</th>
+                      {meshData.map((n) => (<th key={n.nodeId}>{n.nodeName}</th>))}
+                      <th>Δ</th><th>Status</th>
+                    </tr>
                     </thead>
                     <tbody>
-                      {allStoreNames.map((storeName, i) => {
-                        const counts = meshData.map(
-                          (n) => n.stores[storeName]?.entry_count || 0
-                        );
-                        const maxC = Math.max(...counts, 0);
-                        const minC = Math.min(
-                          ...counts.filter((c) => c > 0),
-                          maxC
-                        );
-                        const delta = maxC - minC;
-                        const synced = delta <= 2;
-                        const storeType =
-                          meshData.find((n) => n.stores[storeName])?.stores[
-                            storeName
-                          ]?.type || '';
-
-                        return (
-                          <tr
-                            key={storeName}
-                            className={i % 2 === 1 ? 'adp-row-alt' : ''}
-                          >
-                            <td className="adp-td-mono bold">{storeName}</td>
-                            <td>
-                              <span className="adp-type-badge">
-                                {storeType === 'DocumentStore'
-                                  ? 'docstore'
-                                  : storeType === 'EventLogStore'
-                                  ? 'eventlog'
-                                  : storeType}
-                              </span>
-                            </td>
-                            {meshData.map((n) => (
-                              <td key={n.nodeId} className="adp-td-mono bold">
-                                {n.stores[storeName]?.entry_count ?? '–'}
-                              </td>
-                            ))}
-                            <td
-                              className={`adp-td-mono bold ${
-                                synced ? 'adp-green' : 'adp-amber'
-                              }`}
-                            >
-                              ±{delta}
-                            </td>
-                            <td>
-                              <span
-                                className={`adp-sync-badge ${
-                                  synced ? 'synced' : 'syncing'
-                                }`}
-                              >
-                                {synced ? '✓ Synced' : '⟳ Syncing'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {allStoreNames.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={3 + meshData.length}
-                            className="adp-td-empty"
-                          >
-                            {storesLoading
-                              ? 'Loading...'
-                              : 'No OptimusDB-CRUD store data available'}
-                          </td>
+                    {allStoreNames.map((storeName, i) => {
+                      const counts = meshData.map((n) => n.stores[storeName]?.entry_count || 0);
+                      const maxC = Math.max(...counts, 0);
+                      const minC = Math.min(...counts.filter((c) => c > 0), maxC);
+                      const delta = maxC - minC;
+                      const synced = delta <= 2;
+                      const storeType = meshData.find((n) => n.stores[storeName])?.stores[storeName]?.type || '';
+                      return (
+                        <tr key={storeName} className={i % 2 === 1 ? 'adp-row-alt' : ''}>
+                          <td className="adp-td-mono bold">{storeName}</td>
+                          <td><span className="adp-type-badge">{storeType === 'DocumentStore' ? 'docstore' : storeType === 'EventLogStore' ? 'eventlog' : storeType}</span></td>
+                          {meshData.map((n) => (<td key={n.nodeId} className="adp-td-mono bold">{n.stores[storeName]?.entry_count ?? '–'}</td>))}
+                          <td className={`adp-td-mono bold ${synced ? 'adp-green' : 'adp-amber'}`}>±{delta}</td>
+                          <td><span className={`adp-sync-badge ${synced ? 'synced' : 'syncing'}`}>{synced ? '✓ Synced' : '⟳ Syncing'}</span></td>
                         </tr>
-                      )}
+                      );
+                    })}
+                    {allStoreNames.length === 0 && (<tr><td colSpan={3 + meshData.length} className="adp-td-empty">{storesLoading ? 'Loading...' : 'No OptimusDB-CRUD store data available'}</td></tr>)}
                     </tbody>
                   </table>
                 </div>
@@ -2631,253 +2796,94 @@ const AnalyticsDashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* ═══════ PEER NETWORK TAB ═══════ */}
           {activeTab === 'peers' && (
             <div className="adp-tab-content adp-fade-in">
-              {/* Peer network overview KPIs — use cluster data from /agent/status */}
               {(() => {
                 const cl = peerData[0]?.cluster;
-                const totalPeers =
-                  cl?.total_peers ||
-                  peerData.reduce((s, nd) => Math.max(s, nd.peers.length), 0);
-                const connectedPeers =
-                  cl?.connected_peers ||
-                  peerData.reduce(
-                    (s, nd) =>
-                      Math.max(s, nd.peers.filter((p) => p.connected).length),
-                    0
-                  );
+                const totalPeers = cl?.total_peers || peerData.reduce((s, nd) => Math.max(s, nd.peers.length), 0);
+                const connectedPeers = cl?.connected_peers || peerData.reduce((s, nd) => Math.max(s, nd.peers.filter((p) => p.connected).length), 0);
                 const disconnected = totalPeers - connectedPeers;
-
                 return (
                   <div className="adp-kpi-row">
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Total Peers</div>
-                      <div className="adp-kpi-value">{totalPeers}</div>
-                    </div>
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Connected</div>
-                      <div className="adp-kpi-value adp-green">
-                        {connectedPeers}
-                      </div>
-                    </div>
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Disconnected</div>
-                      <div className="adp-kpi-value adp-red">
-                        {disconnected}
-                      </div>
-                    </div>
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Nodes Reporting</div>
-                      <div className="adp-kpi-value">{peerData.length}</div>
-                    </div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Total Peers</div><div className="adp-kpi-value">{totalPeers}</div></div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Connected</div><div className="adp-kpi-value adp-green">{connectedPeers}</div></div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Disconnected</div><div className="adp-kpi-value adp-red">{disconnected}</div></div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Nodes Reporting</div><div className="adp-kpi-value">{peerData.length}</div></div>
                   </div>
                 );
               })()}
-
-              {/* Connectivity matrix */}
               <div className="adp-card">
                 <div className="adp-card-header">
-                  <span className="adp-card-title">
-                    🌐 P2P Connectivity Matrix
-                  </span>
-                  {peersLoading && (
-                    <span className="adp-loading-badge">Loading...</span>
-                  )}
+                  <span className="adp-card-title">🌐 P2P Connectivity Matrix</span>
+                  {peersLoading && <span className="adp-loading-badge">Loading...</span>}
                 </div>
                 <div className="adp-card-body">
                   {peerData.length > 0 ? (
                     <div className="adp-table-wrap">
                       <table className="adp-table">
-                        <thead>
-                          <tr>
-                            <th className="adp-th">Node</th>
-                            <th className="adp-th">Peer ID</th>
-                            <th className="adp-th">Peers Found</th>
-                            <th className="adp-th">Connected</th>
-                            <th className="adp-th">Peer Details</th>
-                          </tr>
-                        </thead>
+                        <thead><tr><th className="adp-th">Node</th><th className="adp-th">Peer ID</th><th className="adp-th">Peers Found</th><th className="adp-th">Connected</th><th className="adp-th">Peer Details</th></tr></thead>
                         <tbody>
-                          {peerData.map((nd) => (
-                            <tr key={nd.nodeId} className="adp-tr">
-                              <td className="adp-td adp-bold">{nd.nodeName}</td>
-                              <td
-                                className="adp-td adp-mono"
-                                style={{
-                                  fontSize: '11px',
-                                  maxWidth: '200px',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {nd.peerId || '—'}
-                              </td>
-                              <td className="adp-td">{nd.peers.length}</td>
-                              <td className="adp-td">
-                                <span
-                                  className={
-                                    nd.peers.filter((p) => p.connected)
-                                      .length === nd.peers.length
-                                      ? 'adp-green'
-                                      : 'adp-amber'
-                                  }
-                                >
-                                  {nd.peers.filter((p) => p.connected).length}/
-                                  {nd.peers.length}
-                                </span>
-                              </td>
-                              <td className="adp-td">
-                                <div className="adp-peer-chips">
-                                  {nd.peers.map((p, i) => (
-                                    <span
-                                      key={i}
-                                      className={`adp-peer-chip ${
-                                        p.connected
-                                          ? 'connected'
-                                          : 'disconnected'
-                                      }`}
-                                      title={`${p.peer_id}\nRole: ${
-                                        p.role || 'Unknown'
-                                      }\nHealth: ${p.health?.score || 'N/A'} (${
-                                        p.health?.status || '—'
-                                      })\nCPU: ${
-                                        p.health?.cpu_usage || '—'
-                                      } | Mem: ${p.health?.memory_used || '—'}`}
-                                    >
-                                      {p.connected ? '●' : '○'}{' '}
-                                      {p.role || p.peer_id.slice(0, 12) + '…'}
-                                      {p.health?.score && (
-                                        <span className="adp-peer-latency">
-                                          {p.health.score}%
-                                        </span>
-                                      )}
+                        {peerData.map((nd) => (
+                          <tr key={nd.nodeId} className="adp-tr">
+                            <td className="adp-td adp-bold">{nd.nodeName}</td>
+                            <td className="adp-td adp-mono" style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nd.peerId || '—'}</td>
+                            <td className="adp-td">{nd.peers.length}</td>
+                            <td className="adp-td"><span className={nd.peers.filter((p) => p.connected).length === nd.peers.length ? 'adp-green' : 'adp-amber'}>{nd.peers.filter((p) => p.connected).length}/{nd.peers.length}</span></td>
+                            <td className="adp-td">
+                              <div className="adp-peer-chips">
+                                {nd.peers.map((p, i) => (
+                                  <span key={i} className={`adp-peer-chip ${p.connected ? 'connected' : 'disconnected'}`}
+                                        title={`${p.peer_id}\nRole: ${p.role || 'Unknown'}\nHealth: ${p.health?.score || 'N/A'} (${p.health?.status || '—'})\nCPU: ${p.health?.cpu_usage || '—'} | Mem: ${p.health?.memory_used || '—'}`}>
+                                      {p.connected ? '●' : '○'} {p.role || p.peer_id.slice(0, 12) + '…'}
+                                    {p.health?.score && <span className="adp-peer-latency">{p.health.score}%</span>}
                                     </span>
-                                  ))}
-                                  {nd.peers.length === 0 && (
-                                    <span className="adp-muted">
-                                      No peers discovered
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                ))}
+                                {nd.peers.length === 0 && <span className="adp-muted">No peers discovered</span>}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                         </tbody>
                       </table>
                     </div>
-                  ) : (
-                    <div className="adp-empty-state">
-                      {peersLoading
-                        ? 'Discovering peers…'
-                        : 'No peer data available'}
-                    </div>
-                  )}
+                  ) : (<div className="adp-empty-state">{peersLoading ? 'Discovering peers…' : 'No peer data available'}</div>)}
                 </div>
               </div>
-
-              {/* Node addresses */}
               <div className="adp-card">
-                <div className="adp-card-header">
-                  <span className="adp-card-title">📡 Multiaddr Endpoints</span>
-                </div>
+                <div className="adp-card-header"><span className="adp-card-title">📡 Multiaddr Endpoints</span></div>
                 <div className="adp-card-body">
                   {peerData.map((nd) => (
                     <div key={nd.nodeId} className="adp-addr-block">
                       <div className="adp-addr-node-label">{nd.nodeName}</div>
-                      {/* Node's own listening addresses */}
-                      {(nd.addresses || []).map((addr, i) => (
-                        <div key={`own-${i}`} className="adp-addr-row">
-                          <span className="adp-addr-dot green">●</span>
-                          <span
-                            className="adp-mono"
-                            style={{ fontSize: '11px' }}
-                          >
-                            {addr}
-                          </span>
-                        </div>
-                      ))}
-                      {(!nd.addresses || nd.addresses.length === 0) && (
-                        <div
-                          className="adp-muted"
-                          style={{ padding: '4px 0 4px 16px' }}
-                        >
-                          No addresses
-                        </div>
-                      )}
+                      {(nd.addresses || []).map((addr, i) => (<div key={`own-${i}`} className="adp-addr-row"><span className="adp-addr-dot green">●</span><span className="adp-mono" style={{ fontSize: '11px' }}>{addr}</span></div>))}
+                      {(!nd.addresses || nd.addresses.length === 0) && <div className="adp-muted" style={{ padding: '4px 0 4px 16px' }}>No addresses</div>}
                     </div>
                   ))}
                 </div>
               </div>
-
-              {/* Contribution scores */}
               {contributionData.length > 0 && (
                 <div className="adp-card">
-                  <div className="adp-card-header">
-                    <span className="adp-card-title">
-                      🏆 Node Contributions
-                    </span>
-                  </div>
+                  <div className="adp-card-header"><span className="adp-card-title">🏆 Node Contributions</span></div>
                   <div className="adp-card-body">
                     <div className="adp-table-wrap">
                       <table className="adp-table">
-                        <thead>
-                          <tr>
-                            <th className="adp-th">Node</th>
-                            <th className="adp-th">Queries Served</th>
-                            <th className="adp-th">Replications</th>
-                            <th className="adp-th">Uploads</th>
-                            <th className="adp-th">Uptime (h)</th>
-                            <th className="adp-th">Score</th>
-                          </tr>
-                        </thead>
+                        <thead><tr><th className="adp-th">Node</th><th className="adp-th">Queries Served</th><th className="adp-th">Replications</th><th className="adp-th">Uploads</th><th className="adp-th">Uptime (h)</th><th className="adp-th">Score</th></tr></thead>
                         <tbody>
-                          {contributionData
-                            .sort((a, b) => b.score - a.score)
-                            .map((cd, i) => (
-                              <tr key={cd.nodeId} className="adp-tr">
-                                <td className="adp-td adp-bold">
-                                  {i === 0 && '🥇 '}
-                                  {i === 1 && '🥈 '}
-                                  {i === 2 && '🥉 '}
-                                  {cd.nodeName}
-                                </td>
-                                <td className="adp-td">
-                                  {cd.queries_served.toLocaleString()}
-                                </td>
-                                <td className="adp-td">
-                                  {cd.replications.toLocaleString()}
-                                </td>
-                                <td className="adp-td">
-                                  {cd.uploads.toLocaleString()}
-                                </td>
-                                <td className="adp-td">
-                                  {cd.uptime_hours.toFixed(1)}
-                                </td>
-                                <td className="adp-td">
-                                  <div className="adp-score-bar-wrap">
-                                    <div
-                                      className="adp-score-bar-fill"
-                                      style={{
-                                        width: `${Math.min(
-                                          100,
-                                          (cd.score /
-                                            Math.max(
-                                              ...contributionData.map(
-                                                (c) => c.score || 1
-                                              )
-                                            )) *
-                                            100
-                                        )}%`,
-                                      }}
-                                    />
-                                    <span className="adp-score-label">
-                                      {cd.score.toLocaleString()}
-                                    </span>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                        {contributionData.sort((a, b) => b.score - a.score).map((cd, i) => (
+                          <tr key={cd.nodeId} className="adp-tr">
+                            <td className="adp-td adp-bold">{i === 0 && '🥇 '}{i === 1 && '🥈 '}{i === 2 && '🥉 '}{cd.nodeName}</td>
+                            <td className="adp-td">{cd.queries_served.toLocaleString()}</td>
+                            <td className="adp-td">{cd.replications.toLocaleString()}</td>
+                            <td className="adp-td">{cd.uploads.toLocaleString()}</td>
+                            <td className="adp-td">{cd.uptime_hours.toFixed(1)}</td>
+                            <td className="adp-td">
+                              <div className="adp-score-bar-wrap">
+                                <div className="adp-score-bar-fill" style={{ width: `${Math.min(100, (cd.score / Math.max(...contributionData.map((c) => c.score || 1))) * 100)}%` }} />
+                                <span className="adp-score-label">{cd.score.toLocaleString()}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                         </tbody>
                       </table>
                     </div>
@@ -2887,274 +2893,76 @@ const AnalyticsDashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* ═══════ CREDENTIALS TAB ═══════ */}
           {activeTab === 'credentials' && (
             <div className="adp-tab-content adp-fade-in">
-              {/* Credential KPIs */}
               <div className="adp-kpi-row">
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Total Credentials</div>
-                  <div className="adp-kpi-value">{credentials.length}</div>
-                </div>
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Active</div>
-                  <div className="adp-kpi-value adp-green">
-                    {credActiveCount}
-                  </div>
-                </div>
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Revoked</div>
-                  <div className="adp-kpi-value adp-red">
-                    {credRevokedCount}
-                  </div>
-                </div>
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Unique Issuers</div>
-                  <div className="adp-kpi-value">{credIssuers.size}</div>
-                </div>
-                <div className="adp-kpi-card">
-                  <div className="adp-kpi-label">Unique Subjects</div>
-                  <div className="adp-kpi-value">{credSubjects.size}</div>
-                </div>
+                <div className="adp-kpi-card"><div className="adp-kpi-label">Total Credentials</div><div className="adp-kpi-value">{credentials.length}</div></div>
+                <div className="adp-kpi-card"><div className="adp-kpi-label">Active</div><div className="adp-kpi-value adp-green">{credActiveCount}</div></div>
+                <div className="adp-kpi-card"><div className="adp-kpi-label">Revoked</div><div className="adp-kpi-value adp-red">{credRevokedCount}</div></div>
+                <div className="adp-kpi-card"><div className="adp-kpi-label">Unique Issuers</div><div className="adp-kpi-value">{credIssuers.size}</div></div>
+                <div className="adp-kpi-card"><div className="adp-kpi-label">Unique Subjects</div><div className="adp-kpi-value">{credSubjects.size}</div></div>
               </div>
-
-              {/* Filters */}
               <div className="adp-card">
                 <div className="adp-card-header">
-                  <span className="adp-card-title">
-                    🔐 Verifiable Credentials (W3C DID)
-                  </span>
-                  {credentialsLoading && (
-                    <span className="adp-loading-badge">Loading...</span>
-                  )}
+                  <span className="adp-card-title">🔐 Verifiable Credentials (W3C DID)</span>
+                  {credentialsLoading && <span className="adp-loading-badge">Loading...</span>}
                 </div>
                 <div className="adp-filter-row">
                   <div className="adp-filter-chips">
                     {credTypes.map((t) => (
-                      <button
-                        key={t}
-                        className={`adp-chip ${
-                          credTypeFilter === t ? 'active' : ''
-                        }`}
-                        onClick={() => setCredTypeFilter(t)}
-                      >
-                        {t === 'ALL'
-                          ? 'All Types'
-                          : t.replace('VerifiableCredential', 'VC')}
-                        {t === 'ALL'
-                          ? ` (${credentials.length})`
-                          : ` (${
-                              credentials.filter((c) => c.type.includes(t))
-                                .length
-                            })`}
+                      <button key={t} className={`adp-chip ${credTypeFilter === t ? 'active' : ''}`} onClick={() => setCredTypeFilter(t)}>
+                        {t === 'ALL' ? 'All Types' : t.replace('VerifiableCredential', 'VC')}{t === 'ALL' ? ` (${credentials.length})` : ` (${credentials.filter((c) => c.type.includes(t)).length})`}
                       </button>
                     ))}
                   </div>
-                  <input
-                    type="text"
-                    className="adp-search-input"
-                    placeholder="Search by ID, issuer, subject…"
-                    value={credSearchTerm}
-                    onChange={(e) => setCredSearchTerm(e.target.value)}
-                  />
+                  <input type="text" className="adp-search-input" placeholder="Search by ID, issuer, subject…" value={credSearchTerm} onChange={(e) => setCredSearchTerm(e.target.value)} />
                 </div>
                 <div className="adp-card-body">
                   {filteredCreds.length > 0 ? (
                     <div className="adp-table-wrap">
                       <table className="adp-table">
-                        <thead>
-                          <tr>
-                            <th className="adp-th">ID</th>
-                            <th className="adp-th">Type</th>
-                            <th className="adp-th">Issuer</th>
-                            <th className="adp-th">Subject</th>
-                            <th className="adp-th">Issued</th>
-                            <th className="adp-th">Status</th>
-                          </tr>
-                        </thead>
+                        <thead><tr><th className="adp-th">ID</th><th className="adp-th">Type</th><th className="adp-th">Issuer</th><th className="adp-th">Subject</th><th className="adp-th">Issued</th><th className="adp-th">Status</th></tr></thead>
                         <tbody>
-                          {filteredCreds.map((cred, idx) => (
-                            <tr
-                              key={cred.id || idx}
-                              className="adp-tr adp-clickable"
-                              onClick={() => setCredDetailEntry(cred)}
-                            >
-                              <td
-                                className="adp-td adp-mono"
-                                style={{
-                                  fontSize: '11px',
-                                  maxWidth: '220px',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {cred.id}
-                              </td>
-                              <td className="adp-td">
-                                {cred.type.map((t) => (
-                                  <span key={t} className="adp-cred-type-badge">
-                                    {t.replace('VerifiableCredential', 'VC')}
-                                  </span>
-                                ))}
-                              </td>
-                              <td
-                                className="adp-td adp-mono"
-                                style={{
-                                  fontSize: '11px',
-                                  maxWidth: '180px',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {cred.issuer}
-                              </td>
-                              <td
-                                className="adp-td adp-mono"
-                                style={{
-                                  fontSize: '11px',
-                                  maxWidth: '180px',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {cred.credentialSubject?.id ||
-                                  cred.credentialSubject?.name ||
-                                  '—'}
-                              </td>
-                              <td className="adp-td">
-                                {cred.issuanceDate
-                                  ? fmtTime(cred.issuanceDate)
-                                  : '—'}
-                              </td>
-                              <td className="adp-td">
-                                {cred.revoked ? (
-                                  <span className="adp-status-badge revoked">
-                                    ✗ Revoked
-                                  </span>
-                                ) : (
-                                  <span className="adp-status-badge active">
-                                    ✓ Active
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                        {filteredCreds.map((cred, idx) => (
+                          <tr key={cred.id || idx} className="adp-tr adp-clickable" onClick={() => setCredDetailEntry(cred)}>
+                            <td className="adp-td adp-mono" style={{ fontSize: '11px', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cred.id}</td>
+                            <td className="adp-td">{cred.type.map((t) => (<span key={t} className="adp-cred-type-badge">{t.replace('VerifiableCredential', 'VC')}</span>))}</td>
+                            <td className="adp-td adp-mono" style={{ fontSize: '11px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cred.issuer}</td>
+                            <td className="adp-td adp-mono" style={{ fontSize: '11px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cred.credentialSubject?.id || cred.credentialSubject?.name || '—'}</td>
+                            <td className="adp-td">{cred.issuanceDate ? fmtTime(cred.issuanceDate) : '—'}</td>
+                            <td className="adp-td">{cred.revoked ? <span className="adp-status-badge revoked">✗ Revoked</span> : <span className="adp-status-badge active">✓ Active</span>}</td>
+                          </tr>
+                        ))}
                         </tbody>
                       </table>
                     </div>
-                  ) : (
-                    <div className="adp-empty-state">
-                      {credentialsLoading
-                        ? 'Loading credentials…'
-                        : 'No credentials found'}
-                    </div>
-                  )}
+                  ) : (<div className="adp-empty-state">{credentialsLoading ? 'Loading credentials…' : 'No credentials found'}</div>)}
                 </div>
               </div>
-
-              {/* Credential Detail Modal */}
               {credDetailEntry && (
-                <div
-                  className="adp-modal-overlay"
-                  onClick={() => setCredDetailEntry(null)}
-                >
-                  <div
-                    className="adp-modal"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                <div className="adp-modal-overlay" onClick={() => setCredDetailEntry(null)}>
+                  <div className="adp-modal" onClick={(e) => e.stopPropagation()}>
                     <div className="adp-modal-header">
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        <span
-                          className={`adp-status-badge ${
-                            credDetailEntry.revoked ? 'revoked' : 'active'
-                          }`}
-                        >
-                          {credDetailEntry.revoked ? '✗ Revoked' : '✓ Active'}
-                        </span>
-                        <span className="adp-mono" style={{ fontSize: '12px' }}>
-                          {credDetailEntry.id}
-                        </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={`adp-status-badge ${credDetailEntry.revoked ? 'revoked' : 'active'}`}>{credDetailEntry.revoked ? '✗ Revoked' : '✓ Active'}</span>
+                        <span className="adp-mono" style={{ fontSize: '12px' }}>{credDetailEntry.id}</span>
                       </div>
-                      <button
-                        className="adp-modal-close"
-                        onClick={() => setCredDetailEntry(null)}
-                      >
-                        ✕
-                      </button>
+                      <button className="adp-modal-close" onClick={() => setCredDetailEntry(null)}>✕</button>
                     </div>
                     <div className="adp-modal-body">
                       <div className="adp-detail-grid">
-                        <div className="adp-detail-field">
-                          <span className="adp-detail-label">Type</span>
-                          <span>{credDetailEntry.type.join(', ')}</span>
-                        </div>
-                        <div className="adp-detail-field">
-                          <span className="adp-detail-label">Issuer</span>
-                          <span className="adp-mono">
-                            {credDetailEntry.issuer}
-                          </span>
-                        </div>
-                        <div className="adp-detail-field">
-                          <span className="adp-detail-label">Issued</span>
-                          <span>{credDetailEntry.issuanceDate}</span>
-                        </div>
-                        {credDetailEntry.expirationDate && (
-                          <div className="adp-detail-field">
-                            <span className="adp-detail-label">Expires</span>
-                            <span>{credDetailEntry.expirationDate}</span>
-                          </div>
-                        )}
+                        <div className="adp-detail-field"><span className="adp-detail-label">Type</span><span>{credDetailEntry.type.join(', ')}</span></div>
+                        <div className="adp-detail-field"><span className="adp-detail-label">Issuer</span><span className="adp-mono">{credDetailEntry.issuer}</span></div>
+                        <div className="adp-detail-field"><span className="adp-detail-label">Issued</span><span>{credDetailEntry.issuanceDate}</span></div>
+                        {credDetailEntry.expirationDate && <div className="adp-detail-field"><span className="adp-detail-label">Expires</span><span>{credDetailEntry.expirationDate}</span></div>}
                       </div>
-                      <div className="adp-detail-section">
-                        <div className="adp-detail-label">
-                          Credential Subject
-                        </div>
-                        <pre className="adp-json-block">
-                          {JSON.stringify(
-                            credDetailEntry.credentialSubject,
-                            null,
-                            2
-                          )}
-                        </pre>
-                      </div>
-                      {credDetailEntry.proof && (
-                        <div className="adp-detail-section">
-                          <div className="adp-detail-label">Proof</div>
-                          <pre className="adp-json-block">
-                            {JSON.stringify(credDetailEntry.proof, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                      <div className="adp-detail-section">
-                        <div className="adp-detail-label">Raw JSON</div>
-                        <pre className="adp-json-block">
-                          {JSON.stringify(credDetailEntry, null, 2)}
-                        </pre>
-                      </div>
+                      <div className="adp-detail-section"><div className="adp-detail-label">Credential Subject</div><pre className="adp-json-block">{JSON.stringify(credDetailEntry.credentialSubject, null, 2)}</pre></div>
+                      {credDetailEntry.proof && <div className="adp-detail-section"><div className="adp-detail-label">Proof</div><pre className="adp-json-block">{JSON.stringify(credDetailEntry.proof, null, 2)}</pre></div>}
+                      <div className="adp-detail-section"><div className="adp-detail-label">Raw JSON</div><pre className="adp-json-block">{JSON.stringify(credDetailEntry, null, 2)}</pre></div>
                     </div>
                     <div className="adp-modal-footer">
-                      <button
-                        className="adp-btn adp-btn-sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            JSON.stringify(credDetailEntry, null, 2)
-                          );
-                        }}
-                      >
-                        📋 Copy JSON
-                      </button>
-                      <button
-                        className="adp-btn adp-btn-sm"
-                        onClick={() => setCredDetailEntry(null)}
-                      >
-                        Close
-                      </button>
+                      <button className="adp-btn adp-btn-sm" onClick={() => { navigator.clipboard.writeText(JSON.stringify(credDetailEntry, null, 2)); }}>📋 Copy JSON</button>
+                      <button className="adp-btn adp-btn-sm" onClick={() => setCredDetailEntry(null)}>Close</button>
                     </div>
                   </div>
                 </div>
@@ -3162,257 +2970,65 @@ const AnalyticsDashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* ═══════ METADATA TAB ═══════ */}
           {activeTab === 'metadata' && (
             <div className="adp-tab-content adp-fade-in">
-              {/* Metadata service health */}
               <div className="adp-card">
                 <div className="adp-card-header">
-                  <span className="adp-card-title">
-                    🧬 Metadata Service Health
-                  </span>
-                  {metadataLoading && (
-                    <span className="adp-loading-badge">Loading...</span>
-                  )}
+                  <span className="adp-card-title">🧬 Metadata Service Health</span>
+                  {metadataLoading && <span className="adp-loading-badge">Loading...</span>}
                 </div>
                 <div className="adp-card-body">
                   {metadataHealth ? (
                     <div className="adp-health-grid">
-                      <div className="adp-health-item">
-                        <span className="adp-health-label">Status</span>
-                        <span
-                          className={`adp-health-value ${
-                            metadataHealth.status === 'healthy' ||
-                            metadataHealth.status === 'ok'
-                              ? 'adp-green'
-                              : 'adp-red'
-                          }`}
-                        >
-                          {metadataHealth.status === 'healthy' ||
-                          metadataHealth.status === 'ok'
-                            ? '● Healthy'
-                            : `● ${metadataHealth.status}`}
-                        </span>
-                      </div>
-                      <div className="adp-health-item">
-                        <span className="adp-health-label">Version</span>
-                        <span className="adp-health-value adp-mono">
-                          {metadataHealth.version || '—'}
-                        </span>
-                      </div>
-                      <div className="adp-health-item">
-                        <span className="adp-health-label">Uptime</span>
-                        <span className="adp-health-value">
-                          {metadataHealth.uptime || '—'}
-                        </span>
-                      </div>
-                      <div className="adp-health-item">
-                        <span className="adp-health-label">OptimusDB</span>
-                        <span
-                          className={`adp-health-value ${
-                            metadataHealth.optimusdb_connected
-                              ? 'adp-green'
-                              : 'adp-red'
-                          }`}
-                        >
-                          {metadataHealth.optimusdb_connected
-                            ? '● Connected'
-                            : '● Disconnected'}
-                        </span>
-                      </div>
-                      <div className="adp-health-item">
-                        <span className="adp-health-label">Cache Size</span>
-                        <span className="adp-health-value">
-                          {metadataHealth.cache_size}
-                        </span>
-                      </div>
-                      <div className="adp-health-item">
-                        <span className="adp-health-label">AI Model</span>
-                        <span
-                          className={`adp-health-value ${
-                            metadataHealth.ai_model_loaded
-                              ? 'adp-green'
-                              : 'adp-amber'
-                          }`}
-                        >
-                          {metadataHealth.ai_model_loaded
-                            ? '● Loaded'
-                            : '○ Not Loaded'}
-                        </span>
-                      </div>
+                      <div className="adp-health-item"><span className="adp-health-label">Status</span><span className={`adp-health-value ${metadataHealth.status === 'healthy' || metadataHealth.status === 'ok' ? 'adp-green' : 'adp-red'}`}>{metadataHealth.status === 'healthy' || metadataHealth.status === 'ok' ? '● Healthy' : `● ${metadataHealth.status}`}</span></div>
+                      <div className="adp-health-item"><span className="adp-health-label">Version</span><span className="adp-health-value adp-mono">{metadataHealth.version || '—'}</span></div>
+                      <div className="adp-health-item"><span className="adp-health-label">Uptime</span><span className="adp-health-value">{metadataHealth.uptime || '—'}</span></div>
+                      <div className="adp-health-item"><span className="adp-health-label">OptimusDB</span><span className={`adp-health-value ${metadataHealth.optimusdb_connected ? 'adp-green' : 'adp-red'}`}>{metadataHealth.optimusdb_connected ? '● Connected' : '● Disconnected'}</span></div>
+                      <div className="adp-health-item"><span className="adp-health-label">Cache Size</span><span className="adp-health-value">{metadataHealth.cache_size}</span></div>
+                      <div className="adp-health-item"><span className="adp-health-label">AI Model</span><span className={`adp-health-value ${metadataHealth.ai_model_loaded ? 'adp-green' : 'adp-amber'}`}>{metadataHealth.ai_model_loaded ? '● Loaded' : '○ Not Loaded'}</span></div>
                     </div>
-                  ) : (
-                    <div className="adp-empty-state">
-                      {metadataLoading
-                        ? 'Loading metadata health…'
-                        : 'Metadata service not responding'}
-                    </div>
-                  )}
+                  ) : (<div className="adp-empty-state">{metadataLoading ? 'Loading metadata health…' : 'Metadata service not responding'}</div>)}
                 </div>
               </div>
-
-              {/* Metadata metrics KPIs */}
               {metadataMetrics && (
                 <>
                   <div className="adp-kpi-row">
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Total Enrichments</div>
-                      <div className="adp-kpi-value">
-                        {metadataMetrics.total_enrichments.toLocaleString()}
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Total Enrichments</div><div className="adp-kpi-value">{metadataMetrics.total_enrichments.toLocaleString()}</div></div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Total Profiles</div><div className="adp-kpi-value">{metadataMetrics.total_profiles.toLocaleString()}</div></div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Avg Enrichment</div><div className="adp-kpi-value">{metadataMetrics.avg_enrichment_ms.toFixed(1)}<span className="adp-kpi-unit">ms</span></div></div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Databases</div><div className="adp-kpi-value">{metadataMetrics.databases_tracked}</div></div>
+                    <div className="adp-kpi-card"><div className="adp-kpi-label">Tables</div><div className="adp-kpi-value">{metadataMetrics.tables_tracked}</div></div>
+                  </div>
+                  <div className="adp-card">
+                    <div className="adp-card-header"><span className="adp-card-title">💾 Metadata Cache Performance</span></div>
+                    <div className="adp-card-body">
+                      <div className="adp-health-grid">
+                        <div className="adp-health-item"><span className="adp-health-label">Cache Hits</span><span className="adp-health-value adp-green">{metadataMetrics.cache_hits.toLocaleString()}</span></div>
+                        <div className="adp-health-item"><span className="adp-health-label">Cache Misses</span><span className="adp-health-value adp-red">{metadataMetrics.cache_misses.toLocaleString()}</span></div>
+                        <div className="adp-health-item"><span className="adp-health-label">Hit Ratio</span><span className="adp-health-value">{(metadataMetrics.cache_hit_ratio * 100).toFixed(1)}%</span></div>
+                        <div className="adp-health-item"><span className="adp-health-label">Last Enrichment</span><span className="adp-health-value">{metadataMetrics.last_enrichment ? fmtRelative(metadataMetrics.last_enrichment) : '—'}</span></div>
                       </div>
-                    </div>
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Total Profiles</div>
-                      <div className="adp-kpi-value">
-                        {metadataMetrics.total_profiles.toLocaleString()}
-                      </div>
-                    </div>
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Avg Enrichment</div>
-                      <div className="adp-kpi-value">
-                        {metadataMetrics.avg_enrichment_ms.toFixed(1)}
-                        <span className="adp-kpi-unit">ms</span>
-                      </div>
-                    </div>
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Databases</div>
-                      <div className="adp-kpi-value">
-                        {metadataMetrics.databases_tracked}
-                      </div>
-                    </div>
-                    <div className="adp-kpi-card">
-                      <div className="adp-kpi-label">Tables</div>
-                      <div className="adp-kpi-value">
-                        {metadataMetrics.tables_tracked}
+                      <div className="adp-cache-ratio-bar" style={{ marginTop: '16px' }}>
+                        <div className="adp-cache-ratio-label">Hit Ratio: {(metadataMetrics.cache_hit_ratio * 100).toFixed(1)}%</div>
+                        <div className="adp-ratio-track"><div className="adp-ratio-fill" style={{ width: `${Math.min(100, metadataMetrics.cache_hit_ratio * 100)}%` }} /></div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Cache performance */}
                   <div className="adp-card">
-                    <div className="adp-card-header">
-                      <span className="adp-card-title">
-                        💾 Metadata Cache Performance
-                      </span>
-                    </div>
+                    <div className="adp-card-header"><span className="adp-card-title">🤖 AI Enrichment Pipeline</span></div>
                     <div className="adp-card-body">
                       <div className="adp-health-grid">
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">Cache Hits</span>
-                          <span className="adp-health-value adp-green">
-                            {metadataMetrics.cache_hits.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">Cache Misses</span>
-                          <span className="adp-health-value adp-red">
-                            {metadataMetrics.cache_misses.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">Hit Ratio</span>
-                          <span className="adp-health-value">
-                            {(metadataMetrics.cache_hit_ratio * 100).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">
-                            Last Enrichment
-                          </span>
-                          <span className="adp-health-value">
-                            {metadataMetrics.last_enrichment
-                              ? fmtRelative(metadataMetrics.last_enrichment)
-                              : '—'}
-                          </span>
-                        </div>
-                      </div>
-                      {/* Cache hit ratio bar */}
-                      <div
-                        className="adp-cache-ratio-bar"
-                        style={{ marginTop: '16px' }}
-                      >
-                        <div className="adp-cache-ratio-label">
-                          Hit Ratio:{' '}
-                          {(metadataMetrics.cache_hit_ratio * 100).toFixed(1)}%
-                        </div>
-                        <div className="adp-ratio-track">
-                          <div
-                            className="adp-ratio-fill"
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                metadataMetrics.cache_hit_ratio * 100
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Enrichment pipeline info */}
-                  <div className="adp-card">
-                    <div className="adp-card-header">
-                      <span className="adp-card-title">
-                        🤖 AI Enrichment Pipeline
-                      </span>
-                    </div>
-                    <div className="adp-card-body">
-                      <div className="adp-health-grid">
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">
-                            Datasets Enriched
-                          </span>
-                          <span className="adp-health-value">
-                            {metadataMetrics.total_enrichments.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">
-                            Profiles Generated
-                          </span>
-                          <span className="adp-health-value">
-                            {metadataMetrics.total_profiles.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">
-                            Avg Processing
-                          </span>
-                          <span className="adp-health-value">
-                            {metadataMetrics.avg_enrichment_ms.toFixed(1)} ms
-                          </span>
-                        </div>
-                        <div className="adp-health-item">
-                          <span className="adp-health-label">Model Status</span>
-                          <span
-                            className={`adp-health-value ${
-                              metadataHealth?.ai_model_loaded
-                                ? 'adp-green'
-                                : 'adp-amber'
-                            }`}
-                          >
-                            {metadataHealth?.ai_model_loaded
-                              ? 'TinyLlama Active'
-                              : 'Model Offline'}
-                          </span>
-                        </div>
+                        <div className="adp-health-item"><span className="adp-health-label">Datasets Enriched</span><span className="adp-health-value">{metadataMetrics.total_enrichments.toLocaleString()}</span></div>
+                        <div className="adp-health-item"><span className="adp-health-label">Profiles Generated</span><span className="adp-health-value">{metadataMetrics.total_profiles.toLocaleString()}</span></div>
+                        <div className="adp-health-item"><span className="adp-health-label">Avg Processing</span><span className="adp-health-value">{metadataMetrics.avg_enrichment_ms.toFixed(1)} ms</span></div>
+                        <div className="adp-health-item"><span className="adp-health-label">Model Status</span><span className={`adp-health-value ${metadataHealth?.ai_model_loaded ? 'adp-green' : 'adp-amber'}`}>{metadataHealth?.ai_model_loaded ? 'TinyLlama Active' : 'Model Offline'}</span></div>
                       </div>
                     </div>
                   </div>
                 </>
               )}
-
               {!metadataMetrics && !metadataLoading && (
-                <div className="adp-card">
-                  <div className="adp-card-body">
-                    <div className="adp-empty-state">
-                      Metadata metrics not available. The metadata service may
-                      not be running or accessible.
-                    </div>
-                  </div>
-                </div>
+                <div className="adp-card"><div className="adp-card-body"><div className="adp-empty-state">Metadata metrics not available. The metadata service may not be running or accessible.</div></div></div>
               )}
             </div>
           )}
@@ -3444,6 +3060,11 @@ const AnalyticsDashboardPage: React.FC = () => {
               {hasLogFilters && (
                 <span className="adp-filtered-badge">• Filtered</span>
               )}
+              {logAgentFilter > 0 && (
+                <span className="adp-filtered-badge">
+                  • {allLogAgents.find((a) => a.id === logAgentFilter)?.name}
+                </span>
+              )}
             </span>
           )}
           <span className="adp-status-item">
@@ -3451,22 +3072,22 @@ const AnalyticsDashboardPage: React.FC = () => {
           </span>
           <span className="adp-status-src">
             {activeTab === 'logging'
-              ? 'GET /ems/sql?q=SELECT * FROM optimusLogger'
+              ? `GET /ems/sql?q=SELECT * FROM optimusLogger (×${allLogAgents.length} agents)`
               : activeTab === 'ems-logs'
-              ? 'GET /ems/logs'
-              : activeTab === 'events'
-              ? 'GET /ems/events'
-              : activeTab === 'performance'
-              ? 'GET /benchmarks · POST /command'
-              : activeTab === 'stores'
-              ? 'GET /debug/optimusdb/mesh · /ems/sql'
-              : activeTab === 'peers'
-              ? 'GET /agent/status · POST /command (contri)'
-              : activeTab === 'credentials'
-              ? 'GET /credentials'
-              : activeTab === 'metadata'
-              ? 'GET /api/v1/metadata/metrics · /health'
-              : '/agent/status · /ems/* · /benchmarks · /debug/optimusdb/mesh'}
+                ? 'GET /ems/logs'
+                : activeTab === 'events'
+                  ? 'GET /ems/events'
+                  : activeTab === 'performance'
+                    ? 'GET /benchmarks · POST /command'
+                    : activeTab === 'stores'
+                      ? 'GET /debug/optimusdb/mesh · /ems/sql'
+                      : activeTab === 'peers'
+                        ? 'GET /agent/status · POST /command (contri)'
+                        : activeTab === 'credentials'
+                          ? 'GET /credentials'
+                          : activeTab === 'metadata'
+                            ? 'GET /api/v1/metadata/metrics · /health'
+                            : '/agent/status · /ems/* · /benchmarks · /debug/optimusdb/mesh'}
           </span>
         </div>
       </div>

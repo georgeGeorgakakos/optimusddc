@@ -253,6 +253,10 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     color: $accent-amber;
   }
 
+  .adp-red {
+    color: $accent-red;
+  }
+
   .adp-select {
     padding: 5px 28px 5px 10px;
     background: $bg-card;
@@ -442,6 +446,12 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     margin-top: 6px;
   }
 
+  .adp-kpi-unit {
+    font-size: 14px;
+    font-weight: 400;
+    margin-left: 2px;
+  }
+
   // ============================================================================
   // NODE STATUS CARDS
   // ============================================================================
@@ -579,6 +589,18 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     white-space: nowrap;
   }
 
+  .adp-mini-agent {
+    font-size: 10px;
+    font-weight: 600;
+    color: $accent-blue;
+    font-family: $font-mono;
+    white-space: nowrap;
+    padding: 1px 6px;
+    background: #eff6ff;
+    border-radius: 3px;
+    border: 1px solid #bfdbfe;
+  }
+
   .adp-empty {
     padding: 24px;
     text-align: center;
@@ -599,6 +621,145 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     text-transform: uppercase;
     min-width: 55px;
     text-align: center;
+  }
+
+  // ============================================================================
+  // LOADING PROGRESS BAR (Logging tab)
+  // ============================================================================
+
+  .adp-progress-card {
+    padding: 16px 20px;
+
+    &.done {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+
+      .adp-progress-title {
+        color: $accent-green;
+      }
+    }
+  }
+
+  .adp-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .adp-progress-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: $text-primary;
+  }
+
+  .adp-progress-pct {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: $font-mono;
+    color: $btn-primary;
+  }
+
+  .adp-progress-track {
+    height: 8px;
+    background: $bg-inset;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid $border-light;
+    margin-bottom: 10px;
+  }
+
+  .adp-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, $btn-primary, $accent-purple);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  .adp-progress-label {
+    font-size: 11px;
+    color: $text-muted;
+    margin-bottom: 8px;
+    font-family: $font-mono;
+  }
+
+  .adp-progress-agents {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .adp-progress-agent-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-family: $font-mono;
+    font-weight: 600;
+    border: 1px solid $border-light;
+    background: $bg-subtle;
+    color: $text-muted;
+    transition: all 0.2s ease;
+
+    &.loading {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #2563eb;
+    }
+
+    &.done {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #16a34a;
+    }
+
+    &.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+
+    .adp-agent-count {
+      font-weight: 400;
+      color: $text-muted;
+      font-size: 10px;
+    }
+  }
+
+  .adp-spinner-xs {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #bfdbfe;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: adp-spin 0.6s linear infinite;
+  }
+
+  // ============================================================================
+  // AGENT COLUMN IN LOG TABLE
+  // ============================================================================
+
+  .adp-td-agent {
+    font-size: 11px;
+    font-weight: 600;
+    color: $accent-blue;
+    font-family: $font-mono;
+    white-space: nowrap;
+  }
+
+  // ============================================================================
+  // LOADING INLINE (empty table state)
+  // ============================================================================
+
+  .adp-loading-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-family: -apple-system, sans-serif;
   }
 
   // ============================================================================
@@ -636,9 +797,13 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
   }
 
   .adp-chip {
+    display: inline-flex;
+    align-items: center;
     padding: 3px 10px;
     border-radius: $radius-sm;
     font-size: 11px;
@@ -647,8 +812,6 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     border: 1px solid $border-sharp;
     background: transparent;
     color: $text-secondary;
-    display: flex;
-    align-items: center;
     gap: 4px;
     transition: all 0.15s;
 
@@ -1157,6 +1320,17 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     backdrop-filter: blur(3px);
   }
 
+  .adp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 2000;
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .adp-modal {
     position: fixed;
     top: 50%;
@@ -1194,7 +1368,8 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     font-weight: 700;
   }
 
-  .adp-close-btn {
+  .adp-close-btn,
+  .adp-modal-close {
     padding: 4px 8px;
     background: transparent;
     border: none;
@@ -1236,7 +1411,8 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     font-size: 13px;
   }
 
-  .adp-detail-key {
+  .adp-detail-key,
+  .adp-detail-label {
     font-weight: 700;
     color: $text-secondary;
   }
@@ -1246,6 +1422,12 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
       font-family: $font-mono;
       font-size: 12px;
     }
+  }
+
+  .adp-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .adp-code-inline {
@@ -1283,7 +1465,8 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     word-break: break-word;
   }
 
-  .adp-detail-json {
+  .adp-detail-json,
+  .adp-json-block {
     margin: 0;
     font-family: $font-mono;
     font-size: 11px;
@@ -1412,15 +1595,6 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     &.red { color: #dc2626; }
   }
 
-  .adp-addr-more {
-    font-size: 10px;
-    color: $text-muted;
-    background: $bg-card;
-    border: 1px solid $border-light;
-    border-radius: 8px;
-    padding: 1px 6px;
-  }
-
   .adp-score-bar-wrap {
     position: relative;
     height: 22px;
@@ -1454,68 +1628,6 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
   // ============================================================================
   // CREDENTIALS TAB
   // ============================================================================
-
-  .adp-filter-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid $border-light;
-    background: $bg-page;
-  }
-
-  .adp-filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    flex: 1;
-  }
-
-  .adp-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border: 1px solid $border-light;
-    background: $bg-card;
-    color: $text-secondary;
-    cursor: pointer;
-    transition: all 0.15s ease;
-
-    &:hover {
-      border-color: $accent-blue;
-      color: $accent-blue;
-    }
-
-    &.active {
-      background: $accent-purple;
-      color: #fff;
-      border-color: $accent-purple;
-    }
-  }
-
-  .adp-search-input {
-    padding: 6px 12px;
-    border: 1px solid $border-light;
-    border-radius: 6px;
-    font-size: 12px;
-    background: $bg-card;
-    color: $text-primary;
-    min-width: 200px;
-    outline: none;
-    transition: border-color 0.15s ease;
-
-    &:focus {
-      border-color: $accent-blue;
-    }
-
-    &::placeholder {
-      color: $text-muted;
-    }
-  }
 
   .adp-cred-type-badge {
     display: inline-block;
@@ -1632,6 +1744,19 @@ $font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+  }
+
+  // ============================================================================
+  // FADE IN ANIMATION
+  // ============================================================================
+
+  .adp-fade-in {
+    animation: adp-fade-in 0.3s ease-in;
+  }
+
+  @keyframes adp-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   // ============================================================================
