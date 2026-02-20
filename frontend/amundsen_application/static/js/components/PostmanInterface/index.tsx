@@ -53,11 +53,6 @@ interface FlatRequest {
   request: PostmanRequest;
 }
 
-interface ToscaFile {
-  name: string;
-  content: string;
-}
-
 const PostmanInterface: React.FC = () => {
   const [collection, setCollection] = useState<PostmanCollection | null>(null);
   const [requests, setRequests] = useState<FlatRequest[]>([]);
@@ -72,9 +67,9 @@ const PostmanInterface: React.FC = () => {
   const [showVariablesModal, setShowVariablesModal] = useState(false);
   const [detectedVariables, setDetectedVariables] = useState<string[]>([]);
 
-  // ✅ NEW: TOSCA file management
-  const [toscaFiles, setToscaFiles] = useState<ToscaFile[]>([]);
+  // ✅ TOSCA upload modal
   const [showToscaUploadModal, setShowToscaUploadModal] = useState(false);
+  const [lastToscaUpload, setLastToscaUpload] = useState<string | null>(null);
 
   // Flatten collection structure
   const flattenCollection = (
@@ -223,35 +218,12 @@ const PostmanInterface: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // ✅ NEW: Handle TOSCA file upload
-  const handleToscaUpload = (
-    files: ToscaFile[],
-    fileVariables: Record<string, string>
-  ) => {
-    setToscaFiles(files);
-
-    // Merge TOSCA-derived variables with existing variables
-    setVariables((prev) => ({
-      ...prev,
-      ...fileVariables,
-    }));
-
-    // Add new variables to detected list
-    const newVars = Object.keys(fileVariables).filter(
-      (v) => !detectedVariables.includes(v)
-    );
-
-    if (newVars.length > 0) {
-      setDetectedVariables((prev) => [...prev, ...newVars].sort());
+  // ✅ Handle TOSCA upload completion
+  const handleToscaUploadComplete = (result: any) => {
+    if (result.success) {
+      setLastToscaUpload(result.templateId || 'uploaded');
     }
-
-    setShowToscaUploadModal(false);
-    console.log(
-      'TOSCA files uploaded:',
-      files.length,
-      'variables extracted:',
-      Object.keys(fileVariables)
-    );
+    console.log('TOSCA upload result:', result);
   };
 
   // Handle request selection
@@ -367,17 +339,15 @@ const PostmanInterface: React.FC = () => {
             Import Collection
           </label>
 
-          {/* ✅ NEW: TOSCA Upload Button */}
+          {/* ✅ TOSCA Upload Button */}
           <button
             className="tosca-upload-button"
             onClick={() => setShowToscaUploadModal(true)}
-            title="Upload TOSCA files and extract variables"
+            title="Upload TOSCA files to OptimusDB data stores"
           >
             <i className="icon ion-ios-cloud-upload" />
             Upload TOSCA
-            {toscaFiles.length > 0 && (
-              <span className="file-badge">{toscaFiles.length}</span>
-            )}
+            {lastToscaUpload && <span className="file-badge">✓</span>}
           </button>
 
           <a
@@ -423,12 +393,11 @@ const PostmanInterface: React.FC = () => {
         />
       )}
 
-      {/* ✅ NEW: TOSCA Upload Modal */}
+      {/* ✅ TOSCA Upload Modal */}
       {showToscaUploadModal && (
         <ToscaUploadModal
-          onUpload={handleToscaUpload}
           onClose={() => setShowToscaUploadModal(false)}
-          existingVariables={variables}
+          onUploadComplete={handleToscaUploadComplete}
         />
       )}
 
