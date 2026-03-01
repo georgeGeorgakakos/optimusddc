@@ -3,15 +3,47 @@
 
 @import 'variables';
 
+// ── Animations ──
+@keyframes panelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+// ── Panel Container ──
 .search-control-panel {
   border-right: $search-panel-border-width solid $stroke;
   display: flex;
   flex: 0 0 $search-panel-width;
   flex-direction: column;
   overflow-y: auto;
+  background: $white;
+  animation: panelFadeIn 0.4s ease both;
+
+  // Smooth scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $stroke-light;
+    border-radius: 2px;
+  }
 
   .section {
-    padding: 32px 24px 32px 32px;
+    padding: 24px 24px 24px 28px;
     width: $search-panel-width - $search-panel-border-width;
 
     &:not(:first-child) {
@@ -19,6 +51,18 @@
     }
   }
 
+  // ── Section Titles ──
+  .title-2,
+  .section-title {
+    font-family: $font-family-header;
+    font-weight: $font-weight-body-bold;
+    font-size: 13px;
+    color: $text-primary;
+    margin-bottom: 12px;
+    letter-spacing: 0.01em;
+  }
+
+  // ── Radio Buttons ──
   .checkbox,
   .radio {
     margin-bottom: $spacer-half;
@@ -26,6 +70,269 @@
 
     &:first-child {
       margin-top: $spacer-1;
+    }
+  }
+
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: $body-bg-secondary;
+    }
+
+    input[type="radio"] {
+      accent-color: $brand-color-4;
+    }
+
+    .text-subtitle-w2 {
+      flex: 1;
+    }
+
+    .pull-right {
+      font-size: 12px;
+      font-weight: $font-weight-body-semi-bold;
+      color: $text-tertiary;
+    }
+  }
+
+  // ── Filter Inputs ──
+  .form-control {
+    border: 1px solid $stroke-light;
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 8px 12px;
+    transition: all 0.25s ease;
+    background: $body-bg-secondary;
+
+    &:focus {
+      border-color: rgba($brand-color-4, 0.5);
+      box-shadow: 0 0 0 3px rgba($brand-color-4, 0.08);
+      background: $white;
+      outline: none;
+    }
+
+    &::placeholder {
+      color: $text-placeholder;
+      font-size: 12px;
+    }
+  }
+
+  // ── Filter Buttons ──
+  .input-section-buttons {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+
+    .btn {
+      flex: 1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: $font-weight-body-semi-bold;
+      padding: 7px 12px;
+      transition: all 0.2s ease;
+
+      &:first-child {
+        background: $brand-color-4;
+        border-color: $brand-color-4;
+        color: $white;
+
+        &:hover {
+          background: $brand-color-5;
+          border-color: $brand-color-5;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba($brand-color-4, 0.25);
+        }
+      }
+
+      &:last-child {
+        background: $white;
+        border-color: $stroke;
+        color: $text-secondary;
+
+        &:hover {
+          background: $body-bg-secondary;
+          border-color: $stroke-underline;
+        }
+      }
+    }
+  }
+
+  // ── Topology Section ──
+  .section--topology {
+    .topology-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+
+      .section-title {
+        margin-bottom: 0;
+      }
+
+      .topology-status {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        font-weight: $font-weight-body-semi-bold;
+        letter-spacing: 0.04em;
+      }
+
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        animation: dotPulse 2s ease-in-out infinite;
+
+        &--healthy {
+          background: $green50;
+        }
+        &--warning {
+          background: $amber60;
+        }
+        &--error {
+          background: $red50;
+        }
+      }
+
+      .status-text {
+        text-transform: uppercase;
+
+        &--healthy { color: $green50; }
+        &--warning { color: $amber60; }
+        &--error { color: $red50; }
+      }
+    }
+
+    .topology-canvas-container {
+      background: $body-bg-secondary;
+      border: 1px solid $stroke-light;
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .topology-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: $text-tertiary;
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .legend-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+        }
+
+        .legend-dot--coordinator {
+          background: $brand-color-4;
+        }
+
+        .legend-dot--follower {
+          background: $cyan50;
+        }
+
+        .legend-dot--data {
+          background: $brand-color-3;
+          opacity: 0.6;
+        }
+      }
+    }
+  }
+
+  // ── Inventory Stats Section ──
+  .section--inventory {
+    .inventory-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .inventory-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      transition: background 0.2s ease;
+      cursor: default;
+
+      &:hover {
+        background: $body-bg-secondary;
+      }
+
+      .inventory-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+
+      .inventory-label {
+        font-size: 12px;
+        color: $text-secondary;
+        flex: 1;
+      }
+
+      .inventory-count {
+        font-size: 12px;
+        font-weight: $font-weight-body-bold;
+      }
+
+      // Source-specific colors
+      &--sqlite .inventory-dot { background: $indigo60; }
+      &--sqlite .inventory-count { color: $indigo60; }
+
+      &--orbitdb .inventory-dot { background: $purple70; }
+      &--orbitdb .inventory-count { color: $purple70; }
+
+      &--ipfs .inventory-dot { background: $green50; }
+      &--ipfs .inventory-count { color: $green50; }
+
+      &--ai .inventory-dot { background: $pink60; }
+      &--ai .inventory-count { color: $pink60; }
+
+      &--agent .inventory-dot { background: $cyan70; }
+      &--agent .inventory-count { color: $cyan70; }
+
+      &--planned .inventory-dot { background: $gray50; }
+      &--planned .inventory-count { color: $gray50; }
+    }
+
+    .inventory-total {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid $stroke-light;
+
+      .total-number {
+        font-size: 22px;
+        font-weight: $font-weight-header-bold;
+        font-family: $font-family-header;
+        color: $text-primary;
+      }
+
+      .total-label {
+        font-size: 11px;
+        color: $text-tertiary;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: $font-weight-body-semi-bold;
+      }
     }
   }
 }

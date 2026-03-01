@@ -4,15 +4,16 @@ import { getDisplayNameByResource } from 'config/config-utils';
 export const PAGINATION_PAGE_RANGE = 10;
 
 // TODO: Hard-coded text strings should be translatable/customizable
-export const DOCUMENT_TITLE_SUFFIX = ' - Amundsen Search';
-export const SEARCHPAGE_TITLE = 'Amundsen Search';
+export const DOCUMENT_TITLE_SUFFIX = ' - OptimusDDC Search';
+export const SEARCHPAGE_TITLE = 'OptimusDDC Semantic Search';
 
 export const PAGE_INDEX_ERROR_MESSAGE =
   'Page index out of bounds for available matches';
 
 export const SEARCH_DEFAULT_MESSAGE =
-  'Your search results will be shown here.\n\
-Try entering a search term or using any of the filters to the left.';
+  'Search the Distributed Data Catalog.\n\
+Enter a search term or use the filters to discover datasets across \
+SQLite, OrbitDB, IPFS, and AI-enriched metadata.';
 
 export const SEARCH_SOURCE_NAME = 'search_results';
 export const SEARCH_ERROR_MESSAGE_PREFIX = 'Your search did not match any ';

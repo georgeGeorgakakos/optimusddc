@@ -1,0 +1,99 @@
+// Copyright Contributors to the Amundsen project.
+// SPDX-License-Identifier: Apache-2.0
+
+// Enhanced ResourceListItem styles for OptimusDDC
+// Place in: components/ResourceListItem/styles-enhanced.scss
+// Import AFTER the original styles.scss
+
+@import 'variables';
+
+// ── Animation for staggered row entry ──
+@keyframes listItemReveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── Enhanced List Item ──
+.list-group-item {
+  border-left: 3px solid transparent;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: listItemReveal 0.35s ease both;
+
+  // Staggered delay for first 15 items
+  @for $i from 1 through 15 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{0.05 + $i * 0.04}s;
+    }
+  }
+
+  &:hover {
+    background: $body-bg-tertiary;
+    border-left-color: $brand-color-4;
+    box-shadow: $elevation-level1;
+    z-index: 1;
+    position: relative;
+
+    .resource-list-item {
+      .resource-name {
+        color: $brand-color-5;
+      }
+
+      .icon-right {
+        opacity: 1;
+        transform: translateX(2px);
+      }
+    }
+  }
+
+  .resource-list-item {
+    .resource-name {
+      transition: color 0.2s ease;
+    }
+
+    .icon-right {
+      transition: all 0.2s ease;
+    }
+
+    // Search match highlights
+    .description em {
+      background-color: $brand-color-1;
+      font-style: normal;
+      padding: 1px 4px;
+      border-radius: 3px;
+      border: 1px solid $brand-color-2;
+    }
+  }
+}
+
+// ── Resource Source Badge in list items ──
+.resource-source {
+  .resource-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: $font-weight-body-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+}
+
+// ── Badge Enhancements ──
+.resource-badges {
+  .flag {
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+}

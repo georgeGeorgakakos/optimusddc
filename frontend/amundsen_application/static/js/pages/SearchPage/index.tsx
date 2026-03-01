@@ -130,8 +130,56 @@ export class SearchPage extends React.Component<SearchPageProps> {
     if (hasNoSearchInputOrAction) {
       return (
         <div className="search-list-container">
-          <div className="search-error body-placeholder">
-            {SEARCH_DEFAULT_MESSAGE}
+          <div className="search-empty-state">
+            <div className="empty-state-icon">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="14"
+                  stroke="#cacad9"
+                  strokeWidth="2.5"
+                />
+                <path
+                  d="M30 30L42 42"
+                  stroke="#cacad9"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="6"
+                  stroke="#dcdcff"
+                  strokeWidth="1.5"
+                  strokeDasharray="3 3"
+                />
+              </svg>
+            </div>
+            <p className="empty-state-title">
+              Search the Distributed Data Catalog
+            </p>
+            <p className="empty-state-subtitle">
+              Enter a search term or use the filters to discover datasets across
+              SQLite, OrbitDB, IPFS, and AI-enriched metadata.
+            </p>
+            <div className="search-suggestions">
+              <span className="suggestions-label">Try:</span>
+              {[
+                'tosca',
+                'orbitdb',
+                'ipfs',
+                'election',
+                'credentials',
+                'reputation',
+                'metadata',
+                'badges',
+              ].map((term) => (
+                <span key={term} className="suggestion-chip">
+                  {term}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       );
@@ -143,10 +191,39 @@ export class SearchPage extends React.Component<SearchPageProps> {
     if (hasNoResults) {
       return (
         <div className="search-list-container">
-          <div className="search-error body-placeholder">
-            {SEARCH_ERROR_MESSAGE_PREFIX}
-            <i>{tabLabel.toLowerCase()}</i>
-            {SEARCH_ERROR_MESSAGE_SUFFIX}
+          <div className="search-empty-state">
+            <div className="empty-state-icon">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="14"
+                  stroke="#cacad9"
+                  strokeWidth="2.5"
+                />
+                <path
+                  d="M30 30L42 42"
+                  stroke="#cacad9"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M14 20H26"
+                  stroke="#ff7689"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <p className="empty-state-title">
+              {SEARCH_ERROR_MESSAGE_PREFIX}
+              <em>{tabLabel.toLowerCase()}</em>
+              {SEARCH_ERROR_MESSAGE_SUFFIX}
+            </p>
+            <p className="empty-state-subtitle">
+              Try adjusting your search or filters to find what you're looking
+              for.
+            </p>
           </div>
         </div>
       );
@@ -157,8 +234,8 @@ export class SearchPage extends React.Component<SearchPageProps> {
     if (hasIndexOutOfBounds) {
       return (
         <div className="search-list-container">
-          <div className="search-error body-placeholder">
-            {PAGE_INDEX_ERROR_MESSAGE}
+          <div className="search-empty-state">
+            <p className="empty-state-title">{PAGE_INDEX_ERROR_MESSAGE}</p>
           </div>
         </div>
       );
@@ -170,6 +247,15 @@ export class SearchPage extends React.Component<SearchPageProps> {
 
     return (
       <div className="search-list-container">
+        <div className="search-results-header">
+          <span className="results-count">
+            <strong>{total_results}</strong> datasets found
+          </span>
+          <span className="results-page-info">
+            Page {page_index + 1} of{' '}
+            {Math.ceil(total_results / getSearchResultsPerPage())}
+          </span>
+        </div>
         <ResourceListHeader resourceTypes={uniqueResourceTypes} />
         <PaginatedApiResourceList
           activePage={page_index}
@@ -187,7 +273,11 @@ export class SearchPage extends React.Component<SearchPageProps> {
     const { isLoading } = this.props;
 
     if (isLoading) {
-      return <ShimmeringResourceLoader numItems={getSearchResultsPerPage()} />;
+      return (
+        <div className="search-loading-container">
+          <ShimmeringResourceLoader numItems={getSearchResultsPerPage()} />
+        </div>
+      );
     }
 
     return this.renderSearchResults();

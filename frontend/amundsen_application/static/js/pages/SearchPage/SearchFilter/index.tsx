@@ -13,8 +13,8 @@ import {
   updateFilterByCategory,
   UpdateFilterRequest,
 } from 'ducks/search/filters/reducer';
-import { CheckboxFilterProperties } from './CheckBoxFilter';
-import FilterSection from './FilterSection';
+import { CheckboxFilterProperties } from '../../../../../../../../../Desktop/New folder/SearchFilter/CheckBoxFilter';
+import FilterSection from '../../../../../../../../../Desktop/New folder/SearchFilter/FilterSection';
 
 import './styles.scss';
 import { APPLY_BTN_TEXT, CLEAR_BTN_TEXT } from './constants';

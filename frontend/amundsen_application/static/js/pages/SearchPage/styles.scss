@@ -3,9 +3,46 @@
 
 @import 'variables';
 
+// ── Source Color Tokens ──
+$src-sqlite:   $indigo60;
+$src-orbitdb:  $purple70;
+$src-ipfs:     $green50;
+$src-ai:       $pink60;
+$src-agent:    $cyan70;
+$src-planned:  $gray50;
+
+// ── Animations ──
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmerSlide {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba($brand-color-4, 0); }
+  50% { box-shadow: 0 0 0 4px rgba($brand-color-4, 0.08); }
+}
+
+// ── Main Layout ──
 .search-page {
   display: flex;
   height: calc(100vh - #{$nav-bar-height + $footer-height});
+  background: $body-bg;
 
   .list-group {
     margin-top: 0;
@@ -13,8 +50,26 @@
 
   .search-results {
     flex-grow: 1;
-    width: 0; // Temporary hack since list-items use width %
-    overflow-y: scroll;
+    width: 0;
+    overflow-y: auto;
+    background: $body-bg-secondary;
+    animation: fadeIn 0.3s ease;
+
+    // Smooth scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: $body-bg-secondary;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: $stroke;
+      border-radius: 3px;
+
+      &:hover {
+        background: $stroke-underline;
+      }
+    }
   }
 
   @media (max-width: $screen-sm-max) {
@@ -28,3 +83,256 @@
     text-align: center;
   }
 }
+
+// ── Search Results Container ──
+.search-list-container {
+  animation: fadeInUp 0.4s ease both;
+  animation-delay: 0.1s;
+}
+
+// ── Results Header Bar ──
+.search-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: $white;
+  border-bottom: 1px solid $stroke-light;
+  animation: fadeInUp 0.35s ease both;
+
+  .results-count {
+    font-size: 13px;
+    color: $text-secondary;
+    font-family: $font-family-body;
+
+    strong {
+      color: $text-primary;
+      font-weight: $font-weight-body-bold;
+    }
+  }
+
+  .results-page-info {
+    font-size: 12px;
+    color: $text-tertiary;
+  }
+}
+
+// ── Loading Container ──
+.search-loading-container {
+  padding: $spacer-3;
+  animation: fadeIn 0.3s ease;
+}
+
+// ── Empty State ──
+.search-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+  animation: fadeInUp 0.5s ease both;
+
+  .empty-state-icon {
+    margin-bottom: 20px;
+    opacity: 0.7;
+    animation: fadeInUp 0.5s ease both;
+    animation-delay: 0.1s;
+  }
+
+  .empty-state-title {
+    font-size: 16px;
+    color: $text-secondary;
+    font-family: $font-family-header;
+    font-weight: $font-weight-header-regular;
+    margin-bottom: 8px;
+    line-height: 1.5;
+
+    em {
+      font-style: italic;
+      color: $text-primary;
+    }
+  }
+
+  .empty-state-subtitle {
+    font-size: 13px;
+    color: $text-tertiary;
+    max-width: 420px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+}
+
+// ── Search Suggestions ──
+.search-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInUp 0.5s ease both;
+  animation-delay: 0.2s;
+
+  .suggestions-label {
+    font-size: 12px;
+    color: $text-tertiary;
+    margin-right: 4px;
+  }
+
+  .suggestion-chip {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: $font-weight-body-semi-bold;
+    color: $text-secondary;
+    padding: 3px 12px;
+    border-radius: $tag-border-radius;
+    background: $tag-bg;
+    border: 1px solid $stroke-light;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: $brand-color-1;
+      border-color: $brand-color-2;
+      color: $brand-color-4;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    }
+  }
+}
+
+// ── Enhanced List Group Items (result rows) ──
+.list-group-item {
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  animation: fadeInUp 0.35s ease both;
+
+  @for $i from 1 through 20 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.04}s;
+    }
+  }
+
+  &:hover {
+    background: $body-bg-tertiary;
+    border-left-color: $brand-color-4;
+    box-shadow: $elevation-level1;
+  }
+
+  .resource-list-item {
+    .resource-name {
+      transition: color 0.2s ease;
+    }
+
+    &:hover .resource-name {
+      color: $brand-color-5;
+    }
+
+    // Tag highlight for search matches
+    .description em {
+      background-color: $brand-color-1;
+      font-style: normal;
+      padding: 1px 3px;
+      border-radius: 2px;
+    }
+  }
+}
+
+// ── Source Type Indicators (applied to result items) ──
+.source-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: $font-weight-body-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 4px;
+
+  &--sqlite {
+    color: $src-sqlite;
+    background: rgba($src-sqlite, 0.08);
+    border: 1px solid rgba($src-sqlite, 0.15);
+  }
+  &--orbitdb {
+    color: $src-orbitdb;
+    background: rgba($src-orbitdb, 0.08);
+    border: 1px solid rgba($src-orbitdb, 0.15);
+  }
+  &--ipfs {
+    color: $src-ipfs;
+    background: rgba($src-ipfs, 0.08);
+    border: 1px solid rgba($src-ipfs, 0.15);
+  }
+  &--ai {
+    color: $src-ai;
+    background: rgba($src-ai, 0.08);
+    border: 1px solid rgba($src-ai, 0.15);
+  }
+  &--agent {
+    color: $src-agent;
+    background: rgba($src-agent, 0.08);
+    border: 1px solid rgba($src-agent, 0.15);
+  }
+  &--planned {
+    color: $src-planned;
+    background: rgba($src-planned, 0.08);
+    border: 1px solid rgba($src-planned, 0.15);
+  }
+}
+
+// ── Replication Badge ──
+.replicated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: $font-weight-body-semi-bold;
+  color: $purple70;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+
+  .replicated-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: $purple70;
+  }
+}
+
+// ── Pagination Enhancement ──
+.pagination {
+  margin-top: $spacer-2;
+  margin-bottom: $spacer-3;
+
+  > li > a,
+  > li > span {
+    border-radius: 6px !important;
+    margin: 0 2px;
+    border-color: $stroke-light;
+    color: $text-secondary;
+    font-size: 13px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: $brand-color-1;
+      border-color: $brand-color-2;
+      color: $brand-color-4;
+    }
+  }
+
+  > .active > a,
+  > .active > span {
+    background: $brand-color-4 !important;
+    border-color: $brand-color-4 !important;
+    color: $white !important;
+
+    &:hover {
+      background: $brand-color-5 !important;
+    }
+  }
+}
+
+// ── Enhanced Resource List Item Styles ──
+@import './styles-resource-list-enhanced';

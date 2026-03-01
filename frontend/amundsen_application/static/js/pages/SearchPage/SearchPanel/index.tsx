@@ -3,6 +3,9 @@
 
 import * as React from 'react';
 
+import ClusterTopology from './ClusterTopology';
+import InventoryStats from './InventoryStats';
+
 import './styles.scss';
 
 type SearchPanelProps = {
@@ -16,6 +19,12 @@ const SearchPanel: React.FC = ({ children }: SearchPanelProps) => (
         {child}
       </div>
     ))}
+    <div className="section section--topology">
+      <ClusterTopology />
+    </div>
+    <div className="section section--inventory">
+      <InventoryStats />
+    </div>
   </aside>
 );
 
