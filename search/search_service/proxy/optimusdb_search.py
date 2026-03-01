@@ -36,6 +36,8 @@ import threading
 import hashlib
 from typing import Any, Dict, List, Optional, Union
 
+import attr
+
 import requests
 
 # --- Base class ---
@@ -864,7 +866,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['table'] = {
                         'total_results': r.total_results,
-                        'results': r.results,
+                        'results': [attr.asdict(t) for t in r.results],
                     }
                 elif rt == Resource.USER:
                     r = self.fetch_user_search_results(
@@ -872,7 +874,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['user'] = {
                         'total_results': r.total_results,
-                        'results': r.results,
+                        'results': [attr.asdict(u) for u in r.results],
                     }
                 elif rt == Resource.DASHBOARD:
                     r = self.fetch_dashboard_search_results(
@@ -880,7 +882,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['dashboard'] = {
                         'total_results': r.total_results,
-                        'results': r.results,
+                        'results': [attr.asdict(d) for d in r.results],
                     }
                 elif rt == Resource.FEATURE:
                     r = self.fetch_feature_search_results(
@@ -888,7 +890,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['feature'] = {
                         'total_results': r.total_results,
-                        'results': r.results,
+                        'results': [attr.asdict(f) for f in r.results],
                     }
 
             return SearchResponse(
