@@ -1,6 +1,3 @@
-// Copyright Contributors to the Amundsen project.
-// SPDX-License-Identifier: Apache-2.0
-
 import * as React from 'react';
 import { connect } from 'react-redux';
 
@@ -13,8 +10,8 @@ import {
   updateFilterByCategory,
   UpdateFilterRequest,
 } from 'ducks/search/filters/reducer';
-import { CheckboxFilterProperties } from '../../../../../../../../../Desktop/New folder/SearchFilter/CheckBoxFilter';
-import FilterSection from '../../../../../../../../../Desktop/New folder/SearchFilter/FilterSection';
+import { CheckboxFilterProperties } from './CheckBoxFilter';
+import FilterSection from './FilterSection';
 
 import './styles.scss';
 import { APPLY_BTN_TEXT, CLEAR_BTN_TEXT } from './constants';

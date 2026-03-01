@@ -39,7 +39,9 @@ interface ClusterTopologyState {
 
 class ClusterTopology extends React.Component<{}, ClusterTopologyState> {
   private canvasRef = React.createRef<HTMLCanvasElement>();
+
   private animationFrame: number = 0;
+
   private particles: Particle[] = [];
 
   state: ClusterTopologyState = {
@@ -59,19 +61,25 @@ class ClusterTopology extends React.Component<{}, ClusterTopologyState> {
   private getNodes(): ClusterNode[] {
     const W = 220;
     const H = 100;
+
     return [
       { x: W * 0.18, y: H * 0.55, label: 'optimusdb1', role: 'follower' },
-      { x: W * 0.50, y: H * 0.22, label: 'optimusdb2', role: 'coordinator' },
+      { x: W * 0.5, y: H * 0.22, label: 'optimusdb2', role: 'coordinator' },
       { x: W * 0.82, y: H * 0.55, label: 'optimusdb3', role: 'follower' },
     ];
   }
 
   private getEdges(): number[][] {
-    return [[0, 1], [1, 2], [0, 2]];
+    return [
+      [0, 1],
+      [1, 2],
+      [0, 2],
+    ];
   }
 
   private initParticles() {
     const edges = this.getEdges();
+
     for (let i = 0; i < 12; i++) {
       this.particles.push({
         edge: edges[i % 3],
@@ -84,13 +92,16 @@ class ClusterTopology extends React.Component<{}, ClusterTopologyState> {
 
   private draw = () => {
     const canvas = this.canvasRef.current;
+
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+
     if (!ctx) return;
 
     const W = 220;
     const H = 100;
+
     canvas.width = W * 2;
     canvas.height = H * 2;
     ctx.scale(2, 2);
@@ -104,6 +115,7 @@ class ClusterTopology extends React.Component<{}, ClusterTopologyState> {
     edges.forEach(([a, b]) => {
       const na = nodes[a];
       const nb = nodes[b];
+
       ctx.beginPath();
       ctx.moveTo(na.x, na.y);
       ctx.lineTo(nb.x, nb.y);
@@ -125,17 +137,20 @@ class ClusterTopology extends React.Component<{}, ClusterTopologyState> {
       ctx.beginPath();
       ctx.arc(px, py, p.size, 0, Math.PI * 2);
       const alpha = 0.3 + 0.5 * Math.sin(p.t * Math.PI);
+
       ctx.fillStyle = `rgba(102, 90, 255, ${alpha})`;
       ctx.fill();
     });
 
     // Draw nodes
     const now = Date.now();
+
     nodes.forEach((n, i) => {
       const pulse = Math.sin(now * 0.003 + i * 2) * 0.2 + 0.8;
 
       // Glow
       const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 20);
+
       grd.addColorStop(0, `rgba(56, 189, 248, ${0.1 * pulse})`);
       grd.addColorStop(1, 'transparent');
       ctx.fillStyle = grd;
@@ -151,9 +166,8 @@ class ClusterTopology extends React.Component<{}, ClusterTopologyState> {
       // Inner dot
       ctx.beginPath();
       ctx.arc(n.x, n.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = n.role === 'coordinator'
-        ? COLORS.indigo60
-        : COLORS.cyan50;
+      ctx.fillStyle =
+        n.role === 'coordinator' ? COLORS.indigo60 : COLORS.cyan50;
       ctx.fill();
 
       // Coordinator dashed ring
@@ -175,9 +189,8 @@ class ClusterTopology extends React.Component<{}, ClusterTopologyState> {
 
       // Role sublabel
       ctx.font = '6.5px sans-serif';
-      ctx.fillStyle = n.role === 'coordinator'
-        ? COLORS.indigo40
-        : COLORS.stroke;
+      ctx.fillStyle =
+        n.role === 'coordinator' ? COLORS.indigo40 : COLORS.stroke;
       ctx.fillText(n.role, n.x, n.y + 28);
     });
 

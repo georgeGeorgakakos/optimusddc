@@ -7,8 +7,8 @@ import { FilterType, FilterOperationType, IconSizes } from 'interfaces';
 import InfoButton from 'components/InfoButton';
 
 import CheckBoxFilter, { CheckboxFilterProperties } from '../CheckBoxFilter';
-import InputFilter from '../../../../../../../../../../Desktop/New folder/SearchFilter/InputFilter';
-import ToggleFilter from '../../../../../../../../../../Desktop/New folder/SearchFilter/ToggleFilter';
+import InputFilter from '../InputFilter';
+import ToggleFilter from '../ToggleFilter';
 
 export interface FilterSectionProps {
   categoryId: string;
