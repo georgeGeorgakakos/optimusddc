@@ -7,6 +7,11 @@
 
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
+import {
+  getAvailableNodes,
+  buildApiUrl,
+  OptimusDBNode,
+} from 'config/apiConfig';
 import './styles.scss';
 
 // ==============================================================================
@@ -68,59 +73,18 @@ interface InventoryFetchFailure {
 type InventoryFetchResult = InventoryFetchSuccess | InventoryFetchFailure;
 
 // ==============================================================================
-// AGENT CONFIGURATION
+// AGENT CONFIGURATION — Dynamically discovered via apiConfig.ts
+// Supports Docker Desktop, K3s Traefik, and K3s NodePort deployments
 // ==============================================================================
 
-const AGENTS: AgentConfig[] = [
-  {
-    id: 'agent-1',
-    name: 'Agent 1',
-    url: 'http://localhost:18001',
-    port: 18001,
-  },
-  {
-    id: 'agent-2',
-    name: 'Agent 2',
-    url: 'http://localhost:18002',
-    port: 18002,
-  },
-  {
-    id: 'agent-3',
-    name: 'Agent 3',
-    url: 'http://localhost:18003',
-    port: 18003,
-  },
-  {
-    id: 'agent-4',
-    name: 'Agent 4',
-    url: 'http://localhost:18004',
-    port: 18004,
-  },
-  {
-    id: 'agent-5',
-    name: 'Agent 5',
-    url: 'http://localhost:18005',
-    port: 18005,
-  },
-  {
-    id: 'agent-6',
-    name: 'Agent 6',
-    url: 'http://localhost:18006',
-    port: 18006,
-  },
-  {
-    id: 'agent-7',
-    name: 'Agent 7',
-    url: 'http://localhost:18007',
-    port: 18007,
-  },
-  {
-    id: 'agent-8',
-    name: 'Agent 8',
-    url: 'http://localhost:18008',
-    port: 18008,
-  },
-];
+function mapNodesToAgentConfigs(nodes: OptimusDBNode[]): AgentConfig[] {
+  return nodes.map((node) => ({
+    id: `agent-${node.id}`,
+    name: `Agent ${node.id}`,
+    url: node.url,
+    port: node.id, // used only for display; actual routing is handled by apiConfig
+  }));
+}
 
 // ==============================================================================
 // MINI COMPONENTS
@@ -344,6 +308,37 @@ const PersistedDataWidget: React.FC = () => {
   const [activeView, setActiveView] = useState<
     'overview' | 'tables' | 'stores'
   >('overview');
+  const [agents, setAgents] = useState<AgentConfig[]>([]);
+
+  // ==============================================================================
+  // AGENT DISCOVERY — uses apiConfig.ts for environment-aware node detection
+  // ==============================================================================
+
+  const discoverAgents = useCallback(async (): Promise<AgentConfig[]> => {
+    try {
+      const nodes = await getAvailableNodes();
+      const discovered = mapNodesToAgentConfigs(nodes);
+
+      setAgents(discovered);
+
+      return discovered;
+    } catch (err) {
+      console.error('Failed to discover agents:', err);
+      // Fallback: single node via buildApiUrl
+      const fallback: AgentConfig[] = [
+        {
+          id: 'agent-1',
+          name: 'Agent 1',
+          url: buildApiUrl('optimusdb', '', 1),
+          port: 1,
+        },
+      ];
+
+      setAgents(fallback);
+
+      return fallback;
+    }
+  }, []);
 
   // ==============================================================================
   // DATA FETCHING
@@ -354,8 +349,19 @@ const PersistedDataWidget: React.FC = () => {
       setLoading(true);
       setError(false);
 
-      const promises = AGENTS.map((agent) =>
-        fetch(`${agent.url}/swarmkb/agent/inventory`)
+      // Discover agents first (or use already-discovered ones)
+      const currentAgents = agents.length > 0 ? agents : await discoverAgents();
+
+      const promises = currentAgents.map((agent) => {
+        // Extract nodeId from agent id (e.g. 'agent-3' → 3)
+        const nodeId = parseInt(agent.id.replace('agent-', ''), 10) || 1;
+        const inventoryUrl = buildApiUrl(
+          'optimusdb',
+          '/swarmkb/agent/inventory',
+          nodeId
+        );
+
+        return fetch(inventoryUrl)
           .then((res) => res.json())
           .then(
             (data): InventoryFetchSuccess => ({
@@ -369,8 +375,8 @@ const PersistedDataWidget: React.FC = () => {
               agentId: agent.id,
               success: false,
             })
-          )
-      );
+          );
+      });
 
       const results: InventoryFetchResult[] = await Promise.all(promises);
 
@@ -506,14 +512,17 @@ const PersistedDataWidget: React.FC = () => {
       setError(true);
       setLoading(false);
     }
-  }, []);
+  }, [agents, discoverAgents]);
 
   useEffect(() => {
-    fetchInventoryData();
+    // Discover agents first, then fetch inventory data
+    discoverAgents().then(() => {
+      fetchInventoryData();
+    });
     const interval = setInterval(fetchInventoryData, 300000); // Refresh every 5 minutes
 
     return () => clearInterval(interval);
-  }, [fetchInventoryData]);
+  }, []);
 
   // ==============================================================================
   // RENDER
@@ -594,7 +603,7 @@ const PersistedDataWidget: React.FC = () => {
           </div>
           <div className="header-metric">
             <span className="metric-value">
-              {data.onlineAgents}/{AGENTS.length}
+              {data.onlineAgents}/{agents.length}
             </span>
             <span className="metric-label">Agents</span>
           </div>
@@ -665,7 +674,7 @@ const PersistedDataWidget: React.FC = () => {
             </div>
 
             <div className="viz-card full-width">
-              <ReplicationHeatmap tables={data.tables} agents={AGENTS} />
+              <ReplicationHeatmap tables={data.tables} agents={agents} />
             </div>
           </div>
         )}
@@ -696,7 +705,7 @@ const PersistedDataWidget: React.FC = () => {
                     <div className="item-metric">
                       <span className="metric-icon-sm">🔄</span>
                       <span>
-                        {table.agentCount}/{AGENTS.length} agents
+                        {table.agentCount}/{agents.length} agents
                       </span>
                     </div>
                   </div>
@@ -704,7 +713,7 @@ const PersistedDataWidget: React.FC = () => {
                     <div
                       className="replication-fill"
                       style={{
-                        width: `${(table.agentCount / AGENTS.length) * 100}%`,
+                        width: `${(table.agentCount / agents.length) * 100}%`,
                       }}
                     />
                   </div>
@@ -762,7 +771,7 @@ const PersistedDataWidget: React.FC = () => {
                     <div className="detail-item">
                       <span className="detail-label">Agents:</span>
                       <span className="detail-value">
-                        {store.agentCount}/{AGENTS.length}
+                        {store.agentCount}/{agents.length}
                       </span>
                     </div>
                   </div>

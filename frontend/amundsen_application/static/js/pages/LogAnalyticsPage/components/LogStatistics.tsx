@@ -5,10 +5,10 @@
 // ==============================================================================
 
 import * as React from 'react';
-import { LogStatistics as LogStatsType, LogFiltersState } from '../index';
+import { LogStatisticsData, LogFiltersState } from '../index';
 
 interface LogStatisticsProps {
-  statistics: LogStatsType;
+  statistics: LogStatisticsData;
   filters: LogFiltersState;
 }
 

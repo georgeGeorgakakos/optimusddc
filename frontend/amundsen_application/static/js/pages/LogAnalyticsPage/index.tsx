@@ -33,7 +33,7 @@ export interface LogEntry {
   error?: string;
 }
 
-export interface LogStatistics {
+export interface LogStatisticsData {
   totalLogs: number;
   logsPerMinute: number;
   errorRate: number;
@@ -252,7 +252,7 @@ const LogAnalyticsPage: React.FC = () => {
     setCurrentPage(1);
   }, [logs, filters]);
 
-  const calculateStatistics = useCallback((): LogStatistics => {
+  const calculateStatistics = useCallback((): LogStatisticsData => {
     if (filteredLogs.length === 0) {
       return {
         totalLogs: 0, logsPerMinute: 0, errorRate: 0, errorCount: 0, warningCount: 0,

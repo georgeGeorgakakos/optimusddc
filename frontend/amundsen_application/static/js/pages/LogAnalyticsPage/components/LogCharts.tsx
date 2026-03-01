@@ -5,10 +5,10 @@
 
 import * as React from 'react';
 import { useState } from 'react';
-import { LogStatistics, LogEntry, LogType, LOG_TYPE_COLORS } from '../index';
+import { LogStatisticsData, LogEntry, LogType, LOG_TYPE_COLORS } from '../index';
 
 interface LogChartsProps {
-  statistics: LogStatistics;
+  statistics: LogStatisticsData;
   filteredLogs: LogEntry[];
 }
 
