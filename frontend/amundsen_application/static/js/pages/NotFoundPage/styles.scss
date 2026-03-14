@@ -1,25 +1,386 @@
-// Copyright Contributors to the Amundsen project.
-// SPDX-License-Identifier: Apache-2.0
+// NotFoundPage/styles.scss — Swarmchestrate "Lost Peer" 404
+// Dark swarm aesthetic · CSS animations · glitch number
 
-@import 'variables';
+$bg:          #0f172a;
+$surface:     #1e293b;
+$border:      rgba(255,255,255,0.08);
+$accent:      #38bdf8;
+$purple:      #7c3aed;
+$text-pri:    #f1f5f9;
+$text-sec:    #94a3b8;
+$text-muted:  #64748b;
 
-.not-found-page {
-  h1 {
+// ── Page shell ───────────────────────────────────────────────────────────────
+
+.nfp-page {
+  min-height: calc(100vh - 94px); // subtract nav height (row1 56 + row2 38)
+  background: $bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 40px 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+// Subtle dot-grid background
+.nfp-grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+// ── Two-column inner layout ───────────────────────────────────────────────────
+
+.nfp-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 60px;
+  max-width: 880px;
+  width: 100%;
+
+  @media (max-width: 700px) {
+    flex-direction: column;
+    gap: 32px;
     text-align: center;
-  }
-
-  span {
-    text-align: center;
-    width: 100%;
   }
 }
 
-img.icon.icon-alert {
-  background-color: $brand-primary;
+// ── SVG animation panel ───────────────────────────────────────────────────────
+
+.nfp-anim-wrap {
+  flex-shrink: 0;
+  width: 360px;
+
+  @media (max-width: 900px) { width: 280px; }
+  @media (max-width: 700px) { width: 260px; }
+}
+
+.nfp-svg {
+  width: 100%;
+  height: auto;
   display: block;
-  height: 200px;
-  margin: auto;
-  -webkit-mask-size: 100%;
-  mask-size: 100%;
-  width: 200px;
+}
+
+// Stable nodes — slow breathing opacity
+.nfp-node-stable {
+  animation: nfp-breathe 4s ease-in-out infinite;
+}
+
+@keyframes nfp-breathe {
+  0%, 100% { opacity: 0.75; }
+  50%       { opacity: 1; }
+}
+
+// Pulse rings on the cluster nodes
+.nfp-pulse-a {
+  animation: nfp-pulse 3s ease-out infinite;
+}
+.nfp-pulse-b {
+  animation: nfp-pulse 3s ease-out infinite 1s;
+}
+.nfp-pulse-c {
+  animation: nfp-pulse 3s ease-out infinite 2s;
+}
+
+@keyframes nfp-pulse {
+  0%   { r: 10; opacity: 0.18; }
+  70%  { r: 22; opacity: 0; }
+  100% { r: 22; opacity: 0; }
+}
+
+// Search rings expanding from lost node
+.nfp-search-ring-1 {
+  animation: nfp-search 3.5s ease-out infinite;
+  transform-origin: 210px 155px;
+}
+.nfp-search-ring-2 {
+  animation: nfp-search 3.5s ease-out infinite 1.2s;
+  transform-origin: 210px 155px;
+}
+
+@keyframes nfp-search {
+  0%   { transform: scale(0.5); opacity: 0.25; }
+  80%  { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+// Broken dashed lines — flickering
+.nfp-broken-line-l {
+  animation: nfp-flicker 2s step-start infinite;
+}
+.nfp-broken-line-r {
+  animation: nfp-flicker 2s step-start infinite 0.8s;
+}
+
+@keyframes nfp-flicker {
+  0%, 90%, 100% { opacity: 0.28; }
+  10%           { opacity: 0; }
+  50%           { opacity: 0.15; }
+  70%           { opacity: 0.4; }
+}
+
+// Lost node — slow floating drift
+.nfp-lost-node {
+  animation: nfp-float 6s ease-in-out infinite;
+  transform-origin: 210px 155px;
+}
+.nfp-lost-inner {
+  animation: nfp-float 6s ease-in-out infinite, nfp-pulse-dot 2.5s ease-in-out infinite;
+  transform-origin: 210px 155px;
+}
+.nfp-lost-q {
+  animation: nfp-float 6s ease-in-out infinite;
+  transform-origin: 210px 155px;
+}
+
+@keyframes nfp-float {
+  0%, 100% { transform: translate(0, 0); }
+  30%      { transform: translate(3px, -5px); }
+  60%      { transform: translate(-3px, 3px); }
+}
+
+@keyframes nfp-pulse-dot {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.9; }
+}
+
+// ── Content panel ─────────────────────────────────────────────────────────────
+
+.nfp-content {
+  flex: 1;
+  min-width: 0;
+}
+
+// ── Glitch 404 ───────────────────────────────────────────────────────────────
+
+.nfp-glitch-wrap {
+  margin-bottom: 20px;
+  line-height: 1;
+}
+
+.nfp-glitch {
+  display: inline-block;
+  font-size: 96px;
+  font-weight: 800;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  color: $text-pri;
+  letter-spacing: -4px;
+  position: relative;
+  user-select: none;
+
+  // Base glitch via pseudo-elements
+  &::before,
+  &::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    font-size: inherit;
+    font-weight: inherit;
+    font-family: inherit;
+    letter-spacing: inherit;
+  }
+
+  &::before {
+    color: $accent;
+    clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
+    animation: nfp-glitch-top 4s steps(1) infinite;
+  }
+
+  &::after {
+    color: $purple;
+    clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%);
+    animation: nfp-glitch-bot 4s steps(1) infinite 1.5s;
+  }
+}
+
+@keyframes nfp-glitch-top {
+  0%, 92%, 100% { transform: translate(0, 0);    opacity: 0; }
+  93%            { transform: translate(-3px, 0); opacity: 0.7; }
+  95%            { transform: translate(3px, 0);  opacity: 0.7; }
+  97%            { transform: translate(-1px, 0); opacity: 0.5; }
+}
+
+@keyframes nfp-glitch-bot {
+  0%, 88%, 100% { transform: translate(0, 0);   opacity: 0; }
+  89%            { transform: translate(4px, 0); opacity: 0.6; }
+  92%            { transform: translate(-2px, 0);opacity: 0.6; }
+  95%            { transform: translate(1px, 0); opacity: 0.3; }
+}
+
+// ── Badge ────────────────────────────────────────────────────────────────────
+
+.nfp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.22);
+  font-size: 11px;
+  font-weight: 600;
+  color: #f87171;
+  letter-spacing: 0.3px;
+  margin-bottom: 16px;
+
+  @media (max-width: 700px) { margin: 0 auto 16px; }
+}
+
+.nfp-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: nfp-blink 1.5s step-start infinite;
+  flex-shrink: 0;
+}
+
+@keyframes nfp-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.2; }
+}
+
+// ── Title + desc ──────────────────────────────────────────────────────────────
+
+.nfp-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: $text-pri;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.nfp-desc {
+  font-size: 14.5px;
+  color: $text-sec;
+  line-height: 1.75;
+  margin: 0 0 20px;
+  max-width: 440px;
+
+  @media (max-width: 700px) { margin-left: auto; margin-right: auto; }
+}
+
+// ── Code block ───────────────────────────────────────────────────────────────
+
+.nfp-code-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0d1724;
+  border: 1px solid rgba(56,189,248,0.14);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 28px;
+
+  @media (max-width: 700px) { text-align: left; }
+}
+
+.nfp-code-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #ef4444;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  background: rgba(239,68,68,0.1);
+  border-radius: 4px;
+}
+
+.nfp-code {
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: $text-muted;
+  word-break: break-all;
+}
+
+// ── Action buttons ────────────────────────────────────────────────────────────
+
+.nfp-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 700px) { justify-content: center; }
+}
+
+%nfp-btn-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+}
+
+.nfp-btn-primary {
+  @extend %nfp-btn-base;
+  background: $accent;
+  color: #0f172a;
+
+  &:hover { background: #7dd3fc; text-decoration: none; color: #0f172a; }
+
+  svg { flex-shrink: 0; }
+}
+
+.nfp-btn-secondary {
+  @extend %nfp-btn-base;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid $border;
+  color: $text-sec;
+
+  &:hover {
+    background: rgba(56,189,248,0.08);
+    border-color: rgba(56,189,248,0.28);
+    color: $accent;
+    text-decoration: none;
+  }
+
+  svg { flex-shrink: 0; }
+}
+
+.nfp-btn-ghost {
+  @extend %nfp-btn-base;
+  background: transparent;
+  color: $text-muted;
+  padding-left: 8px;
+  padding-right: 8px;
+
+  &:hover { color: $text-sec; }
+}
+
+// ── EU badge ──────────────────────────────────────────────────────────────────
+
+.nfp-eu-badge {
+  position: absolute;
+  bottom: 20px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: $text-muted;
+
+  @media (max-width: 600px) { display: none; }
+}
+
+.nfp-eu-stars {
+  color: #fbbf24;
+  font-size: 10px;
+  letter-spacing: 2px;
 }
