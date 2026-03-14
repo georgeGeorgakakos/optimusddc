@@ -185,7 +185,7 @@ export type FilterConfig = (
   | CheckboxFilterCategory
   | InputFilterCategory
   | ToggleFilterCategory
-  )[];
+)[];
 
 /**
  * Configures the UI for a given entity source

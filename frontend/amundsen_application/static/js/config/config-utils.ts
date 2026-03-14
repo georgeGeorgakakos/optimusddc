@@ -1,9 +1,5 @@
 import AppConfig from 'config/config';
-import {
-  BadgeStyle,
-  BadgeStyleConfig,
-  NavItemConfig,
-} from 'config/config-types';
+import { BadgeStyle, BadgeStyleConfig, NavItemConfig } from 'config/config-types';
 import { convertText, CaseType } from 'utils/text';
 
 import { TableMetadata } from 'interfaces/TableMetadata';

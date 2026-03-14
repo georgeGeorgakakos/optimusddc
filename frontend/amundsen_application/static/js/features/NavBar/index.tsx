@@ -16,12 +16,7 @@ import { connect } from 'react-redux';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { Binoculars, GridIcon } from 'components/SVGIcons';
 
-import {
-  LinkConfig,
-  TourConfig,
-  NavItemConfig,
-  NavGroupItemConfig,
-} from 'config/config-types';
+import { LinkConfig, TourConfig, NavItemConfig, NavGroupItemConfig } from 'config/config-types';
 import {
   getLogoPath,
   feedbackEnabled,
@@ -77,51 +72,34 @@ const TRACKING_MESSAGES = {
 
 const reduceToPageTours = (acc: TourConfig[], tour: TourConfig) => {
   if (!tour.isFeatureTour) return [...acc, tour];
-
   return acc;
 };
 
 const reduceToFeatureTours = (acc: TourConfig[], tour: TourConfig) => {
   if (tour.isFeatureTour) return [...acc, tour];
-
   return acc;
 };
 
 const generateKeyFromSteps = (tourSteps: TourConfig[], pathname: string) =>
   tourSteps.length
-    ? `${tourSteps[0].steps[0].content.substring(
-        0,
-        NUM_CHARS_FOR_KEY
-      )}-path:${pathname}`
+    ? `${tourSteps[0].steps[0].content.substring(0, NUM_CHARS_FOR_KEY)}-path:${pathname}`
     : false;
 
 const getPageTourInfo = (pathname: string) => {
-  const { result: productToursForThisPage, tourPath } =
-    getProductToursFor(pathname);
-  const pageTours = productToursForThisPage
-    ? productToursForThisPage.reduce(reduceToPageTours, [])
-    : [];
+  const { result: productToursForThisPage, tourPath } = getProductToursFor(pathname);
+  const pageTours = productToursForThisPage ? productToursForThisPage.reduce(reduceToPageTours, []) : [];
   const pageTourSteps = pageTours.length ? pageTours[0].steps : [];
-  const pageTourKey =
-    generateKeyFromSteps(pageTours, tourPath) || DEFAULT_PAGE_TOUR_KEY;
+  const pageTourKey = generateKeyFromSteps(pageTours, tourPath) || DEFAULT_PAGE_TOUR_KEY;
   const hasPageTour = productToursForThisPage ? !!pageTours.length : false;
-
   return { hasPageTour, pageTourKey, pageTourSteps };
 };
 
 const getFeatureTourInfo = (pathname: string) => {
-  const { result: productToursForThisPage, tourPath } =
-    getProductToursFor(pathname);
-  const featureTours = productToursForThisPage
-    ? productToursForThisPage.reduce(reduceToFeatureTours, [])
-    : [];
+  const { result: productToursForThisPage, tourPath } = getProductToursFor(pathname);
+  const featureTours = productToursForThisPage ? productToursForThisPage.reduce(reduceToFeatureTours, []) : [];
   const featureTourSteps = featureTours.length ? featureTours[0].steps : [];
-  const featureTourKey =
-    generateKeyFromSteps(featureTours, tourPath) || DEFAULT_FEATURE_TOUR_KEY;
-  const hasFeatureTour = productToursForThisPage
-    ? !!featureTourSteps.length
-    : false;
-
+  const featureTourKey = generateKeyFromSteps(featureTours, tourPath) || DEFAULT_FEATURE_TOUR_KEY;
+  const hasFeatureTour = productToursForThisPage ? !!featureTourSteps.length : false;
   return { hasFeatureTour, featureTourKey, featureTourSteps };
 };
 
@@ -131,9 +109,7 @@ const getFeatureTourInfo = (pathname: string) => {
 
 type ProductTourButtonProps = { onClick: () => void };
 
-export const ProductTourButton: React.FC<ProductTourButtonProps> = ({
-  onClick,
-}) => (
+export const ProductTourButton: React.FC<ProductTourButtonProps> = ({ onClick }) => (
   <button
     className="btn btn-nav-bar-icon btn-flat-icon nav-row2-action"
     type="button"
@@ -149,12 +125,8 @@ type AppSuiteMenuProps = {
   onItemClick?: (itemLabel: string) => void;
 };
 
-export const AppSuiteMenu: React.FC<AppSuiteMenuProps> = ({
-  onClick,
-  onItemClick,
-}) => {
+export const AppSuiteMenu: React.FC<AppSuiteMenuProps> = ({ onClick, onItemClick }) => {
   const appList = getNavAppSuite();
-
   if (appList?.length === 0) return null;
 
   const handleItemClick = (_, e: React.MouseEvent) => {
@@ -162,30 +134,15 @@ export const AppSuiteMenu: React.FC<AppSuiteMenuProps> = ({
   };
 
   return (
-    <Dropdown
-      id="app-suite-dropdown"
-      pullRight
-      onToggle={onClick}
-      onSelect={handleItemClick}
-    >
-      <Dropdown.Toggle
-        noCaret
-        className="btn btn-nav-bar-icon btn-flat-icon nav-row2-action"
-      >
+    <Dropdown id="app-suite-dropdown" pullRight onToggle={onClick} onSelect={handleItemClick}>
+      <Dropdown.Toggle noCaret className="btn btn-nav-bar-icon btn-flat-icon nav-row2-action">
         <GridIcon fill="#c8d6e5" />
         <span className="sr-only">{APP_SUITE_BUTTON_TEXT}</span>
       </Dropdown.Toggle>
       <Dropdown.Menu className="app-suite-menu">
         {appList?.map(({ label, id, href, target, iconPath }) => (
-          <MenuItem
-            key={id}
-            className="app-suite-link"
-            href={href}
-            target={target}
-          >
-            {iconPath && (
-              <img className="app-suite-logo" src={iconPath} alt="" />
-            )}
+          <MenuItem key={id} className="app-suite-link" href={href} target={target}>
+            {iconPath && <img className="app-suite-logo" src={iconPath} alt="" />}
             {label}
           </MenuItem>
         ))}
@@ -208,12 +165,7 @@ export const Logo: React.FC = () => (
 
 export const PartnerLogos: React.FC = () => (
   <div className="partner-logos">
-    <img
-      className="partner-logo"
-      src={ICCS_LOGO_PATH}
-      alt="ICCS"
-      title="ICCS - Institute of Communication and Computer Systems"
-    />
+    <img className="partner-logo" src={ICCS_LOGO_PATH} alt="ICCS" title="ICCS - Institute of Communication and Computer Systems" />
     <img className="partner-logo" src={IMU_LOGO_PATH} alt="IMU" title="IMU" />
   </div>
 );
@@ -225,7 +177,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ loggedInUser }) => {
   const userLink = `/user/${user_id}?source=navbar`;
 
   let avatar = <div className="nav-shimmering-circle is-shimmer-animated" />;
-
   if (display_name) {
     avatar = <Avatar name={display_name} size={AVATAR_SIZE} round />;
   }
@@ -244,12 +195,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ loggedInUser }) => {
           <div className="title-2">{display_name}</div>
           <div>{email}</div>
         </div>
-        <MenuItem
-          componentClass={Link}
-          id="nav-bar-avatar-link"
-          to={userLink}
-          href={userLink}
-        >
+        <MenuItem componentClass={Link} id="nav-bar-avatar-link" to={userLink} href={userLink}>
           {PROFILE_LINK_TEXT}
         </MenuItem>
       </Dropdown.Menu>
@@ -268,9 +214,7 @@ type NavGroupProps = {
 };
 
 // Single dropdown item row (icon tile + label + subtitle)
-const NavGroupDropdownItem: React.FC<{ child: NavGroupItemConfig }> = ({
-  child,
-}) => {
+const NavGroupDropdownItem: React.FC<{ child: NavGroupItemConfig }> = ({ child }) => {
   const icon = child.icon ? NavIconMap[child.icon] : null;
   const inner = (
     <>
@@ -279,54 +223,34 @@ const NavGroupDropdownItem: React.FC<{ child: NavGroupItemConfig }> = ({
       </div>
       <div className="nav-dd-item-text">
         <span className="nav-dd-item-label">{child.label}</span>
-        {child.subtitle && (
-          <span className="nav-dd-item-subtitle">{child.subtitle}</span>
-        )}
+        {child.subtitle && <span className="nav-dd-item-subtitle">{child.subtitle}</span>}
       </div>
     </>
   );
-
   if (child.use_router) {
     return (
-      <NavLink
-        className="nav-dd-item"
-        to={child.href}
-        onClick={logClick}
-        title={child.label}
-      >
+      <NavLink className="nav-dd-item" to={child.href} onClick={logClick} title={child.label}>
         {inner}
       </NavLink>
     );
   }
-
   return (
-    <a
-      className="nav-dd-item"
-      href={child.href}
-      target={child.target}
-      onClick={logClick}
-      title={child.label}
-    >
+    <a className="nav-dd-item" href={child.href} target={child.target} onClick={logClick} title={child.label}>
       {inner}
     </a>
   );
 };
 
 // 2-column card used inside the About dropdown
-const NavGroupAboutCard: React.FC<{ child: NavGroupItemConfig }> = ({
-  child,
-}) => {
+const NavGroupAboutCard: React.FC<{ child: NavGroupItemConfig }> = ({ child }) => {
   const icon = child.icon ? NavIconMap[child.icon] : null;
   const inner = (
     <>
       {icon && <span className="nav-dd-about-card-icon">{icon}</span>}
       <span className="nav-dd-about-card-title">{child.label}</span>
-      {child.subtitle && (
-        <span className="nav-dd-about-card-sub">{child.subtitle}</span>
-      )}
+      {child.subtitle && <span className="nav-dd-about-card-sub">{child.subtitle}</span>}
     </>
   );
-
   if (child.use_router) {
     return (
       <NavLink className="nav-dd-about-card" to={child.href} onClick={logClick}>
@@ -334,24 +258,14 @@ const NavGroupAboutCard: React.FC<{ child: NavGroupItemConfig }> = ({
       </NavLink>
     );
   }
-
   return (
-    <a
-      className="nav-dd-about-card"
-      href={child.href}
-      target={child.target}
-      onClick={logClick}
-    >
+    <a className="nav-dd-about-card" href={child.href} target={child.target} onClick={logClick}>
       {inner}
     </a>
   );
 };
 
-export const NavGroup: React.FC<NavGroupProps> = ({
-  item,
-  isOpen,
-  onToggle,
-}) => {
+export const NavGroup: React.FC<NavGroupProps> = ({ item, isOpen, onToggle }) => {
   const groupIcon = item.icon ? NavIconMap[item.icon] : null;
   const isAbout = item.groupId === 'about';
 
@@ -383,9 +297,7 @@ export const NavGroup: React.FC<NavGroupProps> = ({
         >
           {/* Header stripe */}
           <div className="nav-dd-header">
-            {groupIcon && (
-              <span className="nav-dd-header-icon">{groupIcon}</span>
-            )}
+            {groupIcon && <span className="nav-dd-header-icon">{groupIcon}</span>}
             <span className="nav-dd-header-title">{item.label}</span>
           </div>
 
@@ -503,7 +415,6 @@ const generateNavItems = (
 const generateNavLinks = (navLinks: LinkConfig[]) =>
   navLinks.map((link, index) => {
     const icon = link.icon ? NavIconMap[link.icon] : null;
-
     if (link.use_router) {
       return (
         <NavLink
@@ -522,7 +433,6 @@ const generateNavLinks = (navLinks: LinkConfig[]) =>
         </NavLink>
       );
     }
-
     return (
       <a
         className="nav-bar-link"
@@ -548,7 +458,6 @@ const renderSearchBar = (pathname: string) => {
       </div>
     );
   }
-
   return null;
 };
 
@@ -567,8 +476,7 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
   const [openGroupId, setOpenGroupId] = React.useState<string | null>(null);
   const { pathname } = location;
   const { hasPageTour, pageTourKey, pageTourSteps } = getPageTourInfo(pathname);
-  const { hasFeatureTour, featureTourKey, featureTourSteps } =
-    getFeatureTourInfo(pathname);
+  const { hasFeatureTour, featureTourKey, featureTourSteps } = getFeatureTourInfo(pathname);
 
   // Close open dropdown on route change
   React.useEffect(() => {
@@ -583,9 +491,7 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
         setOpenGroupId(null);
       }
     };
-
     document.addEventListener('mousedown', handleOutsideClick);
-
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
@@ -594,9 +500,7 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpenGroupId(null);
     };
-
     document.addEventListener('keydown', handleKeyDown);
-
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
@@ -609,9 +513,7 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
       target_id: '',
       command: 'click',
       target_type: 'button',
-      label: isOpen
-        ? TRACKING_MESSAGES.OPEN_APP_SUITE
-        : TRACKING_MESSAGES.CLOSE_APP_SUITE,
+      label: isOpen ? TRACKING_MESSAGES.OPEN_APP_SUITE : TRACKING_MESSAGES.CLOSE_APP_SUITE,
     });
   };
 
@@ -625,41 +527,21 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
   };
 
   const handleTourClick = () => {
-    logAction({
-      target_id: '',
-      command: 'click',
-      target_type: 'button',
-      label: TRACKING_MESSAGES.START_TOUR,
-    });
+    logAction({ target_id: '', command: 'click', target_type: 'button', label: TRACKING_MESSAGES.START_TOUR });
     setRunTour(true);
   };
 
   const handleTourEnd = () => {
-    logAction({
-      target_id: '',
-      command: 'click',
-      target_type: 'button',
-      label: TRACKING_MESSAGES.END_TOUR,
-    });
+    logAction({ target_id: '', command: 'click', target_type: 'button', label: TRACKING_MESSAGES.END_TOUR });
     setRunTour(false);
   };
 
   const handleNextStep = () => {
-    logAction({
-      target_id: '',
-      command: 'click',
-      target_type: 'button',
-      label: TRACKING_MESSAGES.NEXT_TOUR_STEP,
-    });
+    logAction({ target_id: '', command: 'click', target_type: 'button', label: TRACKING_MESSAGES.NEXT_TOUR_STEP });
   };
 
   const handleTourClose = () => {
-    logAction({
-      target_id: '',
-      command: 'click',
-      target_type: 'button',
-      label: TRACKING_MESSAGES.CLOSE_TOUR,
-    });
+    logAction({ target_id: '', command: 'click', target_type: 'button', label: TRACKING_MESSAGES.CLOSE_TOUR });
   };
 
   const hasAppSuite = getNavAppSuite() !== null;
@@ -691,10 +573,7 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
           {hasPageTour && <ProductTourButton onClick={handleTourClick} />}
           {feedbackEnabled() && <Feedback theme="dark" />}
           {hasAppSuite && (
-            <AppSuiteMenu
-              onClick={handleAppSuiteToggle}
-              onItemClick={handleAppSuiteItemClick}
-            />
+            <AppSuiteMenu onClick={handleAppSuiteToggle} onItemClick={handleAppSuiteItemClick} />
           )}
         </div>
       </div>

@@ -98,6 +98,17 @@ const WIKI_SECTIONS: WikiSection[] = [
       { id: 'adt-schema', title: 'ADT Schema' },
     ],
   },
+  {
+    id: 'demos',
+    title: 'Demos & Videos',
+    icon: '🎬',
+    subsections: [
+      { id: 'demo-dashboard', title: 'Dashboard Overview' },
+      { id: 'demo-query', title: 'Query Workbench' },
+      { id: 'demo-topology', title: 'Agents Topology' },
+      { id: 'demo-setup', title: 'K3s Setup Walkthrough' },
+    ],
+  },
 ];
 
 // ==================== STEP COMPONENT ====================
@@ -1339,9 +1350,146 @@ spec:
         return renderGlossary();
       case 'api':
         return renderAPI();
+      case 'demos':
+        return renderDemos();
       default:
         return renderOverview();
     }
+  };
+
+  // ==================== DEMOS & VIDEOS ====================
+
+  const renderDemos = () => {
+    const DEMO_VIDEOS = [
+      {
+        id: 'demo-dashboard',
+        title: 'OptimusDDC Dashboard Overview',
+        subtitle: 'Full walkthrough of the Cluster Overview, Swarm Operations and Health Monitor panels',
+        duration: '~8 min',
+        tag: 'Dashboard',
+        tagColor: '#38bdf8',
+        thumb: '🏠',
+        githubRef: 'https://github.com/georgeGeorgakakos/optimusdb',
+        status: 'coming-soon',
+        desc: 'A complete tour of the three-panel home dashboard — Agent Data Overview (tables, stores, agents), Cluster Health Monitor (active agents, connection mesh, health distribution), and Swarm Operations (real-time query/metadata/replication counters and recent activity feed).',
+      },
+      {
+        id: 'demo-query',
+        title: 'Query Workbench in Action',
+        subtitle: 'Executing federated SQL queries across a 3-node OptimusDB swarm',
+        duration: '~6 min',
+        tag: 'Operations',
+        tagColor: '#7c3aed',
+        thumb: '⌨',
+        githubRef: 'https://github.com/georgeGeorgakakos/optimusdb',
+        status: 'coming-soon',
+        desc: 'Demonstrates the Query Workbench panel — writing a SQL query against the federated knowledge base, streaming results from multiple agents, inspecting the query plan, and exporting results. Shows how GossipSub routes queries to the appropriate Raft leader.',
+      },
+      {
+        id: 'demo-topology',
+        title: 'Agents Topology Visualisation',
+        subtitle: 'Live mesh graph showing peer discovery, connections, and replication state',
+        duration: '~5 min',
+        tag: 'Insights',
+        tagColor: '#0d9488',
+        thumb: '🕸',
+        githubRef: 'https://github.com/georgeGeorgakakos/optimusdb',
+        status: 'coming-soon',
+        desc: 'Walks through the Agents Topology dashboard — showing the D3-based force graph of swarm peers, highlighting active connections, replication channels and leader election state. Includes a live demonstration of a node failure and automatic re-election.',
+      },
+      {
+        id: 'demo-setup',
+        title: 'K3s Cluster Setup Walkthrough',
+        subtitle: 'Deploying a 3-node OptimusDB cluster on K3s with Helm',
+        duration: '~12 min',
+        tag: 'Deployment',
+        tagColor: '#d97706',
+        thumb: '🚀',
+        githubRef: 'https://github.com/georgeGeorgakakos/optimusdb',
+        status: 'coming-soon',
+        desc: 'Step-by-step guide to deploying OptimusDB and OptimusDDC on a local K3s cluster using the Helm charts from the repository. Covers PVC configuration, ConfigMap injection, service exposure, and initial peer bootstrapping.',
+      },
+      {
+        id: 'demo-api',
+        title: 'OptimusDB REST API Tour',
+        subtitle: 'Exploring the Postman collection and core API endpoints',
+        duration: '~7 min',
+        tag: 'API',
+        tagColor: '#6366f1',
+        thumb: '🔌',
+        githubRef: 'https://github.com/georgeGeorgakakos/optimusdb',
+        status: 'coming-soon',
+        desc: 'Using the embedded API Testing panel (based on the OptimusDB Postman collection) to walk through key REST endpoints — metadata ingestion, semantic search, store health checks, and replication status. The full Postman collection is available in the static/examples folder.',
+      },
+      {
+        id: 'demo-tinyllama',
+        title: 'TinyLlama AI Metadata Generation',
+        subtitle: 'On-device LLM generating tags and descriptions for dataset metadata',
+        duration: '~5 min',
+        tag: 'AI',
+        tagColor: '#ec4899',
+        thumb: '🤖',
+        githubRef: 'https://github.com/georgeGeorgakakos/optimusdb',
+        status: 'coming-soon',
+        desc: 'Demonstrates how OptimusDB uses TinyLlama (GGUF quantised model) to automatically generate semantic tags, descriptions, and quality scores for ingested dataset metadata — without any external API call, fully on-device within the swarm node.',
+      },
+    ];
+
+    const GITHUB_LINKS = [
+      { label: 'OptimusDB Repository', href: 'https://github.com/georgeGeorgakakos/optimusdb', icon: '📦' },
+      { label: 'Postman Collection', href: 'https://github.com/georgeGeorgakakos/optimusdb', icon: '🧪' },
+      { label: 'K3s Helm Charts', href: 'https://github.com/georgeGeorgakakos/optimusdb', icon: '⎈' },
+      { label: 'Swarmchestrate YouTube', href: 'https://www.youtube.com/@swarmchestrate', icon: '▶' },
+    ];
+
+    return (
+      <div className="demos-page">
+        <div className="demos-header">
+          <h1 className="demos-title">Demos &amp; Videos</h1>
+          <p className="demos-subtitle">
+            Hands-on demonstrations of the Optimus Stack — OptimusDB and OptimusDDC — covering deployment, operations, and AI-powered features. Videos are being produced and will be published on the Swarmchestrate YouTube channel.
+          </p>
+          <div className="demos-notice">
+            <span className="demos-notice-icon">🎬</span>
+            <span>Videos are currently in production. The descriptions below reflect planned content based on the implemented features. Check back or follow the <a href="https://www.youtube.com/@swarmchestrate" target="_blank" rel="noreferrer">Swarmchestrate YouTube channel</a> for updates.</span>
+          </div>
+        </div>
+
+        <div className="demos-grid">
+          {DEMO_VIDEOS.map((v) => (
+            <div key={v.id} className="demo-card">
+              <div className="demo-card-thumb">
+                <div className="demo-thumb-icon">{v.thumb}</div>
+                <div className="demo-coming-badge">Coming Soon</div>
+                <div className="demo-duration">{v.duration}</div>
+              </div>
+              <div className="demo-card-body">
+                <div className="demo-tag" style={{ color: v.tagColor, borderColor: `${v.tagColor}40`, background: `${v.tagColor}12` }}>{v.tag}</div>
+                <div className="demo-card-title">{v.title}</div>
+                <div className="demo-card-subtitle">{v.subtitle}</div>
+                <p className="demo-card-desc">{v.desc}</p>
+                <a className="demo-github-link" href={v.githubRef} target="_blank" rel="noreferrer">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.807 1.305 3.492.998.108-.776.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.468-2.382 1.235-3.22-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.3 1.23A11.52 11.52 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.838 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.814 1.102.814 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.216.694.825.576C20.565 21.796 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="demos-resources">
+          <div className="demos-resources-title">Related Resources</div>
+          <div className="demos-resources-grid">
+            {GITHUB_LINKS.map((l) => (
+              <a key={l.label} className="demos-resource-card" href={l.href} target="_blank" rel="noreferrer">
+                <span className="demos-resource-icon">{l.icon}</span>
+                <span className="demos-resource-label">{l.label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // ==================== MAIN RENDER ====================

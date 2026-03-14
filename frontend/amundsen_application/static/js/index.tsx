@@ -40,6 +40,10 @@ import DataCatalogAssistant from './components/DataCatalogAssistant';
 import WikiPage from './pages/WikiPage';
 import ETLWorkbenchPage from './pages/ETLWorkbenchPage';
 import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
+import AboutAuthorPage from './pages/AboutAuthorPage';
+import AboutSwarmchestatePage from './pages/AboutSwarmchestatePage';
+import AboutOptimusPage from './pages/AboutOptimusPage';
+import AboutICCSPage from './pages/AboutICCSPage';
 
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
@@ -85,6 +89,13 @@ const Routes: React.FC = () => {
         <Route path="/api-testing" component={PostmanInterface} />
         <Route path="/analytics" component={AnalyticsDashboardPage} />
         <Route path="/wiki" component={WikiPage} />
+        <Route path="/about/author" component={AboutAuthorPage} />
+        <Route
+          path="/about/swarmchestrate"
+          component={AboutSwarmchestatePage}
+        />
+        <Route path="/about/optimus" component={AboutOptimusPage} />
+        <Route path="/about/iccs" component={AboutICCSPage} />
         <Route
           path="/table_detail/:cluster/:database/:schema/:table"
           component={TableDetail}
