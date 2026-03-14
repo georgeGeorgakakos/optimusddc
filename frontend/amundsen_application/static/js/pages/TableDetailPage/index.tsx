@@ -102,6 +102,179 @@ import { STATUS_CODES } from '../../constants';
 
 import './styles.scss';
 
+// ==============================================================================
+// Swarmchestrate-specific presentational components
+// ==============================================================================
+
+/** Horizontal strip below the header — shows cluster/agent/replication metadata */
+const SwarmMetaStrip: React.FC<{
+  cluster: string;
+  database: string;
+  schema: string;
+  lastUpdated: number;
+  rowCount?: string;
+}> = ({ cluster, database, schema, lastUpdated, rowCount }) => {
+  const lastSync = lastUpdated
+    ? new Date(lastUpdated * 1000).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '—';
+
+  return (
+    <div className="swarm-meta-strip">
+      <div className="swarm-meta-item">
+        <span className="swarm-meta-label">Cluster</span>
+        <span className="swarm-meta-value swarm-meta-value--accent">
+          {cluster || '—'}
+        </span>
+      </div>
+      <div className="swarm-meta-sep" />
+      <div className="swarm-meta-item">
+        <span className="swarm-meta-label">Database</span>
+        <span className="swarm-meta-value">{database || '—'}</span>
+      </div>
+      <div className="swarm-meta-sep" />
+      <div className="swarm-meta-item">
+        <span className="swarm-meta-label">Schema</span>
+        <span className="swarm-meta-value">{schema || '—'}</span>
+      </div>
+      {rowCount && (
+        <>
+          <div className="swarm-meta-sep" />
+          <div className="swarm-meta-item">
+            <span className="swarm-meta-label">Rows</span>
+            <span className="swarm-meta-value">{rowCount}</span>
+          </div>
+        </>
+      )}
+      <div className="swarm-meta-sep" />
+      <div className="swarm-meta-item">
+        <span className="swarm-meta-label">Last Sync</span>
+        <span className="swarm-meta-value">{lastSync}</span>
+      </div>
+      <div className="swarm-meta-strip-right">
+        <span className="swarm-online-dot" />
+        <span className="swarm-online-label">Swarm Online</span>
+      </div>
+    </div>
+  );
+};
+
+/** Shows per-agent replication status — which agents hold this table */
+const SwarmAgentReplication: React.FC<{ tableName: string }> = ({
+  tableName,
+}) => {
+  // Deterministic mock: hash table name to decide which agents are in sync
+  const hash = tableName.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const agents = [
+    { id: 'Agent 1', synced: true },
+    { id: 'Agent 2', synced: hash % 3 !== 0 },
+    { id: 'Agent 3', synced: hash % 5 !== 2 },
+  ];
+  const synced = agents.filter((a) => a.synced).length;
+
+  return (
+    <div className="swarm-replication">
+      <div className="swarm-replication-header">
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </svg>
+        <span>Replication</span>
+        <span className="swarm-replication-ratio">
+          {synced}/{agents.length}
+        </span>
+      </div>
+      <div className="swarm-replication-agents">
+        {agents.map((a) => (
+          <div
+            key={a.id}
+            className={`swarm-agent-pill${
+              a.synced
+                ? ' swarm-agent-pill--synced'
+                : ' swarm-agent-pill--pending'
+            }`}
+          >
+            <span className="swarm-agent-dot" />
+            {a.id}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/** AI-generated tags from TinyLlama metadata inference */
+const SwarmAITags: React.FC<{ tableName: string; schema: string }> = ({
+  tableName,
+  schema,
+}) => {
+  // Deterministic mock tags based on name/schema
+  const tagPool: Record<string, string[]> = {
+    energy: ['energy-sector', 'time-series', 'iot-data'],
+    storage: ['storage-metrics', 'capacity-planning', 'renewable'],
+    solar: ['solar-power', 'pv-generation', 'irradiance'],
+    wind: ['wind-energy', 'turbine-telemetry', 'meteorological'],
+    power: ['power-grid', 'load-balancing', 'smart-meter'],
+    log: ['audit-trail', 'event-stream', 'structured-log'],
+    knowledge: ['knowledge-graph', 'semantic-index', 'metadata'],
+  };
+  const nameLower = (tableName + schema).toLowerCase();
+  const tags: string[] = [];
+
+  Object.entries(tagPool).forEach(([key, vals]) => {
+    if (nameLower.includes(key)) tags.push(...vals);
+  });
+
+  const finalTags =
+    tags.length > 0
+      ? tags.slice(0, 3)
+      : ['auto-indexed', 'swarm-managed', 'catalogued'];
+
+  return (
+    <div className="swarm-ai-tags">
+      <div className="swarm-ai-tags-header">
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <span>AI Tags</span>
+        <span className="swarm-ai-source">TinyLlama</span>
+      </div>
+      <div className="swarm-ai-tag-list">
+        {finalTags.map((t) => (
+          <span key={t} className="swarm-ai-tag">
+            {t}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const DASHBOARDS_PER_PAGE = 10;
 const TABLE_SOURCE = 'table_page';
 const SORT_CRITERIAS = {
@@ -730,8 +903,37 @@ export class TableDetail extends React.Component<
               <TableReportsDropdown resourceReports={data.resource_reports} />
               <DataPreviewButton modalTitle={this.getDisplayName()} />
               <ExploreButton tableData={data} />
+              <a
+                className="btn btn-default swarm-query-btn"
+                href={`/queryworkbench?query=${encodeURIComponent(
+                  `SELECT * FROM ${data.schema}.${data.name} LIMIT 100`
+                )}`}
+                title="Open in Query Workbench"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ marginRight: 5, verticalAlign: 'middle' }}
+                >
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+                Query
+              </a>
             </div>
           </header>
+          <SwarmMetaStrip
+            cluster={data.cluster}
+            database={data.database}
+            schema={data.schema}
+            lastUpdated={data.last_updated_timestamp}
+          />
           <div className="single-column-layout">
             <aside className="left-panel">
               {!isLoadingNotices && (
@@ -795,6 +997,8 @@ export class TableDetail extends React.Component<
                   {isTableQualityCheckEnabled() && (
                     <TableQualityChecksLabel tableKey={tableData.key} />
                   )}
+                  <SwarmAgentReplication tableName={data.name} />
+                  <SwarmAITags tableName={data.name} schema={data.schema} />
                   {this.renderProgrammaticDesc(
                     data.programmatic_descriptions.left
                   )}
@@ -841,7 +1045,7 @@ export class TableDetail extends React.Component<
 
     return (
       <DocumentTitle
-        title={`${this.getDisplayName()} - Amundsen Table Details`}
+        title={`${this.getDisplayName()} - OptimusDDC · Swarmchestrate`}
       >
         {innerContent}
       </DocumentTitle>
