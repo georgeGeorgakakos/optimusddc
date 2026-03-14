@@ -2154,120 +2154,108 @@ These fix:
 # ============================================================================
 # ENHANCED METHOD 1: Better Schema Discovery with Fallback
 # ============================================================================
-    def _get_table_schema_enhanced(self, schema_name: str) -> List[Dict[str, str]]:
-        """
-        ENHANCED: Get schema with multiple fallback strategies.
+def _get_table_schema(self, schema_name: str) -> list:
+    """
+    Get column schema for a given schema/table name.
+    Tries SQL introspection first, then infers from sample data.
+    """
+    logger.info(f"[OptimusDBProxy] Getting schema for: {schema_name}")
 
-        Strategy:
-        1. Try SQL schema queries (PRAGMA, DESCRIBE, information_schema)
-        2. If fails, query sample data and infer schema from actual data
-        3. If still fails, return empty list
+    # Strategy 1: SQL introspection queries
+    queries = [
+        f"PRAGMA table_info({schema_name});",
+        f"DESCRIBE {schema_name};",
+        (
+            f"SELECT column_name, data_type "
+            f"FROM information_schema.columns "
+            f"WHERE table_name='{schema_name}';"
+        ),
+    ]
 
-        Args:
-            schema_name: Name of schema/table
-
-        Returns:
-            List of column definitions with 'name' and 'type'
-        """
-        logger.info(f"[OptimusDBProxy] Getting schema for: {schema_name}")
-
-        # STRATEGY 1: Try SQL schema queries
+    for query in queries:
         try:
-            queries = [
-                f"PRAGMA table_info({schema_name});",  # SQLite
-                f"DESCRIBE {schema_name};",  # MySQL
-                f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name='{schema_name}';"  # PostgreSQL
-            ]
-
-            for query in queries:
-                payload = {
-                    "method": {"argcnt": 2, "cmd": "sqldml"},
-                    "args": ["dummy1", "dummy2"],
-                    "dstype": "dsswres",
-                    "sqldml": query,
-                    "graph_traversal": [{}],
-                    "criteria": []
-                }
-
-                response = self.session.post(
-                    f"{self.base_url}/swarmkb/command",
-                    json=payload,
-                    timeout=self.timeout
+            payload = {
+                "method": {"argcnt": 2, "cmd": "sqldml"},
+                "args": ["dummy1", "dummy2"],
+                "dstype": "dsswres",
+                "sqldml": query,
+                "graph_traversal": [{}],
+                "criteria": [],
+            }
+            response = self.session.post(
+                f"{self.base_url}/swarmkb/command",
+                json=payload,
+                timeout=self.timeout,
+            )
+            result = self._parse_optimusdb_response(response)
+            records = result.get("data", {}).get("records", [])
+            if records:
+                logger.info(
+                    f"[OptimusDBProxy] Got {len(records)} columns "
+                    f"via SQL introspection for {schema_name}"
                 )
-
-                result = self._parse_optimusdb_response(response)
-
-                if not isinstance(result, dict):
-                    continue
-
-                data = result.get('data', {})
-                if not isinstance(data, dict):
-                    continue
-
-                records = data.get('records', [])
-
-                if records:
-                    logger.info(f"[OptimusDBProxy] Got {len(records)} columns from SQL schema query")
-                    return records
-
+                return records
         except Exception as e:
-            logger.warning(f"[OptimusDBProxy] SQL schema queries failed: {e}")
+            logger.debug(f"[OptimusDBProxy] Schema query failed ({query[:40]}...): {e}")
+            continue
 
-        # STRATEGY 2: Infer schema from sample data
-        logger.info(f"[OptimusDBProxy] SQL schema failed, inferring from sample data...")
-        try:
-            sample_query = f"SELECT * FROM {schema_name} LIMIT 1;"
-            result = self._execute_sql(sample_query)
-            records = result.get('data', {}).get('records', [])
+    # Strategy 2: Infer from sample row
+    try:
+        result = self._execute_sql(f"SELECT * FROM {schema_name} LIMIT 1;")
+        records = result.get("data", {}).get("records", [])
+        if records:
+            inferred = [
+                {"name": k, "type": self._infer_column_type(v)}
+                for k, v in records[0].items()
+            ]
+            logger.info(
+                f"[OptimusDBProxy] Inferred {len(inferred)} columns "
+                f"from sample row for {schema_name}"
+            )
+            return inferred
+    except Exception as e:
+        logger.warning(f"[OptimusDBProxy] Sample-row inference failed for {schema_name}: {e}")
 
-            if records and len(records) > 0:
-                sample_record = records[0]
-                inferred_schema = []
+    # Strategy 3: Return empty — get_table() handles this gracefully
+    logger.warning(f"[OptimusDBProxy] Could not determine schema for: {schema_name}")
+    return []
 
-                for field_name, field_value in sample_record.items():
-                    inferred_type = self._infer_column_type(field_value)
-                    inferred_schema.append({
-                        'name': field_name,
-                        'type': inferred_type
-                    })
-
-                logger.info(f"[OptimusDBProxy] Inferred {len(inferred_schema)} columns from sample data")
-                return inferred_schema
-
-        except Exception as e:
-            logger.error(f"[OptimusDBProxy] Failed to infer schema from sample: {e}")
-
-        # STRATEGY 3: Last resort - return empty
-        logger.warning(f"[OptimusDBProxy] Could not get schema for: {schema_name}")
-        return []
-
-
-def _infer_column_type(self, value: Any) -> str:
-    """
-    Infer column type from a sample value.
-
-    Args:
-        value: Sample value from the column
-
-    Returns:
-        String representing the column type
-    """
+def _infer_column_type(self, value) -> str:
+    """Infer column type from a sample value."""
     if value is None:
-        return 'varchar'
-
+        return "varchar"
     if isinstance(value, bool):
-        return 'boolean'
-    elif isinstance(value, int):
-        return 'int'
-    elif isinstance(value, float):
-        return 'float'
-    elif isinstance(value, str):
-        # Check if it looks like a timestamp
-        if 'T' in value and ('-' in value or ':' in value):
-            return 'timestamp'
-        return 'varchar'
-    else:
-        return 'varchar'
+        return "boolean"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "float"
+    if isinstance(value, str):
+        if "T" in value and ("-" in value or ":" in value):
+            return "timestamp"
+        return "varchar"
+    return "varchar"
+
+def _normalize_column_type(self, col_type: str) -> str:
+    """Normalize raw DB type strings to Amundsen-compatible type names."""
+    if not col_type:
+        return "varchar"
+    t = str(col_type).upper()
+    if any(x in t for x in ["TEXT", "VARCHAR", "STRING", "CHAR", "CLOB"]):
+        return "varchar"
+    if any(x in t for x in ["INT", "INTEGER", "BIGINT", "SMALLINT", "TINYINT"]):
+        return "int"
+    if any(x in t for x in ["FLOAT", "DOUBLE", "DECIMAL", "NUMERIC", "REAL"]):
+        return "float"
+    if any(x in t for x in ["TIMESTAMP", "DATETIME", "DATE", "TIME"]):
+        return "timestamp"
+    if any(x in t for x in ["BOOLEAN", "BOOL", "BIT"]):
+        return "boolean"
+    if "JSON" in t:
+        return "json"
+    if any(x in t for x in ["BLOB", "BINARY", "BYTEA"]):
+        return "binary"
+    return "varchar"
 
 
 # ============================================================================
