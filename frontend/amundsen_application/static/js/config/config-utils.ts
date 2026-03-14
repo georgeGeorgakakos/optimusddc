@@ -1,5 +1,9 @@
 import AppConfig from 'config/config';
-import { BadgeStyle, BadgeStyleConfig } from 'config/config-types';
+import {
+  BadgeStyle,
+  BadgeStyleConfig,
+  NavItemConfig,
+} from 'config/config-types';
 import { convertText, CaseType } from 'utils/text';
 
 import { TableMetadata } from 'interfaces/TableMetadata';
@@ -361,6 +365,14 @@ const isNavLinkActive = (link: LinkConfig): boolean => {
  */
 export function getNavAppSuite(): VisualLinkConfig[] | null {
   return AppConfig.navAppSuite;
+}
+
+/*
+ * Returns the grouped navigation items for the new dropdown navbar.
+ * Falls back to an empty array if not configured.
+ */
+export function getNavItems(): NavItemConfig[] {
+  return AppConfig.navItems || [];
 }
 
 /*

@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // ==============================================================================
-// NavBar — Two-Row Redesign
+// NavBar — Two-Row Redesign with Grouped Dropdown Nav (Mock A — Luminous Panel)
 // Row 1 (white): Logo | ICCS + IMU + Avatar
-// Row 2 (dark):  Nav items with SVG icons (centered)
+// Row 2 (dark):  Flat links + Luminous Panel dropdowns (Operations, Insights, About)
 // ==============================================================================
 
 import * as React from 'react';
@@ -16,12 +16,18 @@ import { connect } from 'react-redux';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { Binoculars, GridIcon } from 'components/SVGIcons';
 
-import { LinkConfig, TourConfig } from 'config/config-types';
+import {
+  LinkConfig,
+  TourConfig,
+  NavItemConfig,
+  NavGroupItemConfig,
+} from 'config/config-types';
 import {
   getLogoPath,
   feedbackEnabled,
   indexUsersEnabled,
   getNavLinks,
+  getNavItems,
   getLogoTitle,
   getProductToursFor,
   getNavAppSuite,
@@ -53,9 +59,7 @@ const AVATAR_SIZE = 32;
 
 const GENERIC_LOGO_PATH = '/static/images/optimus-logo.png';
 const ICCS_LOGO_PATH = '/static/images/logo3.png';
-// const IMU_LOGO_PATH = '/static/images/imu-logo-white-full-black.png';
 const IMU_LOGO_PATH = '/static/images/imu.png';
-
 
 const TRACKING_MESSAGES = {
   START_TOUR: 'Start Tour',
@@ -68,21 +72,17 @@ const TRACKING_MESSAGES = {
 };
 
 // ==============================================================================
-// Tour Helpers (unchanged)
+// Tour Helpers
 // ==============================================================================
 
 const reduceToPageTours = (acc: TourConfig[], tour: TourConfig) => {
-  if (!tour.isFeatureTour) {
-    return [...acc, tour];
-  }
+  if (!tour.isFeatureTour) return [...acc, tour];
 
   return acc;
 };
 
 const reduceToFeatureTours = (acc: TourConfig[], tour: TourConfig) => {
-  if (tour.isFeatureTour) {
-    return [...acc, tour];
-  }
+  if (tour.isFeatureTour) return [...acc, tour];
 
   return acc;
 };
@@ -126,12 +126,10 @@ const getFeatureTourInfo = (pathname: string) => {
 };
 
 // ==============================================================================
-// Sub-Components
+// Static Sub-Components (unchanged from original)
 // ==============================================================================
 
-type ProductTourButtonProps = {
-  onClick: () => void;
-};
+type ProductTourButtonProps = { onClick: () => void };
 
 export const ProductTourButton: React.FC<ProductTourButtonProps> = ({
   onClick,
@@ -157,9 +155,7 @@ export const AppSuiteMenu: React.FC<AppSuiteMenuProps> = ({
 }) => {
   const appList = getNavAppSuite();
 
-  if (appList?.length === 0) {
-    return null;
-  }
+  if (appList?.length === 0) return null;
 
   const handleItemClick = (_, e: React.MouseEvent) => {
     onItemClick?.((e.target as HTMLAnchorElement).text);
@@ -198,7 +194,6 @@ export const AppSuiteMenu: React.FC<AppSuiteMenuProps> = ({
   );
 };
 
-// ── Logo (Row 1 Left) — uses optimus-logo.png ──
 export const Logo: React.FC = () => (
   <Link className="logo-link" to="/" onClick={logClick}>
     <img
@@ -211,7 +206,6 @@ export const Logo: React.FC = () => (
   </Link>
 );
 
-// ── Partner Logos (Row 1 Right) ──
 export const PartnerLogos: React.FC = () => (
   <div className="partner-logos">
     <img
@@ -224,10 +218,7 @@ export const PartnerLogos: React.FC = () => (
   </div>
 );
 
-// ── Profile Menu (Row 1 Right) ──
-type ProfileMenuProps = {
-  loggedInUser: LoggedInUser;
-};
+type ProfileMenuProps = { loggedInUser: LoggedInUser };
 
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ loggedInUser }) => {
   const { user_id, display_name, email } = loggedInUser;
@@ -266,7 +257,249 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ loggedInUser }) => {
   );
 };
 
-// ── Nav Link Generator (Row 2) — with icons ──
+// ==============================================================================
+// NavGroup — Luminous Panel Dropdown (Mock A)
+// ==============================================================================
+
+type NavGroupProps = {
+  item: NavItemConfig;
+  isOpen: boolean;
+  onToggle: (groupId: string) => void;
+};
+
+// Single dropdown item row (icon tile + label + subtitle)
+const NavGroupDropdownItem: React.FC<{ child: NavGroupItemConfig }> = ({
+  child,
+}) => {
+  const icon = child.icon ? NavIconMap[child.icon] : null;
+  const inner = (
+    <>
+      <div className="nav-dd-item-icon">
+        {icon && <span className="nav-dd-item-icon-svg">{icon}</span>}
+      </div>
+      <div className="nav-dd-item-text">
+        <span className="nav-dd-item-label">{child.label}</span>
+        {child.subtitle && (
+          <span className="nav-dd-item-subtitle">{child.subtitle}</span>
+        )}
+      </div>
+    </>
+  );
+
+  if (child.use_router) {
+    return (
+      <NavLink
+        className="nav-dd-item"
+        to={child.href}
+        onClick={logClick}
+        title={child.label}
+      >
+        {inner}
+      </NavLink>
+    );
+  }
+
+  return (
+    <a
+      className="nav-dd-item"
+      href={child.href}
+      target={child.target}
+      onClick={logClick}
+      title={child.label}
+    >
+      {inner}
+    </a>
+  );
+};
+
+// 2-column card used inside the About dropdown
+const NavGroupAboutCard: React.FC<{ child: NavGroupItemConfig }> = ({
+  child,
+}) => {
+  const icon = child.icon ? NavIconMap[child.icon] : null;
+  const inner = (
+    <>
+      {icon && <span className="nav-dd-about-card-icon">{icon}</span>}
+      <span className="nav-dd-about-card-title">{child.label}</span>
+      {child.subtitle && (
+        <span className="nav-dd-about-card-sub">{child.subtitle}</span>
+      )}
+    </>
+  );
+
+  if (child.use_router) {
+    return (
+      <NavLink className="nav-dd-about-card" to={child.href} onClick={logClick}>
+        {inner}
+      </NavLink>
+    );
+  }
+
+  return (
+    <a
+      className="nav-dd-about-card"
+      href={child.href}
+      target={child.target}
+      onClick={logClick}
+    >
+      {inner}
+    </a>
+  );
+};
+
+export const NavGroup: React.FC<NavGroupProps> = ({
+  item,
+  isOpen,
+  onToggle,
+}) => {
+  const groupIcon = item.icon ? NavIconMap[item.icon] : null;
+  const isAbout = item.groupId === 'about';
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggle(item.groupId!);
+  };
+
+  return (
+    <div className="nav-group-wrapper">
+      <button
+        className={`nav-bar-link nav-group-trigger${isOpen ? ' open' : ''}`}
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+        onClick={handleToggle}
+        data-test={`nav-group-${item.groupId}`}
+      >
+        {groupIcon && <span className="nav-link-icon">{groupIcon}</span>}
+        <span className="nav-link-label">{item.label}</span>
+        <span className="nav-group-caret" aria-hidden="true" />
+      </button>
+
+      {isOpen && (
+        <div
+          className={`nav-dropdown${isAbout ? ' nav-dropdown--about' : ''}`}
+          role="menu"
+          data-group={item.groupId}
+        >
+          {/* Header stripe */}
+          <div className="nav-dd-header">
+            {groupIcon && (
+              <span className="nav-dd-header-icon">{groupIcon}</span>
+            )}
+            <span className="nav-dd-header-title">{item.label}</span>
+          </div>
+
+          {/* Item list for Operations & Insights */}
+          {!isAbout && (
+            <div className="nav-dd-items">
+              {(item.children || []).map((child) => (
+                <NavGroupDropdownItem key={child.id} child={child} />
+              ))}
+            </div>
+          )}
+
+          {/* 2-column card grid for About */}
+          {isAbout && (
+            <div className="nav-dd-about-grid">
+              {(item.children || []).map((child) => (
+                <NavGroupAboutCard key={child.id} child={child} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==============================================================================
+// generateNavItems — builds the row-2 link/group elements
+// ==============================================================================
+
+const generateNavItems = (
+  navItems: NavItemConfig[],
+  openGroupId: string | null,
+  onGroupToggle: (groupId: string) => void
+) =>
+  navItems.map((item) => {
+    // Group with dropdown
+    if (item.groupId && item.children) {
+      return (
+        <NavGroup
+          key={item.id}
+          item={item}
+          isOpen={openGroupId === item.groupId}
+          onToggle={onGroupToggle}
+        />
+      );
+    }
+
+    const icon = item.icon ? NavIconMap[item.icon] : null;
+
+    // Icon-only link (Home button)
+    if (item.iconOnly) {
+      return item.use_router ? (
+        <NavLink
+          key={item.id}
+          className="nav-bar-link nav-bar-link--icon-only"
+          to={item.href!}
+          exact
+          onClick={logClick}
+          data-test="link-to-home"
+          title="Home"
+          aria-label="Home"
+        >
+          {icon && <span className="nav-link-icon">{icon}</span>}
+        </NavLink>
+      ) : (
+        <a
+          key={item.id}
+          className="nav-bar-link nav-bar-link--icon-only"
+          href={item.href}
+          target={item.target}
+          onClick={logClick}
+          title="Home"
+          aria-label="Home"
+        >
+          {icon && <span className="nav-link-icon">{icon}</span>}
+        </a>
+      );
+    }
+
+    // Standard labelled link
+    return item.use_router ? (
+      <NavLink
+        key={item.id}
+        className="nav-bar-link"
+        to={item.href!}
+        exact={item.href === '/'}
+        target={item.target}
+        onClick={logClick}
+        data-test={`link-to-${item.label}`}
+        title={item.label}
+        aria-label={item.label}
+      >
+        {icon && <span className="nav-link-icon">{icon}</span>}
+        <span className="nav-link-label">{item.label}</span>
+      </NavLink>
+    ) : (
+      <a
+        key={item.id}
+        className="nav-bar-link"
+        href={item.href}
+        target={item.target}
+        onClick={logClick}
+        data-test={`link-to-${item.label}`}
+        title={item.label}
+        aria-label={item.label}
+      >
+        {icon && <span className="nav-link-icon">{icon}</span>}
+        <span className="nav-link-label">{item.label}</span>
+      </a>
+    );
+  });
+
+// Legacy flat-link renderer — used as fallback when navItems is empty (keeps tests green)
 const generateNavLinks = (navLinks: LinkConfig[]) =>
   navLinks.map((link, index) => {
     const icon = link.icon ? NavIconMap[link.icon] : null;
@@ -307,7 +540,6 @@ const generateNavLinks = (navLinks: LinkConfig[]) =>
     );
   });
 
-// ── SearchBar (inside Row 2, right side) ──
 const renderSearchBar = (pathname: string) => {
   if (pathname !== HOMEPAGE_PATH) {
     return (
@@ -332,14 +564,45 @@ export type NavBarProps = StateFromProps & RouteComponentProps<{}>;
 
 export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
   const [runTour, setRunTour] = React.useState(false);
+  const [openGroupId, setOpenGroupId] = React.useState<string | null>(null);
   const { pathname } = location;
   const { hasPageTour, pageTourKey, pageTourSteps } = getPageTourInfo(pathname);
   const { hasFeatureTour, featureTourKey, featureTourSteps } =
     getFeatureTourInfo(pathname);
 
+  // Close open dropdown on route change
   React.useEffect(() => {
     setRunTour(false);
+    setOpenGroupId(null);
   }, [pathname]);
+
+  // Close dropdown when clicking outside nav groups
+  React.useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.nav-group-wrapper')) {
+        setOpenGroupId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Close dropdown on Escape
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenGroupId(null);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleGroupToggle = (groupId: string) => {
+    setOpenGroupId((prev) => (prev === groupId ? null : groupId));
+  };
 
   const handleAppSuiteToggle = (isOpen: boolean) => {
     logAction({
@@ -400,14 +663,11 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
   };
 
   const hasAppSuite = getNavAppSuite() !== null;
+  const navItems = getNavItems();
 
   return (
     <nav className="container-fluid nav-container">
-      {/* ════════════════════════════════════════════════
-          ROW 1: Logo Bar (White)
-          Left:  optimus-logo.png
-          Right: ICCS | IMU | divider | Avatar
-          ════════════════════════════════════════════════ */}
+      {/* ════════ ROW 1: Logo Bar (White) ════════ */}
       <div className="nav-row1">
         <div className="nav-row1-left">
           <Logo />
@@ -419,13 +679,13 @@ export const NavBar: React.FC<NavBarProps> = ({ loggedInUser, location }) => {
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════
-          ROW 2: Navigation Bar (Dark)
-          Center: Nav items with icons
-          Right:  SearchBar (non-home pages) + Tour + Feedback + AppSuite
-          ════════════════════════════════════════════════ */}
+      {/* ════════ ROW 2: Navigation Bar (Dark) ════════ */}
       <div className="nav-row2">
-        <div className="nav-row2-links">{generateNavLinks(getNavLinks())}</div>
+        <div className="nav-row2-links">
+          {navItems.length > 0
+            ? generateNavItems(navItems, openGroupId, handleGroupToggle)
+            : generateNavLinks(getNavLinks())}
+        </div>
         <div className="nav-row2-right">
           {renderSearchBar(pathname)}
           {hasPageTour && <ProductTourButton onClick={handleTourClick} />}

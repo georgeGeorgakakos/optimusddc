@@ -34,6 +34,7 @@ export interface AppConfig {
   mailClientFeatures: MailClientFeaturesConfig;
   navAppSuite: VisualLinkConfig[] | null;
   navLinks: LinkConfig[];
+  navItems: NavItemConfig[];
   navTheme: 'dark' | 'light';
   nestedColumns: NestedColumnConfig;
   numberFormat: NumberFormatConfig | null;
@@ -75,6 +76,7 @@ export interface AppConfigCustom {
   announcements?: AnnoucementsFeaturesConfig;
   navAppSuite?: VisualLinkConfig[];
   navLinks?: LinkConfig[];
+  navItems?: NavItemConfig[];
   navTheme?: 'dark' | 'light';
   resourceConfig?: ResourceConfig;
   featureLineage?: FeatureLineageConfig;
@@ -183,7 +185,7 @@ export type FilterConfig = (
   | CheckboxFilterCategory
   | InputFilterCategory
   | ToggleFilterCategory
-)[];
+  )[];
 
 /**
  * Configures the UI for a given entity source
@@ -435,7 +437,34 @@ interface Link {
 export interface LinkConfig extends Link {
   use_router: boolean;
   iconOnly?: boolean;
-  icon?: string;       // ← ADD THIS LINE — maps to NavIconMap key
+  icon?: string;
+  subtitle?: string;
+}
+
+/** A single item inside a NavGroupConfig's children array */
+export interface NavGroupItemConfig {
+  href: string;
+  id: string;
+  label: string;
+  subtitle?: string;
+  icon?: string;
+  use_router: boolean;
+  target?: string;
+}
+
+/** A top-level nav entry — either a plain link or a group with children */
+export interface NavItemConfig {
+  id: string;
+  label: string;
+  icon?: string;
+  /** Present for standalone links (no dropdown) */
+  href?: string;
+  use_router?: boolean;
+  iconOnly?: boolean;
+  target?: string;
+  /** Present for group items (renders a dropdown) */
+  groupId?: string;
+  children?: NavGroupItemConfig[];
 }
 
 
