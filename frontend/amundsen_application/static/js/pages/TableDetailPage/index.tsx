@@ -1,6 +1,3 @@
-// Copyright Contributors to the Amundsen project.
-// SPDX-License-Identifier: Apache-2.0
-
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import * as DocumentTitle from 'react-document-title';
@@ -53,6 +50,7 @@ import TabsComponent, { TabInfo } from 'components/TabsComponent';
 import { TAB_URL_PARAM } from 'components/TabsComponent/constants';
 import TagInput from 'features/Tags/TagInput';
 import LoadingSpinner from 'components/LoadingSpinner';
+import SwarmLoadingSpinner from 'components/SwarmLoadingSpinner';
 
 import { logAction, logClick } from 'utils/analytics';
 import { formatDateTimeShort } from 'utils/date';
@@ -835,9 +833,11 @@ export class TableDetail extends React.Component<
       this.state;
     let innerContent: React.ReactNode;
 
-    // We want to avoid rendering the previous table's metadata before new data is fetched in componentDidMount
+    // We want to avoid rendering the previous table's metadata before new data
+    // is fetched in componentDidMount. SwarmLoadingSpinner replaces the default
+    // LoadingSpinner with the branded Swarmchestrate full-page overlay.
     if (isLoading || !this.didComponentMount) {
-      innerContent = <LoadingSpinner />;
+      innerContent = <SwarmLoadingSpinner tableName={this.getDisplayName()} />;
     } else if (statusCode === STATUS_CODES.INTERNAL_SERVER_ERROR) {
       innerContent = <ErrorMessage />;
     } else {
