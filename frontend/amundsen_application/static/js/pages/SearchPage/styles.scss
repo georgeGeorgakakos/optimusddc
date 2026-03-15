@@ -3,46 +3,45 @@
 
 @import 'variables';
 
-// ── Source Color Tokens ──
-$src-sqlite:   $indigo60;
-$src-orbitdb:  $purple70;
-$src-ipfs:     $green50;
-$src-ai:       $pink60;
-$src-agent:    $cyan70;
-$src-planned:  $gray50;
+// ── Source color tokens ──────────────────────────────────────────────────────
+$src-sqlite:  $indigo60;
+$src-orbitdb: $purple70;
+$src-ipfs:    $green50;
+$src-ai:      $pink60;
+$src-agent:   $cyan70;
+$src-planned: $gray50;
 
-// ── Animations ──
+// ── Animations ──────────────────────────────────────────────────────────────
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
-@keyframes shimmerSlide {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba($brand-color-4, 0); }
-  50% { box-shadow: 0 0 0 4px rgba($brand-color-4, 0.08); }
+@keyframes rotateDash {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
-// ── Main Layout ──
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50%       { transform: scale(1.7); opacity: 0; }
+}
+
+// ── Main layout ──────────────────────────────────────────────────────────────
 .search-page {
   display: flex;
   height: calc(100vh - #{$nav-bar-height + $footer-height});
-  background: $body-bg;
+  background: $white;
 
   .list-group {
     margin-top: 0;
@@ -52,131 +51,197 @@ $src-planned:  $gray50;
     flex-grow: 1;
     width: 0;
     overflow-y: auto;
-    background: $body-bg-secondary;
-    animation: fadeIn 0.3s ease;
+    background: $white;
+    animation: fadeIn 0.25s ease;
 
-    // Smooth scrollbar
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-    &::-webkit-scrollbar-track {
-      background: $body-bg-secondary;
-    }
+    &::-webkit-scrollbar       { width: 5px; }
+    &::-webkit-scrollbar-track { background: $white; }
     &::-webkit-scrollbar-thumb {
       background: $stroke;
       border-radius: 3px;
-
-      &:hover {
-        background: $stroke-underline;
-      }
+      &:hover { background: $stroke-underline; }
     }
-  }
-
-  @media (max-width: $screen-sm-max) {
-    .search-error {
-      margin-top: 16px;
-    }
-  }
-
-  .search-error {
-    margin-top: 32px;
-    text-align: center;
   }
 }
 
-// ── Search Results Container ──
-.search-list-container {
-  animation: fadeInUp 0.4s ease both;
-  animation-delay: 0.1s;
+// ── Semantic search pill (rendered by SearchPage, sits next to topbar input) ─
+.semantic-search-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  height: 44px;
+  border: 0.5px solid $stroke-light;
+  border-radius: 10px;
+  font-size: 12px;
+  color: $text-secondary;
+  background: $body-bg-secondary;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  .semantic-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: $green50;
+    position: relative;
+    flex-shrink: 0;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 1.5px solid $green50;
+      opacity: 0.35;
+      animation: pulseDot 2.2s ease-in-out infinite;
+    }
+  }
 }
 
-// ── Results Header Bar ──
+// ── Active filter chips row ───────────────────────────────────────────────────
+.active-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 20px 0;
+  flex-shrink: 0;
+
+  .chips-prefix {
+    font-size: 11px;
+    color: $text-tertiary;
+  }
+
+  .active-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    background: rgba($green50, 0.08);
+    color: darken($green50, 10%);
+    border: 0.5px solid rgba($green50, 0.35);
+
+    .chip-remove {
+      cursor: pointer;
+      opacity: 0.6;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      background: none;
+      border: none;
+      color: inherit;
+
+      &:hover { opacity: 1; }
+    }
+  }
+}
+
+// ── Results meta bar ──────────────────────────────────────────────────────────
 .search-results-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  background: $white;
-  border-bottom: 1px solid $stroke-light;
-  animation: fadeInUp 0.35s ease both;
+  padding: 10px 20px 0;
+  animation: fadeInUp 0.3s ease both;
 
   .results-count {
     font-size: 13px;
     color: $text-secondary;
-    font-family: $font-family-body;
 
-    strong {
-      color: $text-primary;
-      font-weight: $font-weight-body-bold;
-    }
+    strong { color: $text-primary; font-weight: $font-weight-body-bold; }
+    em     { font-style: italic; }
   }
 
-  .results-page-info {
+  .results-sort {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: 12px;
-    color: $text-tertiary;
+    color: $text-secondary;
+    border: 0.5px solid $stroke-light;
+    border-radius: 6px;
+    padding: 4px 10px;
+    background: $white;
+    cursor: pointer;
+    font-family: $font-family-body;
+
+    &:hover { background: $body-bg-secondary; }
   }
 }
 
-// ── Loading Container ──
+// ── Search results list container ─────────────────────────────────────────────
+.search-list-container {
+  padding: 12px 20px;
+  animation: fadeInUp 0.35s ease both;
+  animation-delay: 0.05s;
+}
+
+// ── Loading container ─────────────────────────────────────────────────────────
 .search-loading-container {
   padding: $spacer-3;
   animation: fadeIn 0.3s ease;
 }
 
-// ── Empty State ──
+// ── Empty state ───────────────────────────────────────────────────────────────
 .search-empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 40px;
+  padding: 72px 40px;
   text-align: center;
-  animation: fadeInUp 0.5s ease both;
+  animation: fadeInUp 0.45s ease both;
 
   .empty-state-icon {
-    margin-bottom: 20px;
-    opacity: 0.7;
-    animation: fadeInUp 0.5s ease both;
-    animation-delay: 0.1s;
+    margin-bottom: 18px;
+    animation: fadeInUp 0.45s ease both;
+    animation-delay: 0.08s;
+
+    // Spinning dashed ring
+    .empty-ring-dash {
+      animation: rotateDash 14s linear infinite;
+      transform-origin: 24px 24px;
+      opacity: 0.4;
+    }
   }
 
   .empty-state-title {
-    font-size: 16px;
-    color: $text-secondary;
-    font-family: $font-family-header;
+    font-size: 15px;
     font-weight: $font-weight-header-regular;
+    color: $text-primary;
+    font-family: $font-family-header;
     margin-bottom: 8px;
-    line-height: 1.5;
+    line-height: 1.45;
 
-    em {
-      font-style: italic;
-      color: $text-primary;
-    }
+    em { font-style: italic; color: $text-secondary; }
   }
 
   .empty-state-subtitle {
     font-size: 13px;
     color: $text-tertiary;
-    max-width: 420px;
-    line-height: 1.6;
+    max-width: 400px;
+    line-height: 1.65;
     margin-bottom: 20px;
   }
 }
 
-// ── Search Suggestions ──
+// ── Suggestion chips ──────────────────────────────────────────────────────────
 .search-suggestions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
   justify-content: center;
-  animation: fadeInUp 0.5s ease both;
-  animation-delay: 0.2s;
+  animation: fadeInUp 0.45s ease both;
+  animation-delay: 0.15s;
 
   .suggestions-label {
     font-size: 12px;
     color: $text-tertiary;
-    margin-right: 4px;
+    margin-right: 2px;
   }
 
   .suggestion-chip {
@@ -184,61 +249,69 @@ $src-planned:  $gray50;
     font-size: 12px;
     font-weight: $font-weight-body-semi-bold;
     color: $text-secondary;
-    padding: 3px 12px;
-    border-radius: $tag-border-radius;
-    background: $tag-bg;
-    border: 1px solid $stroke-light;
+    padding: 5px 14px;
+    border-radius: 20px;
+    background: $white;
+    border: 0.5px solid $stroke-underline;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.14s ease;
 
     &:hover {
-      background: $brand-color-1;
-      border-color: $brand-color-2;
-      color: $brand-color-4;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+      background: rgba($green50, 0.08);
+      border-color: rgba($green50, 0.35);
+      color: darken($green50, 10%);
     }
   }
 }
 
-// ── Enhanced List Group Items (result rows) ──
+// ── List group items (result rows) ────────────────────────────────────────────
 .list-group-item {
-  transition: all 0.2s ease;
   border-left: 3px solid transparent;
-  animation: fadeInUp 0.35s ease both;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: cardReveal 0.3s ease both;
+  background: $white;
 
-  @for $i from 1 through 20 {
-    &:nth-child(#{$i}) {
-      animation-delay: #{$i * 0.04}s;
-    }
+  @for $i from 1 through 15 {
+    &:nth-child(#{$i}) { animation-delay: #{0.03 + $i * 0.04}s; }
   }
 
   &:hover {
-    background: $body-bg-tertiary;
     border-left-color: $brand-color-4;
-    box-shadow: $elevation-level1;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    transform: translateY(-1px);
+    z-index: 1;
+    position: relative;
+
+    .resource-list-item {
+      .resource-name { color: $brand-color-5; }
+      .icon-right    { opacity: 1; transform: translateX(2px); }
+    }
   }
 
   .resource-list-item {
-    .resource-name {
-      transition: color 0.2s ease;
-    }
+    .resource-name { transition: color 0.18s ease; }
+    .icon-right    { transition: all 0.18s ease; }
 
-    &:hover .resource-name {
-      color: $brand-color-5;
-    }
-
-    // Tag highlight for search matches
     .description em {
-      background-color: $brand-color-1;
+      background: rgba($brand-color-4, 0.1);
       font-style: normal;
       padding: 1px 3px;
-      border-radius: 2px;
+      border-radius: 3px;
+      color: darken($brand-color-4, 8%);
     }
   }
 }
 
-// ── Source Type Indicators (applied to result items) ──
+// ── Source-type left-border accent (set via JS className on list-group-item) ──
+.list-group-item {
+  &.src-sqlite  { &:hover { border-left-color: $src-sqlite; } }
+  &.src-orbitdb { &:hover { border-left-color: $src-orbitdb; } }
+  &.src-ipfs    { &:hover { border-left-color: $src-ipfs; } }
+  &.src-ai      { &:hover { border-left-color: $src-ai; } }
+  &.src-agent   { &:hover { border-left-color: $src-agent; } }
+}
+
+// ── Source indicator badge ────────────────────────────────────────────────────
 .source-indicator {
   display: inline-flex;
   align-items: center;
@@ -250,39 +323,45 @@ $src-planned:  $gray50;
   padding: 2px 8px;
   border-radius: 4px;
 
-  &--sqlite {
-    color: $src-sqlite;
-    background: rgba($src-sqlite, 0.08);
-    border: 1px solid rgba($src-sqlite, 0.15);
+  &--sqlite  { color: $src-sqlite;  background: rgba($src-sqlite,  0.08); border: 0.5px solid rgba($src-sqlite,  0.25); }
+  &--orbitdb { color: $src-orbitdb; background: rgba($src-orbitdb, 0.08); border: 0.5px solid rgba($src-orbitdb, 0.25); }
+  &--ipfs    { color: $src-ipfs;    background: rgba($src-ipfs,    0.08); border: 0.5px solid rgba($src-ipfs,    0.25); }
+  &--ai      { color: $src-ai;      background: rgba($src-ai,      0.08); border: 0.5px solid rgba($src-ai,      0.25); }
+  &--agent   { color: $src-agent;   background: rgba($src-agent,   0.08); border: 0.5px solid rgba($src-agent,   0.25); }
+  &--planned { color: $src-planned; background: rgba($src-planned, 0.08); border: 0.5px solid rgba($src-planned, 0.25); }
+}
+
+// ── Relevance score bar (optional element inside each result row) ─────────────
+.relevance-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+
+  .score-value {
+    font-size: 11px;
+    font-weight: $font-weight-body-semi-bold;
+    color: $green50;
   }
-  &--orbitdb {
-    color: $src-orbitdb;
-    background: rgba($src-orbitdb, 0.08);
-    border: 1px solid rgba($src-orbitdb, 0.15);
+
+  .score-track {
+    width: 40px;
+    height: 3px;
+    background: $stroke-light;
+    border-radius: 2px;
+    overflow: hidden;
   }
-  &--ipfs {
-    color: $src-ipfs;
-    background: rgba($src-ipfs, 0.08);
-    border: 1px solid rgba($src-ipfs, 0.15);
-  }
-  &--ai {
-    color: $src-ai;
-    background: rgba($src-ai, 0.08);
-    border: 1px solid rgba($src-ai, 0.15);
-  }
-  &--agent {
-    color: $src-agent;
-    background: rgba($src-agent, 0.08);
-    border: 1px solid rgba($src-agent, 0.15);
-  }
-  &--planned {
-    color: $src-planned;
-    background: rgba($src-planned, 0.08);
-    border: 1px solid rgba($src-planned, 0.15);
+
+  .score-fill {
+    height: 100%;
+    background: $green50;
+    border-radius: 2px;
+    transition: width 0.4s ease;
   }
 }
 
-// ── Replication Badge ──
+// ── Replication badge ─────────────────────────────────────────────────────────
 .replicated-badge {
   display: inline-flex;
   align-items: center;
@@ -290,8 +369,7 @@ $src-planned:  $gray50;
   font-size: 10px;
   font-weight: $font-weight-body-semi-bold;
   color: $purple70;
-  letter-spacing: 0.04em;
-  opacity: 0.7;
+  opacity: 0.75;
 
   .replicated-dot {
     width: 5px;
@@ -301,7 +379,7 @@ $src-planned:  $gray50;
   }
 }
 
-// ── Pagination Enhancement ──
+// ── Pagination ────────────────────────────────────────────────────────────────
 .pagination {
   margin-top: $spacer-2;
   margin-bottom: $spacer-3;
@@ -313,11 +391,12 @@ $src-planned:  $gray50;
     border-color: $stroke-light;
     color: $text-secondary;
     font-size: 13px;
-    transition: all 0.2s ease;
+    background: $white;
+    transition: all 0.15s ease;
 
     &:hover {
-      background: $brand-color-1;
-      border-color: $brand-color-2;
+      background: rgba($brand-color-4, 0.07);
+      border-color: rgba($brand-color-4, 0.3);
       color: $brand-color-4;
     }
   }
@@ -328,11 +407,9 @@ $src-planned:  $gray50;
     border-color: $brand-color-4 !important;
     color: $white !important;
 
-    &:hover {
-      background: $brand-color-5 !important;
-    }
+    &:hover { background: $brand-color-5 !important; }
   }
 }
 
-// ── Enhanced Resource List Item Styles ──
+// ── Enhanced resource list item styles ────────────────────────────────────────
 @import './styles-resource-list-enhanced';

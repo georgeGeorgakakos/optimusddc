@@ -1,5 +1,7 @@
 // js/features/SearchFilter/FilterSection/CheckboxGroupFilter/styles.scss
 
+@import 'variables';
+
 .checkbox-group-filter {
   display: flex;
   flex-direction: column;
@@ -9,14 +11,12 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    padding: 3px 5px;
-    border-radius: 5px;
+    padding: 3px 6px;
+    border-radius: 6px;
     cursor: pointer;
     user-select: none;
 
-    &:hover {
-      background: var(--color-background-secondary);
-    }
+    &:hover { background: $body-bg-secondary; }
   }
 
   &__cb {
@@ -24,21 +24,21 @@
     height: 13px;
     flex-shrink: 0;
     cursor: pointer;
-    accent-color: #534AB7;
+    accent-color: $brand-color-4;
     margin: 0;
   }
 
   &__label {
     font-size: 12px;
-    color: var(--color-text-primary);
+    color: $text-primary;
     flex: 1;
     line-height: 1.4;
   }
 
   &__count {
     font-size: 10px;
-    color: var(--color-text-tertiary);
-    background: var(--color-background-tertiary, #f3f3f3);
+    color: $text-tertiary;
+    background: $body-bg-secondary;
     padding: 1px 5px;
     border-radius: 8px;
     min-width: 18px;

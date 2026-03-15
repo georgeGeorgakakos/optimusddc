@@ -3,42 +3,118 @@
 
 @import 'variables';
 
+// ── Filter section wrapper ────────────────────────────────────────────────────
 .search-filter-section {
   &:not(:first-child) {
     margin-top: $spacer-3;
   }
 
+  // ── Section header ─────────────────────────────────────────────────────
   .search-filter-section-header {
     display: flex;
+    align-items: center;
+    margin-bottom: 6px;
   }
 
   .search-filter-section-title {
     display: flex;
     flex-grow: 1;
+    align-items: center;
   }
 
   .search-filter-section-label {
     margin-bottom: 0;
-    font-size: $font-size-large;
+    font-size: 10px;
     font-weight: $font-weight-body-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $text-tertiary;
     line-height: 1.4;
   }
 
+  // ── Filter inputs layout ────────────────────────────────────────────────
   .input-section-content {
     display: flex;
     flex-direction: column;
+    gap: 6px;
 
-    input {
+    input,
+    select {
       min-width: 0;
+      height: 30px;
+      font-size: 12px;
+      border: 0.5px solid $stroke-light;
+      border-radius: 7px;
+      padding: 0 9px;
+      background: $body-bg-secondary;
+      color: $text-primary;
+      font-family: $font-family-body;
+      transition: border-color 0.15s ease, background 0.15s ease;
+
+      &:hover  { border-color: $stroke-underline; }
+
+      &:focus {
+        border-color: rgba($brand-color-4, 0.55);
+        box-shadow: 0 0 0 3px rgba($brand-color-4, 0.08);
+        background: $white;
+        outline: none;
+      }
+
+      &::placeholder {
+        color: $text-placeholder;
+        font-size: 11px;
+      }
+    }
+
+    select {
+      appearance: none;
+      cursor: pointer;
     }
   }
 
+  // ── Apply / Clear buttons ───────────────────────────────────────────────
   .input-section-buttons {
     display: flex;
     justify-content: space-between;
+    gap: 7px;
     margin-top: $spacer-3;
+
+    .btn {
+      flex: 1;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: $font-weight-body-semi-bold;
+      height: 30px;
+      padding: 0 10px;
+      transition: all 0.15s ease;
+      font-family: $font-family-body;
+
+      &.btn-default:first-child {
+        background: $brand-color-4;
+        border-color: $brand-color-4;
+        color: $white;
+
+        &:hover {
+          background: $brand-color-5;
+          border-color: $brand-color-5;
+          box-shadow: 0 2px 8px rgba($brand-color-4, 0.22);
+        }
+      }
+
+      &.btn-default:last-child {
+        background: $white;
+        border-color: $stroke;
+        color: $text-secondary;
+
+        &:hover {
+          background: $body-bg-secondary;
+          border-color: $stroke-underline;
+        }
+      }
+    }
   }
 
+  // ── AND / OR filter operation toggle ────────────────────────────────────
   .filter-operation-toggle {
     margin-top: $spacer-1;
   }

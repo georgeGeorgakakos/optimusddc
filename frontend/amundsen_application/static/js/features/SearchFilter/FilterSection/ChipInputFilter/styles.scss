@@ -1,30 +1,36 @@
 // js/features/SearchFilter/FilterSection/ChipInputFilter/styles.scss
 
+@import 'variables';
+
 .chip-input-filter {
-  min-height: 34px;
+  min-height: 32px;
   padding: 4px 7px;
-  border: 0.5px solid var(--color-border-secondary, rgba(0, 0, 0, 0.2));
-  border-radius: 6px;
-  background: var(--color-background-secondary);
+  border: 0.5px solid $stroke-light;
+  border-radius: 7px;
+  background: $body-bg-secondary;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   cursor: text;
   align-items: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover { border-color: $stroke-underline; }
 
   &:focus-within {
-    border-color: #534AB7;
-    box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.12);
+    border-color: rgba($brand-color-4, 0.55);
+    box-shadow: 0 0 0 3px rgba($brand-color-4, 0.08);
+    background: $white;
   }
 
   &__chip {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 2px 6px 2px 8px;
-    background: #EEEDFE;
-    color: #3C3489;
-    border: 0.5px solid #AFA9EC;
+    padding: 2px 7px 2px 8px;
+    background: $brand-color-1;
+    color: $brand-color-4;
+    border: 0.5px solid $brand-color-2;
     border-radius: 10px;
     font-size: 11px;
     white-space: nowrap;
@@ -32,21 +38,18 @@
   }
 
   &__chip-remove {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background: none;
     border: none;
     padding: 0;
-    margin: 0;
     cursor: pointer;
     font-size: 14px;
     line-height: 1;
-    color: #7F77DD;
+    color: $brand-color-4;
+    display: flex;
+    align-items: center;
+    opacity: 0.65;
 
-    &:hover {
-      color: #3C3489;
-    }
+    &:hover { opacity: 1; }
   }
 
   &__input {
@@ -54,14 +57,15 @@
     outline: none;
     background: transparent;
     font-size: 12px;
-    font-family: inherit;
-    color: var(--color-text-primary);
+    font-family: $font-family-body;
+    color: $text-primary;
     min-width: 80px;
     flex: 1;
     padding: 0;
 
     &::placeholder {
-      color: var(--color-text-tertiary);
+      color: $text-placeholder;
+      font-size: 11px;
     }
   }
 }

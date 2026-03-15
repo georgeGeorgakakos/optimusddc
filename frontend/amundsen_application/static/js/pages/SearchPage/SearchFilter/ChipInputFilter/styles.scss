@@ -1,50 +1,55 @@
 // js/pages/SearchPage/SearchFilter/ChipInputFilter/styles.scss
 
+@import 'variables';
+
 .chip-input-filter {
-  min-height: 34px;
+  min-height: 32px;
   padding: 4px 7px;
-  border: 1px solid #cacad9;
-  border-radius: 4px;
-  background: #fff;
+  border: 0.5px solid $stroke-light;
+  border-radius: 7px;
+  background: $body-bg-secondary;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   cursor: text;
   align-items: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover { border-color: $stroke-underline; }
 
   &:focus-within {
-    border-color: #665aff;
-    box-shadow: 0 0 0 2px rgba(102, 90, 255, 0.15);
+    border-color: rgba($brand-color-4, 0.55);
+    box-shadow: 0 0 0 3px rgba($brand-color-4, 0.08);
+    background: $white;
   }
 
   &__chip {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 2px 6px 2px 8px;
-    background: #eeedfe;
-    color: #3c3489;
-    border: 0.5px solid #afa9ec;
+    padding: 2px 7px 2px 8px;
+    background: $brand-color-1;
+    color: $brand-color-4;
+    border: 0.5px solid $brand-color-2;
     border-radius: 10px;
     font-size: 11px;
     white-space: nowrap;
     line-height: 1.4;
   }
 
-  &__remove {
+  &__chip-remove {
     background: none;
     border: none;
     padding: 0;
     cursor: pointer;
     font-size: 14px;
     line-height: 1;
-    color: #7f77dd;
+    color: $brand-color-4;
     display: flex;
     align-items: center;
+    opacity: 0.65;
 
-    &:hover {
-      color: #3c3489;
-    }
+    &:hover { opacity: 1; }
   }
 
   &__input {
@@ -52,14 +57,15 @@
     outline: none;
     background: transparent;
     font-size: 12px;
-    font-family: inherit;
-    color: inherit;
+    font-family: $font-family-body;
+    color: $text-primary;
     min-width: 80px;
     flex: 1;
     padding: 0;
 
     &::placeholder {
-      color: #9191a8;
+      color: $text-placeholder;
+      font-size: 11px;
     }
   }
 }

@@ -1,5 +1,7 @@
 // js/pages/SearchPage/SearchFilter/SelectDropdownFilter/styles.scss
 
+@import 'variables';
+
 .select-dropdown-filter {
   width: 100%;
 
@@ -9,14 +11,26 @@
 
   &__select {
     width: 100%;
-    padding-right: 24px;
+    height: 30px;
+    padding: 0 24px 0 9px;
+    font-size: 12px;
+    font-family: $font-family-body;
+    border: 0.5px solid $stroke-light;
+    border-radius: 7px;
+    background: $body-bg-secondary;
+    color: $text-primary;
     appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover  { border-color: $stroke-underline; }
 
     &:focus {
       outline: none;
-      box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.2);
+      border-color: rgba($brand-color-4, 0.55);
+      box-shadow: 0 0 0 3px rgba($brand-color-4, 0.08);
+      background: $white;
     }
   }
 
@@ -26,7 +40,7 @@
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    color: #9191a8;
+    color: $text-tertiary;
     flex-shrink: 0;
   }
 }

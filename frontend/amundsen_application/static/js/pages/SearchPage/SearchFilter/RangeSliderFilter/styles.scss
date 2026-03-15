@@ -1,5 +1,7 @@
 // js/pages/SearchPage/SearchFilter/RangeSliderFilter/styles.scss
 
+@import 'variables';
+
 .range-slider-filter {
   &__row {
     display: flex;
@@ -10,20 +12,18 @@
   &__input {
     flex: 1;
     cursor: pointer;
-    accent-color: #665aff;
+    accent-color: $brand-color-4;
     height: 4px;
     padding: 0;
     margin: 0;
 
-    &:focus {
-      outline: none;
-    }
+    &:focus { outline: none; }
   }
 
   &__value {
     font-size: 11px;
-    color: #5f5e76;
-    min-width: 48px;
+    color: $text-secondary;
+    min-width: 44px;
     text-align: right;
     white-space: nowrap;
   }
@@ -36,7 +36,7 @@
 
     span {
       font-size: 9px;
-      color: #9191a8;
+      color: $text-tertiary;
     }
   }
 }

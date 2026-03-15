@@ -3,24 +3,31 @@
 
 @import 'variables';
 
-// ── Animations ──
+// ── Source color tokens ──────────────────────────────────────────────────────
+$src-sqlite:  $indigo60;
+$src-orbitdb: $purple70;
+$src-ipfs:    $green50;
+$src-ai:      $pink60;
+$src-agent:   $cyan70;
+$src-planned: $gray50;
+
+// ── Animations ──────────────────────────────────────────────────────────────
 @keyframes panelFadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes dotPulse {
+@keyframes statusPulse {
   0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  50%       { opacity: 1; }
 }
 
-// ── Panel Container ──
+@keyframes dotRing {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50%       { transform: scale(1.7); opacity: 0; }
+}
+
+// ── Panel container ───────────────────────────────────────────────────────────
 .search-control-panel {
   border-right: $search-panel-border-width solid $stroke;
   display: flex;
@@ -28,71 +35,53 @@
   flex-direction: column;
   overflow-y: auto;
   background: $white;
-  animation: panelFadeIn 0.4s ease both;
+  animation: panelFadeIn 0.35s ease both;
 
-  // Smooth scrollbar
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  &::-webkit-scrollbar       { width: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb {
     background: $stroke-light;
     border-radius: 2px;
   }
 
+  // ── Section wrapper ──────────────────────────────────────────────────────
   .section {
-    padding: 24px 24px 24px 28px;
+    padding: 16px 16px;
     width: $search-panel-width - $search-panel-border-width;
+    border-bottom: 0.5px solid $stroke-light;
 
-    &:not(:first-child) {
-      border-top: 2px solid $stroke;
-    }
+    &:last-child { border-bottom: none; }
   }
 
-  // ── Section Titles ──
+  // ── Section label (replaces .title-2) ───────────────────────────────────
   .title-2,
-  .section-title {
-    font-family: $font-family-header;
+  .section-title,
+  .section-label {
+    font-size: 10px;
     font-weight: $font-weight-body-bold;
-    font-size: 13px;
-    color: $text-primary;
-    margin-bottom: 12px;
-    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $text-tertiary;
+    margin-bottom: 10px;
   }
 
-  // ── Radio Buttons ──
-  .checkbox,
-  .radio {
-    margin-bottom: $spacer-half;
-    margin-top: $spacer-half;
-
-    &:first-child {
-      margin-top: $spacer-1;
-    }
-  }
+  // ── Resource type radio options ──────────────────────────────────────────
+  .radio { margin: 3px 0; }
 
   .radio-label {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 5px 8px;
-    border-radius: 6px;
+    border-radius: 7px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.14s ease;
 
-    &:hover {
-      background: $body-bg-secondary;
-    }
+    &:hover { background: $body-bg-secondary; }
 
-    input[type="radio"] {
-      accent-color: $brand-color-4;
-    }
+    input[type='radio'] { accent-color: $brand-color-4; }
 
-    .text-subtitle-w2 {
-      flex: 1;
-    }
+    .text-subtitle-w2 { flex: 1; font-size: 13px; }
 
     .pull-right {
       font-size: 12px;
@@ -101,17 +90,20 @@
     }
   }
 
-  // ── Filter Inputs ──
+  // ── Filter form controls ─────────────────────────────────────────────────
   .form-control {
-    border: 1px solid $stroke-light;
-    border-radius: 6px;
-    font-size: 13px;
-    padding: 8px 12px;
-    transition: all 0.25s ease;
+    border: 0.5px solid $stroke-light;
+    border-radius: 7px;
+    font-size: 12px;
+    padding: 6px 10px;
     background: $body-bg-secondary;
+    transition: all 0.18s ease;
+    height: 30px;
+
+    &:hover  { border-color: $stroke-underline; }
 
     &:focus {
-      border-color: rgba($brand-color-4, 0.5);
+      border-color: rgba($brand-color-4, 0.6);
       box-shadow: 0 0 0 3px rgba($brand-color-4, 0.08);
       background: $white;
       outline: none;
@@ -119,23 +111,24 @@
 
     &::placeholder {
       color: $text-placeholder;
-      font-size: 12px;
+      font-size: 11px;
     }
   }
 
-  // ── Filter Buttons ──
+  // ── Apply / clear buttons ────────────────────────────────────────────────
   .input-section-buttons {
-    margin-top: 16px;
+    margin-top: 14px;
     display: flex;
-    gap: 8px;
+    gap: 7px;
 
     .btn {
       flex: 1;
-      border-radius: 6px;
+      border-radius: 7px;
       font-size: 12px;
       font-weight: $font-weight-body-semi-bold;
-      padding: 7px 12px;
-      transition: all 0.2s ease;
+      padding: 6px 10px;
+      transition: all 0.16s ease;
+      height: 30px;
 
       &:first-child {
         background: $brand-color-4;
@@ -145,8 +138,7 @@
         &:hover {
           background: $brand-color-5;
           border-color: $brand-color-5;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba($brand-color-4, 0.25);
+          box-shadow: 0 2px 8px rgba($brand-color-4, 0.22);
         }
       }
 
@@ -163,17 +155,15 @@
     }
   }
 
-  // ── Topology Section ──
+  // ── Cluster topology section ─────────────────────────────────────────────
   .section--topology {
     .topology-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
 
-      .section-title {
-        margin-bottom: 0;
-      }
+      .section-title { margin-bottom: 0; }
 
       .topology-status {
         display: flex;
@@ -181,101 +171,84 @@
         gap: 5px;
         font-size: 10px;
         font-weight: $font-weight-body-semi-bold;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.03em;
       }
 
       .status-dot {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        animation: dotPulse 2s ease-in-out infinite;
+        animation: statusPulse 2.5s ease-in-out infinite;
+        flex-shrink: 0;
 
-        &--healthy {
-          background: $green50;
-        }
-        &--warning {
-          background: $amber60;
-        }
-        &--error {
-          background: $red50;
-        }
+        &--healthy { background: $green50; }
+        &--warning { background: $amber60; }
+        &--error   { background: $red50; }
       }
 
       .status-text {
         text-transform: uppercase;
-
         &--healthy { color: $green50; }
         &--warning { color: $amber60; }
-        &--error { color: $red50; }
+        &--error   { color: $red50; }
       }
     }
 
     .topology-canvas-container {
       background: $body-bg-secondary;
-      border: 1px solid $stroke-light;
+      border: 0.5px solid $stroke-light;
       border-radius: 8px;
-      padding: 4px;
-      margin-bottom: 8px;
+      padding: 10px;
       overflow: hidden;
     }
 
     .topology-legend {
       display: flex;
       justify-content: space-between;
-      font-size: 10px;
+      font-size: 9px;
       color: $text-tertiary;
+      margin-top: 6px;
 
       .legend-item {
         display: flex;
         align-items: center;
         gap: 4px;
+      }
 
-        .legend-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-        }
+      .legend-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
 
-        .legend-dot--coordinator {
-          background: $brand-color-4;
-        }
-
-        .legend-dot--follower {
-          background: $cyan50;
-        }
-
-        .legend-dot--data {
-          background: $brand-color-3;
-          opacity: 0.6;
-        }
+        &--coordinator { background: $green50; }
+        &--follower    { background: $cyan50; }
+        &--data        { background: $brand-color-3; opacity: 0.6; }
       }
     }
   }
 
-  // ── Inventory Stats Section ──
+  // ── Inventory stats section ───────────────────────────────────────────────
   .section--inventory {
     .inventory-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
 
     .inventory-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 5px 8px;
+      gap: 7px;
+      padding: 4px 6px;
       border-radius: 6px;
-      transition: background 0.2s ease;
+      transition: background 0.14s ease;
       cursor: default;
 
-      &:hover {
-        background: $body-bg-secondary;
-      }
+      &:hover { background: $body-bg-secondary; }
 
       .inventory-dot {
-        width: 8px;
-        height: 8px;
+        width: 7px;
+        height: 7px;
         border-radius: 2px;
         flex-shrink: 0;
       }
@@ -286,29 +259,35 @@
         flex: 1;
       }
 
-      .inventory-count {
-        font-size: 12px;
-        font-weight: $font-weight-body-bold;
+      // Proportional bar
+      .inventory-bar {
+        flex: 2;
+        height: 3px;
+        background: $stroke-light;
+        border-radius: 2px;
+        overflow: hidden;
+
+        .inventory-bar-fill {
+          height: 100%;
+          border-radius: 2px;
+          transition: width 0.5s ease;
+        }
       }
 
-      // Source-specific colors
-      &--sqlite .inventory-dot { background: $indigo60; }
-      &--sqlite .inventory-count { color: $indigo60; }
+      .inventory-count {
+        font-size: 11px;
+        font-weight: $font-weight-body-bold;
+        min-width: 18px;
+        text-align: right;
+      }
 
-      &--orbitdb .inventory-dot { background: $purple70; }
-      &--orbitdb .inventory-count { color: $purple70; }
-
-      &--ipfs .inventory-dot { background: $green50; }
-      &--ipfs .inventory-count { color: $green50; }
-
-      &--ai .inventory-dot { background: $pink60; }
-      &--ai .inventory-count { color: $pink60; }
-
-      &--agent .inventory-dot { background: $cyan70; }
-      &--agent .inventory-count { color: $cyan70; }
-
-      &--planned .inventory-dot { background: $gray50; }
-      &--planned .inventory-count { color: $gray50; }
+      // Source-specific colours
+      &--sqlite  { .inventory-dot { background: $src-sqlite; }  .inventory-bar-fill { background: rgba($src-sqlite,  0.65); } .inventory-count { color: $src-sqlite; } }
+      &--orbitdb { .inventory-dot { background: $src-orbitdb; } .inventory-bar-fill { background: rgba($src-orbitdb, 0.65); } .inventory-count { color: $src-orbitdb; } }
+      &--ipfs    { .inventory-dot { background: $src-ipfs; }    .inventory-bar-fill { background: rgba($src-ipfs,    0.65); } .inventory-count { color: $src-ipfs; } }
+      &--ai      { .inventory-dot { background: $src-ai; }      .inventory-bar-fill { background: rgba($src-ai,      0.65); } .inventory-count { color: $src-ai; } }
+      &--agent   { .inventory-dot { background: $src-agent; }   .inventory-bar-fill { background: rgba($src-agent,   0.5); }  .inventory-count { color: $src-agent; } }
+      &--planned { .inventory-dot { background: $src-planned; } .inventory-bar-fill { background: rgba($src-planned, 0.5); }  .inventory-count { color: $src-planned; } }
     }
 
     .inventory-total {
@@ -317,20 +296,21 @@
       gap: 8px;
       margin-top: 12px;
       padding-top: 10px;
-      border-top: 1px solid $stroke-light;
+      border-top: 0.5px solid $stroke-light;
 
       .total-number {
         font-size: 22px;
         font-weight: $font-weight-header-bold;
         font-family: $font-family-header;
         color: $text-primary;
+        line-height: 1;
       }
 
       .total-label {
-        font-size: 11px;
+        font-size: 10px;
         color: $text-tertiary;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.07em;
         font-weight: $font-weight-body-semi-bold;
       }
     }
