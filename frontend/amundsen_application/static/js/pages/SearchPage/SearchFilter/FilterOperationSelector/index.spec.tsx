@@ -5,7 +5,8 @@ import * as React from 'react';
 import { ToggleButton, ToggleButtonGroup } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 
-import { FilterOperationType } from 'interfaces/Enums';
+//import { FilterOperationType } from interfaces/Enums';
+import { FilterOperationType } from '../../../../interfaces/Enums'
 import FilterOperationSelector, { FilterOperationSelectorProps } from '.';
 
 describe('FilterOperationSelector', () => {

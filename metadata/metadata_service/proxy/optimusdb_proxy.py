@@ -8,7 +8,7 @@ import requests
 from flask import current_app
 from metadata_service.proxy.base_proxy import BaseProxy
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List
+
 
 # Try to import UserResourceRel, provide fallback if not available
 try:
@@ -335,6 +335,7 @@ class OptimusDBProxy(BaseProxy):
                 'name': name,
                 'key': table_uri,
                 'description': enhanced_description,
+                'datastore_type': self._get_datastore_type(schema, name),
                 'last_updated_timestamp': self._extract_timestamp(record),
                 'columns': columns,
                 'owners': owners,
@@ -743,6 +744,28 @@ class OptimusDBProxy(BaseProxy):
             'source': {'source': 'optimusdb', 'source_type': 'Table'},
             'programmatic_descriptions': []
         }
+
+    def _get_datastore_type(self, schema: str, table_name: str) -> str:
+        """
+        Deterministically map schema + table_name to a datastore type string.
+        Pure name heuristic — no DB query needed.
+        Returns one of: 'vector' | 'graph' | 'log' | 'crud' | 'rdbms'
+        """
+        name = (schema + ' ' + table_name).lower()
+
+        if any(k in name for k in ['embedding', 'vector', 'index', 'faiss', 'ann']):
+            return 'vector'
+
+        if any(k in name for k in ['peer', 'topology', 'graph', 'edge', 'node', 'network']):
+            return 'graph'
+
+        if any(k in name for k in ['log', 'event', 'stream', 'audit', 'ems', 'logger', 'journal']):
+            return 'log'
+
+        if any(k in name for k in ['_relation', 'catalog', 'metadata', 'config', 'setting', 'preference']):
+            return 'crud'
+
+        return 'rdbms'
 
     # ------------------------------------------------------------------
     # Table Description Methods
@@ -1798,7 +1821,7 @@ class OptimusDBProxy(BaseProxy):
                         )
                         continue
 
-                    # ✅ USE HELPER FUNCTION
+                    # USE HELPER FUNCTION
                     json_resp = self._parse_optimusdb_response(resp)
                     records = json_resp.get("data", {}).get("records", [])
 
@@ -1822,6 +1845,7 @@ class OptimusDBProxy(BaseProxy):
                             "cluster": node,
                             "database": database,
                             "description": desc,
+                            "datastore_type": self._get_datastore_type(schema, name),
                             "column_names": list(rec.keys()) or ["_id", "name", "description"],
                             "columns": [
                                 {"name": k, "description": "", "col_type": "string"} for k in rec.keys()

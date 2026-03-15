@@ -179,13 +179,44 @@ export interface InputFilterCategory extends BaseFilterCategory {
 }
 
 /**
+ * Interface for filter categories displayed as a single-select dropdown
+ * options use the same CheckboxFilterOptions shape { displayName?, value }
+ */
+export interface SelectDropdownFilterCategory extends BaseFilterCategory {
+  type: FilterType.SELECT_DROPDOWN;
+  options: CheckboxFilterOptions[];
+}
+
+/**
+ * Interface for filter categories displayed as a chip (multi-tag) input
+ * Values are stored as comma-separated strings in Redux state
+ */
+export interface ChipInputFilterCategory extends BaseFilterCategory {
+  type: FilterType.CHIP_INPUT;
+}
+
+/**
+ * Interface for filter categories displayed as a range slider
+ * The slider value is stored as a string in Redux state
+ */
+export interface RangeSliderFilterCategory extends BaseFilterCategory {
+  type: FilterType.RANGE_SLIDER;
+  sliderMin: number;
+  sliderMax: number;
+  sliderStep: number;
+}
+
+/**
  * Configures filter categories for each resource
  */
 export type FilterConfig = (
   | CheckboxFilterCategory
   | InputFilterCategory
   | ToggleFilterCategory
-)[];
+  | SelectDropdownFilterCategory
+  | ChipInputFilterCategory
+  | RangeSliderFilterCategory
+  )[];
 
 /**
  * Configures the UI for a given entity source

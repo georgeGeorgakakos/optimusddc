@@ -7,6 +7,10 @@ export enum FilterType {
   CHECKBOX_SELECT = 'checkboxFilter',
   INPUT_SELECT = 'inputFilter',
   TOGGLE_FILTER = 'toggleFilter',
+  SELECT_DROPDOWN = 'selectDropdown', // NEW
+  CHECKBOX_GROUP = 'checkboxGroup', // NEW
+  CHIP_INPUT = 'chipInput', // NEW
+  RANGE_SLIDER = 'rangeSlider', // NEW
 }
 
 export enum FilterOperationType {

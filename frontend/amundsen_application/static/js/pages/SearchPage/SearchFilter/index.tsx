@@ -23,6 +23,11 @@ export interface FilterSectionItem {
   title: string;
   type: FilterType;
   defaultValue?: string[];
+  // NEW: carried for SelectDropdown and RangeSlider
+  selectOptions?: Array<{ displayName?: string; value: string }>;
+  sliderMin?: number;
+  sliderMax?: number;
+  sliderStep?: number;
 }
 
 export interface CheckboxFilterSection extends FilterSectionItem {
@@ -69,6 +74,10 @@ export class SearchFilter extends React.Component<SearchFilterProps> {
       title,
       defaultValue,
       type,
+      selectOptions,
+      sliderMin,
+      sliderMax,
+      sliderStep,
     } = section;
     const options = (section as CheckboxFilterSection).options
       ? (section as CheckboxFilterSection).options
@@ -84,6 +93,10 @@ export class SearchFilter extends React.Component<SearchFilterProps> {
         defaultValue={defaultValue}
         type={type}
         options={options}
+        selectOptions={selectOptions}
+        sliderMin={sliderMin}
+        sliderMax={sliderMax}
+        sliderStep={sliderStep}
       />
     );
   };
@@ -149,10 +162,29 @@ export const mapStateToProps = (state: GlobalState) => {
       };
 
       if (categoryConfig.type === FilterType.CHECKBOX_SELECT) {
-        section.options = categoryConfig.options.map(
-          ({ value, displayName }) => ({ value, label: displayName || '' })
+        section.options = (categoryConfig as any).options.map(
+          ({
+            value,
+            displayName,
+          }: {
+            value: string;
+            displayName?: string;
+          }) => ({ value, label: displayName || '' })
         );
       }
+
+      if (categoryConfig.type === FilterType.SELECT_DROPDOWN) {
+        section.selectOptions = (categoryConfig as any).options || [];
+      }
+
+      if (categoryConfig.type === FilterType.RANGE_SLIDER) {
+        const cfg = categoryConfig as any;
+
+        section.sliderMin = cfg.sliderMin !== undefined ? cfg.sliderMin : 0;
+        section.sliderMax = cfg.sliderMax !== undefined ? cfg.sliderMax : 1000;
+        section.sliderStep = cfg.sliderStep !== undefined ? cfg.sliderStep : 10;
+      }
+
       filterSections.push(section);
     });
   }

@@ -1,0 +1,42 @@
+// js/features/SearchFilter/FilterSection/RangeSliderFilter/styles.scss
+
+.range-slider-filter {
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__input {
+    flex: 1;
+    height: 4px;
+    cursor: pointer;
+    accent-color: #534AB7;
+    padding: 0;
+    margin: 0;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__value {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    min-width: 44px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  &__scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    padding: 0 1px;
+
+    span {
+      font-size: 9px;
+      color: var(--color-text-tertiary);
+    }
+  }
+}

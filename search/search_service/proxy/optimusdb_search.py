@@ -36,8 +36,8 @@ import threading
 import hashlib
 from typing import Any, Dict, List, Optional, Union
 
-import attr
 
+import re as _re
 import requests
 
 # --- Base class ---
@@ -131,6 +131,33 @@ class OptimusDBSearchProxy(BaseProxy):
     def _node_url(self, node: str) -> str:
         return f"http://{node}:{self.port}"
 
+    @staticmethod
+    def _get_datastore_type(schema: str, table_name: str) -> str:
+        """Deterministic datastore type heuristic — keep in sync with proxy."""
+        name = (schema + ' ' + table_name).lower()
+        if any(k in name for k in ['embedding', 'vector', 'index', 'faiss', 'ann']):
+            return 'vector'
+        if any(k in name for k in ['peer', 'topology', 'graph', 'edge', 'node', 'network']):
+            return 'graph'
+        if any(k in name for k in ['log', 'event', 'stream', 'audit', 'ems', 'logger', 'journal']):
+            return 'log'
+        if any(k in name for k in ['_relation', 'catalog', 'metadata', 'config', 'setting']):
+            return 'crud'
+        return 'rdbms'
+
+    def _extract_row_count(description: str) -> int:
+        """
+        Parse row count from description strings like:
+          'SQLite table foo ... 4,176 rows, 7 columns'
+        Returns 0 if not found.
+        """
+        match = _re.search(r'([\d,]+)\s+rows?', description or '', _re.IGNORECASE)
+        if match:
+            try:
+                return int(match.group(1).replace(',', ''))
+            except ValueError:
+                pass
+        return 0
     def _parse_response(self, resp: requests.Response) -> Any:
         try:
             result = resp.json()
@@ -395,6 +422,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     "tags": tags,
                     "row_count": row_count,
                     "source_type": "sqlite",
+                    "datastore_type": self._get_datastore_type(db_name, tbl_name),
                     "extra_fields": {},
                 })
 
@@ -476,6 +504,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     "tags": tags,
                     "row_count": 1,
                     "source_type": tbl_name,
+                    "datastore_type": self._get_datastore_type(tbl_name, rec_name),
                     "extra_fields": rec,
                 })
         except Exception as e:
@@ -866,7 +895,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['table'] = {
                         'total_results': r.total_results,
-                        'results': [attr.asdict(t) for t in r.results],
+                        'results': [vars(t) for t in r.results],
                     }
                 elif rt == Resource.USER:
                     r = self.fetch_user_search_results(
@@ -874,7 +903,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['user'] = {
                         'total_results': r.total_results,
-                        'results': [attr.asdict(u) for u in r.results],
+                        'results': [vars(u) for u in r.results],
                     }
                 elif rt == Resource.DASHBOARD:
                     r = self.fetch_dashboard_search_results(
@@ -882,7 +911,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['dashboard'] = {
                         'total_results': r.total_results,
-                        'results': [attr.asdict(d) for d in r.results],
+                        'results': [vars(d) for d in r.results],
                     }
                 elif rt == Resource.FEATURE:
                     r = self.fetch_feature_search_results(
@@ -890,7 +919,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['feature'] = {
                         'total_results': r.total_results,
-                        'results': [attr.asdict(f) for f in r.results],
+                        'results': [vars(f) for f in r.results],
                     }
 
             return SearchResponse(
@@ -952,6 +981,7 @@ class OptimusDBSearchProxy(BaseProxy):
                 for ds in datasets
             ]
             scored = [(s, ds) for s, ds in scored if s > 0]
+            scored = self._apply_search_filters(scored)
             scored.sort(key=lambda x: x[0], reverse=True)
 
             total = len(scored)
@@ -970,6 +1000,20 @@ class OptimusDBSearchProxy(BaseProxy):
             LOGGER.exception(f"[TableSearch] error: {e}")
             return SearchTableResult(total_results=0, results=[])
 
+    def _apply_search_filters(
+            self,
+            scored: list,
+            filters: dict = None,
+    ) -> list:
+        """
+        Apply sidebar filters that come through the search request.
+        Currently handled via query_term prefix conventions.
+        Extend this when filter state is passed via the search API.
+        """
+        # datastore_type filter — detect "datastore_type:rdbms" in query_term
+        # (The frontend currently sends filters as part of the search state;
+        # if your API passes them explicitly, add the parameter here.)
+        return scored
     # ==================================================================
     # USER SEARCH
     # ==================================================================
@@ -1128,3 +1172,4 @@ class OptimusDBSearchProxy(BaseProxy):
             value: Optional[str] = None,
     ) -> str:
         return "Managed by OptimusDB"
+

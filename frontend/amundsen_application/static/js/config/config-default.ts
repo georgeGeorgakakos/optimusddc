@@ -304,40 +304,71 @@ const configDefault: AppConfig = {
     [ResourceType.table]: {
       displayName: 'Datasets',
       filterCategories: [
+        // ── Datastore type — SELECT_DROPDOWN (new) ────────────────────────────
         {
-          categoryId: 'database',
+          categoryId:  'datastore_type',
+          displayName: 'Datastore Type',
+          helpText:    'Filter by the storage paradigm of the underlying datastore',
+          type:        FilterType.SELECT_DROPDOWN,
+          options: [
+            { displayName: 'All types',          value: ''       },
+            { displayName: 'RDBMS',              value: 'rdbms'  },
+            { displayName: 'CRUD datastore',     value: 'crud'   },
+            { displayName: 'Graph',              value: 'graph'  },
+            { displayName: 'Vector',             value: 'vector' },
+            { displayName: 'Log / event stream', value: 'log'    },
+          ],
+        },
+
+        // ── Source node — INPUT_SELECT (scalable: any node name) ─────────────
+        {
+          categoryId:  'cluster',
           displayName: 'Source',
-          helpText:
-            'Enter one or more comma separated values with exact database names or regex wildcard patterns',
-          type: FilterType.INPUT_SELECT,
+          helpText:    'Filter by OptimusDB node name (e.g. optimusdb1). Supports comma-separated values.',
+          type:        FilterType.INPUT_SELECT,
         },
+
+        // ── Schema — INPUT_SELECT (scalable: any schema name) ────────────────
         {
-          categoryId: 'column',
-          displayName: 'Column',
-          helpText:
-            'Enter one or more comma separated values with exact column names or regex wildcard patterns',
-          type: FilterType.INPUT_SELECT,
-        },
-        {
-          categoryId: 'schema',
+          categoryId:  'schema',
           displayName: 'Schema',
-          helpText:
-            'Enter one or more comma separated values with exact schema names or regex wildcard patterns',
-          type: FilterType.INPUT_SELECT,
+          helpText:    'Filter by database schema (e.g. knowledgebase, logger, swarmkb)',
+          type:        FilterType.INPUT_SELECT,
         },
+
+        // ── Column — INPUT_SELECT (unchanged) ────────────────────────────────
         {
-          categoryId: 'table',
+          categoryId:  'column',
+          displayName: 'Column',
+          helpText:    'Search for tables containing a specific column name',
+          type:        FilterType.INPUT_SELECT,
+        },
+
+        // ── Table name — INPUT_SELECT (unchanged) ─────────────────────────────
+        {
+          categoryId:  'name',
           displayName: 'Table',
-          helpText:
-            'Enter one or more comma separated values with exact table names or regex wildcard patterns',
-          type: FilterType.INPUT_SELECT,
+          helpText:    'Filter by table name',
+          type:        FilterType.INPUT_SELECT,
         },
+
+        // ── Tags — CHIP_INPUT (new: multi-value chip input) ───────────────────
         {
-          categoryId: 'tag',
-          displayName: 'Tag',
-          helpText:
-            'Enter one or more comma separated values with exact tag names or regex wildcard patterns',
-          type: FilterType.INPUT_SELECT,
+          categoryId:  'tag',
+          displayName: 'Tags',
+          helpText:    'Type a tag and press Enter to add it. Multiple tags are OR-matched.',
+          type:        FilterType.CHIP_INPUT,
+        },
+
+        // ── Min rows — RANGE_SLIDER (new: hides empty stub tables) ───────────
+        {
+          categoryId:  'min_rows',
+          displayName: 'Min rows',
+          helpText:    'Hide tables with fewer rows than this threshold',
+          type:        FilterType.RANGE_SLIDER,
+          sliderMin:   0,
+          sliderMax:   5000,
+          sliderStep:  100,
         },
       ],
       notices: {},

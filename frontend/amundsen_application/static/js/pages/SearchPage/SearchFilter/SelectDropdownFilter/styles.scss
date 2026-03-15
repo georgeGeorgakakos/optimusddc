@@ -1,0 +1,32 @@
+// js/pages/SearchPage/SearchFilter/SelectDropdownFilter/styles.scss
+
+.select-dropdown-filter {
+  width: 100%;
+
+  &__wrap {
+    position: relative;
+  }
+
+  &__select {
+    width: 100%;
+    padding-right: 24px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.2);
+    }
+  }
+
+  &__chevron {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #9191a8;
+    flex-shrink: 0;
+  }
+}

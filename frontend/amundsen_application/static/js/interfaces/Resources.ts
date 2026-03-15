@@ -1,6 +1,3 @@
-// Copyright Contributors to the Amundsen project.
-// SPDX-License-Identifier: Apache-2.0
-
 import { PeopleUser } from './User';
 import { Badge } from './Badges';
 
@@ -77,6 +74,8 @@ export interface TableResource extends Resource {
   badges?: Badge[];
   highlight?: TableSearchHighlights;
   link?: string;
+  // OptimusDDC: datastore type assigned by proxy heuristic
+  datastore_type?: string;
 }
 
 export enum SortDirection {
@@ -105,6 +104,5 @@ export interface ResourceDict<T> {
   [ResourceType.dashboard]?: T;
 }
 
-// TODO - Consider just using the 'Resource' type instead
 export type Bookmark = TableResource | DashboardResource;
 export type PopularResource = TableResource | DashboardResource;

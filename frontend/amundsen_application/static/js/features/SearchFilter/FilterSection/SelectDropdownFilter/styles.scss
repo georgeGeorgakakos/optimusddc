@@ -1,0 +1,44 @@
+// js/features/SearchFilter/FilterSection/SelectDropdownFilter/styles.scss
+
+.select-dropdown-filter {
+  width: 100%;
+
+  &__wrap {
+    position: relative;
+  }
+
+  &__select {
+    width: 100%;
+    padding: 5px 22px 5px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    border: 0.5px solid var(--color-border-secondary, rgba(0, 0, 0, 0.2));
+    border-radius: 6px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    line-height: 1.4;
+
+    &:hover {
+      border-color: var(--color-border-primary, rgba(0, 0, 0, 0.35));
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #534AB7;
+      box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.12);
+    }
+  }
+
+  &__chevron {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+  }
+}

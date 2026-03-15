@@ -149,3 +149,49 @@ $resource-item-height: 110px;
     margin-top: auto;
   }
 }
+
+// ── Datastore type badge ──────────────────────────────────────────────────────
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 0.5px solid transparent;
+  line-height: 1.5;
+  margin-right: 4px;
+  vertical-align: middle;
+
+  &--rdbms {
+    background:   #e6f1fb;
+    color:        #0c447c;
+    border-color: #85b7eb;
+  }
+
+  &--crud {
+    background:   #e1f5ee;
+    color:        #085041;
+    border-color: #5dcaa5;
+  }
+
+  &--graph {
+    background:   #eeedfe;
+    color:        #3c3489;
+    border-color: #afa9ec;
+  }
+
+  &--vector {
+    background:   #faeeda;
+    color:        #633806;
+    border-color: #ef9f27;
+  }
+
+  &--log {
+    background:   #f1efe8;
+    color:        #444441;
+    border-color: #b4b2a9;
+  }
+}

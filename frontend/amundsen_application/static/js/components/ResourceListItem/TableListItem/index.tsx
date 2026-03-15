@@ -40,6 +40,26 @@ export interface DispatchFromProps {
 }
 
 export type TableListItemProps = OwnProps & DispatchFromProps;
+
+// ── OptimusDDC: Datastore type badge ─────────────────────────────────────────
+const DS_CONFIG: Record<string, { label: string; cls: string }> = {
+  rdbms: { label: 'RDBMS', cls: 'ds-badge--rdbms' },
+  crud: { label: 'CRUD datastore', cls: 'ds-badge--crud' },
+  graph: { label: 'Graph', cls: 'ds-badge--graph' },
+  vector: { label: 'Vector', cls: 'ds-badge--vector' },
+  log: { label: 'Log / event stream', cls: 'ds-badge--log' },
+};
+
+const DsBadge: React.FC<{ dsType?: string }> = ({ dsType }) => {
+  if (!dsType) return null;
+  const cfg = DS_CONFIG[dsType.toLowerCase()];
+
+  if (!cfg) return null;
+
+  return <span className={`ds-badge ${cfg.cls}`}>{cfg.label}</span>;
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 /*
   this function get's the table name from the key to preserve original
   capitalization since search needs the names to be lowercase for analysis
@@ -140,6 +160,7 @@ export const TableListItem: React.FC<TableListItemProps> = ({
         {getSourceDisplayName(table.database, table.type)}
       </div>
       <div className="resource-badges">
+        <DsBadge dsType={(table as any).datastore_type} />
         {!!table.badges && table.badges.length > 0 && (
           <div>
             <div className="body-secondary-3">
