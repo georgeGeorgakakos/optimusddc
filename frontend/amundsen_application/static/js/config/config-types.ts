@@ -179,6 +179,16 @@ export interface InputFilterCategory extends BaseFilterCategory {
 }
 
 /**
+ * Interface for filter categories displayed as a checkbox group
+ * (multi-select checkboxes with optional counts, replaces CHECKBOX_SELECT
+ * for cases where options are loaded dynamically)
+ */
+export interface CheckboxGroupFilterCategory extends BaseFilterCategory {
+  type: FilterType.CHECKBOX_GROUP;
+  options: CheckboxFilterOptions[];
+}
+
+/**
  * Interface for filter categories displayed as a single-select dropdown
  * options use the same CheckboxFilterOptions shape { displayName?, value }
  */
@@ -214,6 +224,7 @@ export type FilterConfig = (
   | InputFilterCategory
   | ToggleFilterCategory
   | SelectDropdownFilterCategory
+  | CheckboxGroupFilterCategory
   | ChipInputFilterCategory
   | RangeSliderFilterCategory
   )[];

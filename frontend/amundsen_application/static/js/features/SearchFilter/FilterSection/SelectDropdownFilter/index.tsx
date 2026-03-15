@@ -60,6 +60,7 @@ export const SelectDropdownFilter: React.FC<Props> = ({
           onChange={handleChange}
           aria-label={categoryId}
         >
+          <option value="">All</option>
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}

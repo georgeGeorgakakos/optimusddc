@@ -28,7 +28,10 @@ interface StateFromProps {
 }
 
 interface DispatchFromProps {
-  applyFilter: (categoryId: string, value: string[] | undefined) => UpdateFilterRequest;
+  applyFilter: (
+    categoryId: string,
+    value: string[] | undefined
+  ) => UpdateFilterRequest;
 }
 
 type SelectDropdownFilterProps = OwnProps & StateFromProps & DispatchFromProps;
@@ -37,11 +40,13 @@ export class SelectDropdownFilter extends React.Component<SelectDropdownFilterPr
   handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { categoryId, applyFilter } = this.props;
     const val = e.target.value;
+
     applyFilter(categoryId, val ? [val] : undefined);
   };
 
   render() {
     const { categoryId, options, currentValue } = this.props;
+
     return (
       <div className="select-dropdown-filter">
         <div className="select-dropdown-filter__wrap">
@@ -53,6 +58,7 @@ export class SelectDropdownFilter extends React.Component<SelectDropdownFilterPr
             onChange={this.handleChange}
             aria-label={categoryId}
           >
+            <option value="">All</option>
             {options.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.displayName || opt.value}
@@ -83,8 +89,11 @@ export const mapStateToProps = (
 ): StateFromProps => {
   const filterState = state.search.filters;
   const resourceFilters = filterState[state.search.resource];
-  const catFilter = resourceFilters ? resourceFilters[ownProps.categoryId] : undefined;
+  const catFilter = resourceFilters
+    ? resourceFilters[ownProps.categoryId]
+    : undefined;
   const currentValue = catFilter ? catFilter.value : '';
+
   return { currentValue: currentValue || '' };
 };
 

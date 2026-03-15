@@ -31,7 +31,6 @@ export interface StateFromProps {
 
 export interface DispatchFromProps {
   updateFilter: (
-    resourceType: ResourceType,
     categoryId: string,
     value: string | undefined
   ) => UpdateFilterRequest;
@@ -41,7 +40,6 @@ type Props = OwnProps & StateFromProps & DispatchFromProps;
 
 export const CheckboxGroupFilter: React.FC<Props> = ({
   categoryId,
-  resourceType,
   options,
   checkedValues,
   updateFilter,
@@ -57,7 +55,7 @@ export const CheckboxGroupFilter: React.FC<Props> = ({
         ? undefined
         : next.join(',');
 
-    updateFilter(resourceType, categoryId, newVal);
+    updateFilter(categoryId, newVal);
   };
 
   // When no filter is active every checkbox reads as checked
@@ -88,9 +86,9 @@ export const mapStateToProps = (
   state: GlobalState,
   ownProps: OwnProps
 ): StateFromProps => {
-  const filters =
+  const resourceFilters =
     (state.search.filters[ownProps.resourceType] as Record<string, any>) || {};
-  const catFilter = filters[ownProps.categoryId];
+  const catFilter = resourceFilters[ownProps.categoryId];
   const raw =
     catFilter && typeof catFilter === 'object'
       ? catFilter.value || ''
@@ -108,11 +106,7 @@ export const mapStateToProps = (
 export const mapDispatchToProps = (dispatch: any): DispatchFromProps =>
   bindActionCreators(
     {
-      updateFilter: (
-        resourceType: ResourceType,
-        categoryId: string,
-        value: string | undefined
-      ) =>
+      updateFilter: (categoryId: string, value: string | undefined) =>
         updateFilterByCategory({
           searchFilters: [
             { categoryId, value: value ? value.split(',') : undefined },

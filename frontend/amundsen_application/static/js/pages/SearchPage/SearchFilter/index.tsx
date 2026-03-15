@@ -4,12 +4,18 @@ import { connect } from 'react-redux';
 import { GlobalState } from 'ducks/rootReducer';
 
 import { getFilterConfigByResource } from 'config/config-utils';
-import { FilterType, FilterOperationType, SearchFilterInput } from 'interfaces';
+import {
+  FilterType,
+  FilterOperationType,
+  ResourceType,
+  SearchFilterInput,
+} from 'interfaces';
 import { bindActionCreators } from 'redux';
 import {
   updateFilterByCategory,
   UpdateFilterRequest,
 } from 'ducks/search/filters/reducer';
+import { FilterOption as CheckboxGroupFilterOption } from 'features/SearchFilter/FilterSection/CheckboxGroupFilter';
 import { CheckboxFilterProperties } from './CheckBoxFilter';
 import FilterSection from './FilterSection';
 
@@ -23,8 +29,10 @@ export interface FilterSectionItem {
   title: string;
   type: FilterType;
   defaultValue?: string[];
+  resourceType: ResourceType;
   // NEW: carried for SelectDropdown and RangeSlider
   selectOptions?: Array<{ displayName?: string; value: string }>;
+  checkboxGroupOptions?: CheckboxGroupFilterOption[];
   sliderMin?: number;
   sliderMax?: number;
   sliderStep?: number;
@@ -74,7 +82,9 @@ export class SearchFilter extends React.Component<SearchFilterProps> {
       title,
       defaultValue,
       type,
+      resourceType,
       selectOptions,
+      checkboxGroupOptions,
       sliderMin,
       sliderMax,
       sliderStep,
@@ -92,7 +102,9 @@ export class SearchFilter extends React.Component<SearchFilterProps> {
         title={title}
         defaultValue={defaultValue}
         type={type}
+        resourceType={resourceType}
         options={options}
+        checkboxGroupOptions={checkboxGroupOptions}
         selectOptions={selectOptions}
         sliderMin={sliderMin}
         sliderMax={sliderMax}
@@ -158,6 +170,7 @@ export const mapStateToProps = (state: GlobalState) => {
         title: categoryConfig.displayName,
         type: categoryConfig.type,
         defaultValue: categoryConfig.defaultValue,
+        resourceType,
         options: [],
       };
 
@@ -170,6 +183,22 @@ export const mapStateToProps = (state: GlobalState) => {
             value: string;
             displayName?: string;
           }) => ({ value, label: displayName || '' })
+        );
+      }
+
+      if (categoryConfig.type === FilterType.CHECKBOX_GROUP) {
+        section.checkboxGroupOptions = (
+          (categoryConfig as any).options || []
+        ).map(
+          ({
+            value,
+            displayName,
+            count,
+          }: {
+            value: string;
+            displayName?: string;
+            count?: number;
+          }) => ({ value, label: displayName || value, count })
         );
       }
 

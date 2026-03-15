@@ -1,8 +1,16 @@
 import * as React from 'react';
 
-import { FilterType, FilterOperationType, IconSizes } from 'interfaces';
+import {
+  FilterType,
+  FilterOperationType,
+  IconSizes,
+  ResourceType,
+} from 'interfaces';
 import InfoButton from 'components/InfoButton';
 
+import CheckboxGroupFilter, {
+  FilterOption as CheckboxGroupFilterOption,
+} from 'features/SearchFilter/FilterSection/CheckboxGroupFilter';
 import CheckBoxFilter, { CheckboxFilterProperties } from '../CheckBoxFilter';
 import InputFilter from '../InputFilter';
 import ToggleFilter from '../ToggleFilter';
@@ -19,7 +27,9 @@ export interface FilterSectionProps {
   helpText?: string;
   title: string;
   type: FilterType;
+  resourceType: ResourceType;
   options?: CheckboxFilterProperties[];
+  checkboxGroupOptions?: CheckboxGroupFilterOption[];
   selectOptions?: SelectFilterOption[];
   sliderMin?: number;
   sliderMax?: number;
@@ -31,6 +41,8 @@ const Filter: React.FC<FilterSectionProps> = ({
   helpText,
   allowableOperation,
   options,
+  checkboxGroupOptions,
+  resourceType,
   selectOptions,
   sliderMin,
   sliderMax,
@@ -52,6 +64,15 @@ const Filter: React.FC<FilterSectionProps> = ({
       <CheckBoxFilter
         categoryId={categoryId}
         checkboxProperties={options || []}
+      />
+    );
+  }
+  if (type === FilterType.CHECKBOX_GROUP) {
+    return (
+      <CheckboxGroupFilter
+        categoryId={categoryId}
+        resourceType={resourceType}
+        options={checkboxGroupOptions || []}
       />
     );
   }
@@ -126,7 +147,9 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   helpText,
   title,
   type,
+  resourceType,
   options,
+  checkboxGroupOptions,
   selectOptions,
   sliderMin,
   sliderMax,
@@ -138,12 +161,15 @@ const FilterSection: React.FC<FilterSectionProps> = ({
       helpText={helpText}
       title={title}
       type={type}
+      resourceType={resourceType}
     />
     <Filter
       categoryId={categoryId}
       helpText={helpText}
       allowableOperation={allowableOperation}
+      resourceType={resourceType}
       options={options}
+      checkboxGroupOptions={checkboxGroupOptions}
       selectOptions={selectOptions}
       sliderMin={sliderMin}
       sliderMax={sliderMax}

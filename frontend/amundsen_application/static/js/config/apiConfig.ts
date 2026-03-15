@@ -241,25 +241,41 @@ function initializeConfig(): EnvironmentConfig {
 let environmentConfig: EnvironmentConfig = initializeConfig();
 
 // ============================================
-// PUBLIC API
+// NODE DISCOVERY CACHE
 // ============================================
+//
+// Problem: every widget (ClusterHealth, AgentMetrics, PersistedData,
+// Swarmchestrate) calls getAvailableNodes() independently on mount.
+// In Docker / NodePort mode each call probes ALL nodes (up to 8) with
+// individual fetch requests, each waiting up to 2 s on timeout.
+// 4 widgets × 8 probes = 32 simultaneous network requests on page load.
+//
+// Fix: a two-layer cache —
+//   1. In-flight deduplication: if a probe is already running, every
+//      concurrent caller awaits the same Promise instead of starting
+//      their own parallel probe.
+//   2. TTL result cache (30 s): subsequent calls within the TTL window
+//      return the last known healthy-node list instantly.
+//
+// The cache is cleared whenever setConfig() reinitialises the environment.
 
-/**
- * Get all available OptimusDB nodes
- */
-export async function getAvailableNodes(): Promise<OptimusDBNode[]> {
-  console.log(`📡 Getting available nodes (${environmentConfig.mode} mode)`);
+const NODE_CACHE_TTL_MS = 30_000; // 30 seconds
 
-  // In K3s Traefik mode, we know exactly which nodes exist from Traefik config
-  if (environmentConfig.useTraefikRouting) {
-    return environmentConfig.optimusdbNodes;
-  }
+let nodeCacheTimestamp = 0;
+let nodeCacheResult: OptimusDBNode[] | null = null;
+let nodeProbeInFlight: Promise<OptimusDBNode[]> | null = null;
 
-  // In Docker Desktop or K3s NodePort, probe nodes to see which are healthy
+function invalidateNodeCache(): void {
+  nodeCacheTimestamp = 0;
+  nodeCacheResult = null;
+  nodeProbeInFlight = null;
+}
+
+async function probeNodes(): Promise<OptimusDBNode[]> {
   const healthChecks = environmentConfig.optimusdbNodes.map(async (node) => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
 
       const response = await fetch(node.healthEndpoint, {
         method: 'GET',
@@ -295,6 +311,60 @@ export async function getAvailableNodes(): Promise<OptimusDBNode[]> {
   return healthyNodes.length > 0
     ? healthyNodes
     : environmentConfig.optimusdbNodes;
+}
+
+// ============================================
+// PUBLIC API
+// ============================================
+
+/**
+ * Get all available OptimusDB nodes.
+ *
+ * Results are cached for NODE_CACHE_TTL_MS (30 s). Concurrent callers
+ * during a probe share a single in-flight Promise instead of each
+ * launching their own set of health-check fetches.
+ */
+export async function getAvailableNodes(): Promise<OptimusDBNode[]> {
+  // Traefik mode: nodes are statically known — no probing needed
+  if (environmentConfig.useTraefikRouting) {
+    return environmentConfig.optimusdbNodes;
+  }
+
+  const now = Date.now();
+
+  // Cache hit — return immediately
+  if (nodeCacheResult && now - nodeCacheTimestamp < NODE_CACHE_TTL_MS) {
+    console.log(
+      `📡 getAvailableNodes: returning ${
+        nodeCacheResult.length
+      } cached nodes (${Math.round(
+        (NODE_CACHE_TTL_MS - (now - nodeCacheTimestamp)) / 1000
+      )}s remaining)`
+    );
+
+    return nodeCacheResult;
+  }
+
+  // In-flight deduplication — return the already-running probe
+  if (nodeProbeInFlight) {
+    console.log('📡 getAvailableNodes: awaiting in-flight probe');
+
+    return nodeProbeInFlight;
+  }
+
+  // Start a new probe and store it so concurrent callers can share it
+  console.log(
+    `📡 getAvailableNodes: starting node probe (${environmentConfig.mode} mode)`
+  );
+  nodeProbeInFlight = probeNodes().then((nodes) => {
+    nodeCacheResult = nodes;
+    nodeCacheTimestamp = Date.now();
+    nodeProbeInFlight = null; // probe complete — next call uses cache
+
+    return nodes;
+  });
+
+  return nodeProbeInFlight;
 }
 
 /**
@@ -422,8 +492,10 @@ export function setConfig(options: Partial<ConfigOptions>): void {
   configOptions = { ...configOptions, ...options };
   console.log('🔧 Configuration updated:', configOptions);
 
-  // Reinitialize with new config
+  // Reinitialize with new config and bust the node-discovery cache so the
+  // next getAvailableNodes() call re-probes against the new environment.
   environmentConfig = initializeConfig();
+  invalidateNodeCache();
 }
 
 /**
@@ -466,7 +538,12 @@ declare global {
 }
 
 if (typeof window !== 'undefined') {
-  window.OptimusDDC = {
+  // Build the API object first, then attach `config` as a live getter so
+  // window.OptimusDDC.config always reflects the current environmentConfig
+  // even after setConfig() reinitialises the module-level variable.
+  const api: Omit<NonNullable<typeof window.OptimusDDC>, 'config'> & {
+    config?: EnvironmentConfig;
+  } = {
     getAvailableNodes,
     buildApiUrl,
     buildDynamicApiUrl,
@@ -476,8 +553,15 @@ if (typeof window !== 'undefined') {
     isNodePort,
     setConfig,
     debugConfig,
-    config: environmentConfig,
   };
+
+  Object.defineProperty(api, 'config', {
+    get: () => environmentConfig,
+    enumerable: true,
+    configurable: true,
+  });
+
+  window.OptimusDDC = api as NonNullable<typeof window.OptimusDDC>;
 
   console.log('✅ OptimusDDC API initialized globally (window.OptimusDDC)');
   console.log('   Run window.OptimusDDC.debugConfig() to see configuration');
