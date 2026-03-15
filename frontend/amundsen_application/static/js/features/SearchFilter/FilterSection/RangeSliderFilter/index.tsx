@@ -5,20 +5,22 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
 import { GlobalState } from 'ducks/rootReducer';
-import { updateFilterByCategory } from 'ducks/search/reducer';
-import { UpdateSearchFilterRequest } from 'ducks/search/types';
+import {
+  updateFilterByCategory,
+  UpdateFilterRequest,
+} from 'ducks/search/filters/reducer';
 import { ResourceType } from 'interfaces';
 
 import './styles.scss';
 
 export interface SliderConfig {
-  min:  number;
-  max:  number;
+  min: number;
+  max: number;
   step: number;
 }
 
 export interface OwnProps {
-  categoryId:   string;
+  categoryId: string;
   resourceType: ResourceType;
   sliderConfig: SliderConfig;
 }
@@ -30,9 +32,9 @@ export interface StateFromProps {
 export interface DispatchFromProps {
   updateFilter: (
     resourceType: ResourceType,
-    categoryId:   string,
-    value:        string | undefined
-  ) => UpdateSearchFilterRequest;
+    categoryId: string,
+    value: string | undefined
+  ) => UpdateFilterRequest;
 }
 
 type Props = OwnProps & StateFromProps & DispatchFromProps;
@@ -48,16 +50,11 @@ export const RangeSliderFilter: React.FC<Props> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const num = parseInt(e.target.value, 10);
-    updateFilter(
-      resourceType,
-      categoryId,
-      num > min ? String(num) : undefined
-    );
+
+    updateFilter(resourceType, categoryId, num > min ? String(num) : undefined);
   };
 
-  const displayValue = value > min
-    ? `> ${value.toLocaleString()}`
-    : 'Any';
+  const displayValue = value > min ? `> ${value.toLocaleString()}` : 'Any';
 
   const midpoint = Math.round((min + max) / 2);
 
@@ -97,6 +94,7 @@ export const mapStateToProps = (
       ? catFilter.value || ''
       : catFilter || '';
   const parsed = raw ? parseInt(raw, 10) : ownProps.sliderConfig.min;
+
   return { value: isNaN(parsed) ? ownProps.sliderConfig.min : parsed };
 };
 
@@ -105,13 +103,11 @@ export const mapDispatchToProps = (dispatch: any): DispatchFromProps =>
     {
       updateFilter: (
         resourceType: ResourceType,
-        categoryId:   string,
-        value:        string | undefined
+        categoryId: string,
+        value: string | undefined
       ) =>
         updateFilterByCategory({
-          resourceType,
-          categoryId,
-          value: value ? { value } : undefined,
+          searchFilters: [{ categoryId, value: value ? [value] : undefined }],
         }),
     },
     dispatch

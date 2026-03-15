@@ -5,22 +5,24 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
 import { GlobalState } from 'ducks/rootReducer';
-import { updateFilterByCategory } from 'ducks/search/reducer';
-import { UpdateSearchFilterRequest } from 'ducks/search/types';
+import {
+  updateFilterByCategory,
+  UpdateFilterRequest,
+} from 'ducks/search/filters/reducer';
 import { ResourceType } from 'interfaces';
 
 import './styles.scss';
 
 export interface FilterOption {
-  label:  string;
-  value:  string;
+  label: string;
+  value: string;
   count?: number;
 }
 
 export interface OwnProps {
-  categoryId:   string;
+  categoryId: string;
   resourceType: ResourceType;
-  options:      FilterOption[];
+  options: FilterOption[];
 }
 
 export interface StateFromProps {
@@ -30,9 +32,9 @@ export interface StateFromProps {
 export interface DispatchFromProps {
   updateFilter: (
     resourceType: ResourceType,
-    categoryId:   string,
-    value:        string | undefined
-  ) => UpdateSearchFilterRequest;
+    categoryId: string,
+    value: string | undefined
+  ) => UpdateFilterRequest;
 }
 
 type Props = OwnProps & StateFromProps & DispatchFromProps;
@@ -94,8 +96,12 @@ export const mapStateToProps = (
       ? catFilter.value || ''
       : catFilter || '';
   const checkedValues = raw
-    ? raw.split(',').map((v: string) => v.trim()).filter(Boolean)
+    ? raw
+        .split(',')
+        .map((v: string) => v.trim())
+        .filter(Boolean)
     : [];
+
   return { checkedValues };
 };
 
@@ -104,13 +110,13 @@ export const mapDispatchToProps = (dispatch: any): DispatchFromProps =>
     {
       updateFilter: (
         resourceType: ResourceType,
-        categoryId:   string,
-        value:        string | undefined
+        categoryId: string,
+        value: string | undefined
       ) =>
         updateFilterByCategory({
-          resourceType,
-          categoryId,
-          value: value ? { value } : undefined,
+          searchFilters: [
+            { categoryId, value: value ? value.split(',') : undefined },
+          ],
         }),
     },
     dispatch

@@ -5,14 +5,16 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
 import { GlobalState } from 'ducks/rootReducer';
-import { updateFilterByCategory } from 'ducks/search/reducer';
-import { UpdateSearchFilterRequest } from 'ducks/search/types';
+import {
+  updateFilterByCategory,
+  UpdateFilterRequest,
+} from 'ducks/search/filters/reducer';
 import { ResourceType } from 'interfaces';
 
 import './styles.scss';
 
 export interface OwnProps {
-  categoryId:   string;
+  categoryId: string;
   resourceType: ResourceType;
   placeholder?: string;
 }
@@ -24,9 +26,9 @@ export interface StateFromProps {
 export interface DispatchFromProps {
   updateFilter: (
     resourceType: ResourceType,
-    categoryId:   string,
-    value:        string | undefined
-  ) => UpdateSearchFilterRequest;
+    categoryId: string,
+    value: string | undefined
+  ) => UpdateFilterRequest;
 }
 
 type Props = OwnProps & StateFromProps & DispatchFromProps;
@@ -47,17 +49,21 @@ export class ChipInputFilter extends React.Component<Props, LocalState> {
     if ((e.key === 'Enter' || e.key === ',') && inputValue.trim()) {
       e.preventDefault();
       const newTag = inputValue.trim().replace(/,/g, '');
+
       if (!chips.includes(newTag)) {
         const next = [...chips, newTag];
+
         updateFilter(resourceType, categoryId, next.join(','));
       }
       this.setState({ inputValue: '' });
+
       return;
     }
 
     // Backspace on empty input removes last chip
     if (e.key === 'Backspace' && !inputValue && chips.length > 0) {
       const next = chips.slice(0, -1);
+
       updateFilter(
         resourceType,
         categoryId,
@@ -69,6 +75,7 @@ export class ChipInputFilter extends React.Component<Props, LocalState> {
   removeChip = (tag: string) => {
     const { chips, categoryId, resourceType, updateFilter } = this.props;
     const next = chips.filter((c) => c !== tag);
+
     updateFilter(
       resourceType,
       categoryId,
@@ -133,8 +140,12 @@ export const mapStateToProps = (
       ? catFilter.value || ''
       : catFilter || '';
   const chips = raw
-    ? raw.split(',').map((v: string) => v.trim()).filter(Boolean)
+    ? raw
+        .split(',')
+        .map((v: string) => v.trim())
+        .filter(Boolean)
     : [];
+
   return { chips };
 };
 
@@ -143,13 +154,13 @@ export const mapDispatchToProps = (dispatch: any): DispatchFromProps =>
     {
       updateFilter: (
         resourceType: ResourceType,
-        categoryId:   string,
-        value:        string | undefined
+        categoryId: string,
+        value: string | undefined
       ) =>
         updateFilterByCategory({
-          resourceType,
-          categoryId,
-          value: value ? { value } : undefined,
+          searchFilters: [
+            { categoryId, value: value ? value.split(',') : undefined },
+          ],
         }),
     },
     dispatch
