@@ -26,6 +26,15 @@ Place in: search/search_service/proxy/optimusdb_search.py
 
 Usage in config.py:
     PROXY_CLIENT = 'search_service.proxy.optimusdb_search.OptimusDBSearchProxy'
+
+FIXES APPLIED:
+  - BUG-001: TypeError: Object of type Tag is not JSON serializable
+             Added _serialize_result() which converts Tag objects in `tags`
+             and `badges` fields to plain strings before JSON serialization.
+             All vars(t) calls in search() replaced with _serialize_result(t).
+  - BUG-002: _extract_row_count() was missing `self` — made it a @staticmethod.
+  - BUG-003: _score() used str(tag) on Tag objects producing "Tag(tag_name=x)"
+             instead of the tag string — now extracts .tag_name safely.
 """
 
 import json
@@ -145,6 +154,7 @@ class OptimusDBSearchProxy(BaseProxy):
             return 'crud'
         return 'rdbms'
 
+    @staticmethod  # FIX BUG-002: was missing @staticmethod / self
     def _extract_row_count(description: str) -> int:
         """
         Parse row count from description strings like:
@@ -158,6 +168,7 @@ class OptimusDBSearchProxy(BaseProxy):
             except ValueError:
                 pass
         return 0
+
     def _parse_response(self, resp: requests.Response) -> Any:
         try:
             result = resp.json()
@@ -238,6 +249,15 @@ class OptimusDBSearchProxy(BaseProxy):
         return tags
 
     @staticmethod
+    def _tag_to_str(tag: Any) -> str:
+        """Safely convert a Tag object or any value to a plain string."""
+        if hasattr(tag, 'tag_name'):
+            return str(tag.tag_name)
+        if isinstance(tag, dict):
+            return str(tag.get('tag_name', tag))
+        return str(tag)
+
+    @staticmethod
     def _fmt_size(size_bytes: int) -> str:
         if not size_bytes:
             return "0 B"
@@ -246,6 +266,36 @@ class OptimusDBSearchProxy(BaseProxy):
         if size_bytes >= 1024:
             return f"{size_bytes / 1024:.1f} KB"
         return f"{size_bytes} B"
+
+    # ==================================================================
+    # FIX BUG-001: serialize model instances to JSON-safe dicts
+    # ==================================================================
+    @staticmethod
+    def _serialize_result(obj: Any) -> Dict[str, Any]:
+        """
+        Convert a model object (Table, User, Dashboard, Feature) to a
+        plain dict that is safe to pass to json.dumps().
+
+        vars() exposes Tag objects in `tags` and `badges` — those must
+        be converted to their string tag_name values before Flask-RESTful
+        calls json.dumps() on the response.
+
+        Root cause of: TypeError: Object of type Tag is not JSON serializable
+        """
+        d = vars(obj).copy()
+        for field in ('tags', 'badges'):
+            raw = d.get(field)
+            if raw and isinstance(raw, list):
+                converted = []
+                for item in raw:
+                    if hasattr(item, 'tag_name'):       # Tag object
+                        converted.append(str(item.tag_name))
+                    elif isinstance(item, dict):         # already a dict
+                        converted.append(item.get('tag_name', str(item)))
+                    else:
+                        converted.append(str(item))
+                d[field] = converted
+        return d
 
     # ==================================================================
     # Dynamic node discovery
@@ -377,7 +427,7 @@ class OptimusDBSearchProxy(BaseProxy):
                             stat_items.append(f"{sk}: {sv}")
                     desc_parts.append("Stats: " + "; ".join(stat_items) + ".")
 
-                # Tags
+                # Tags — stored as plain strings in the cache dict
                 tags = ['sqlite', db_name, tbl_name]
                 if row_count > 0:
                     tags.append('has-data')
@@ -811,8 +861,10 @@ class OptimusDBSearchProxy(BaseProxy):
         if q in desc:
             score += 20
 
+        # FIX BUG-003: tags in the cache dict are plain strings, but guard
+        # against Tag objects defensively using _tag_to_str()
         for tag in ds.get('tags', []):
-            if q in str(tag).lower():
+            if q in self._tag_to_str(tag).lower():
                 score += 25
                 break
 
@@ -895,7 +947,9 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['table'] = {
                         'total_results': r.total_results,
-                        'results': [vars(t) for t in r.results],
+                        # FIX BUG-001: _serialize_result() converts Tag objects
+                        # in tags/badges to plain strings before json.dumps()
+                        'results': [self._serialize_result(t) for t in r.results],
                     }
                 elif rt == Resource.USER:
                     r = self.fetch_user_search_results(
@@ -903,7 +957,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['user'] = {
                         'total_results': r.total_results,
-                        'results': [vars(u) for u in r.results],
+                        'results': [self._serialize_result(u) for u in r.results],
                     }
                 elif rt == Resource.DASHBOARD:
                     r = self.fetch_dashboard_search_results(
@@ -911,7 +965,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['dashboard'] = {
                         'total_results': r.total_results,
-                        'results': [vars(d) for d in r.results],
+                        'results': [self._serialize_result(d) for d in r.results],
                     }
                 elif rt == Resource.FEATURE:
                     r = self.fetch_feature_search_results(
@@ -919,7 +973,7 @@ class OptimusDBSearchProxy(BaseProxy):
                     )
                     results['feature'] = {
                         'total_results': r.total_results,
-                        'results': [vars(f) for f in r.results],
+                        'results': [self._serialize_result(f) for f in r.results],
                     }
 
             return SearchResponse(
@@ -1010,10 +1064,8 @@ class OptimusDBSearchProxy(BaseProxy):
         Currently handled via query_term prefix conventions.
         Extend this when filter state is passed via the search API.
         """
-        # datastore_type filter — detect "datastore_type:rdbms" in query_term
-        # (The frontend currently sends filters as part of the search state;
-        # if your API passes them explicitly, add the parameter here.)
         return scored
+
     # ==================================================================
     # USER SEARCH
     # ==================================================================
@@ -1172,4 +1224,3 @@ class OptimusDBSearchProxy(BaseProxy):
             value: Optional[str] = None,
     ) -> str:
         return "Managed by OptimusDB"
-
