@@ -1304,7 +1304,7 @@ spec:
               port: 8089
             initialDelaySeconds: 5
             periodSeconds: 5
-            failureThreshold: 30
+            failureThreshold: 60
           readinessProbe:
             tcpSocket:
               port: 8089
@@ -2354,7 +2354,31 @@ spec:
         - name: optimusdb3
           port: 8089
 ---
-# Route: / → CatalogFrontend (Amundsen UI - default/root)
+# ------------------------------------------------------------------------------
+# NEW: Semantic Search API → Node-specific (use /optimusdbN/api/v1/semantic/...)
+# Also expose as load-balanced for convenience
+# ------------------------------------------------------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: optimusdb-semantic-api
+  namespace: optimusddc
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: PathPrefix(`/api/v1/semantic`)
+      kind: Rule
+      priority: 60
+      services:
+        - name: optimusdb1
+          port: 8089
+        - name: optimusdb2
+          port: 8089
+        - name: optimusdb3
+          port: 8089
+---
+# Route: / → CatalogFrontend ( UI - default/root)
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -2409,3 +2433,245 @@ spec:
 #
 # ==============================================================================
 #
+# ==============================================================================
+# NEW: LLAMA-SERVER SERVICES (port 8080)
+# ==============================================================================
+# The existing optimusdbN ClusterIP services only expose port 8089 (Go app).
+# These new services expose port 8080 on the same pods so Traefik can route
+# to llama-server directly without touching the Go application.
+# Selector matches the same pods as the existing optimusdbN services.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb1-llama
+  namespace: optimusddc
+  labels:
+    app: optimusdb
+    node: "1"
+    component: llama
+spec:
+  type: ClusterIP
+  selector:
+    app: optimusdb
+    node: "1"
+  ports:
+    - name: llama
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb2-llama
+  namespace: optimusddc
+  labels:
+    app: optimusdb
+    node: "2"
+    component: llama
+spec:
+  type: ClusterIP
+  selector:
+    app: optimusdb
+    node: "2"
+  ports:
+    - name: llama
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: optimusdb3-llama
+  namespace: optimusddc
+  labels:
+    app: optimusdb
+    node: "3"
+    component: llama
+spec:
+  type: ClusterIP
+  selector:
+    app: optimusdb
+    node: "3"
+  ports:
+    - name: llama
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+# ==============================================================================
+# NEW: EMBEDDING MIDDLEWARES
+# ==============================================================================
+#
+# IP allowlist: restricts /embedding access to cluster-internal traffic only.
+# The embedding endpoint runs CPU-bound inference — unrestricted external access
+# would allow anyone reaching 193.225.250.240 to exhaust CPU resources for free.
+#
+# Allowed source ranges:
+#   127.0.0.1/32         localhost — host-level scripts and deploy script
+#   193.225.250.240/32   host public IP — self-calls from the server
+#   10.42.0.0/16         K3s pod CIDR — all pods in the cluster
+#   10.43.0.0/16         K3s service CIDR — ClusterIP services
+#
+# To allow an additional external IP (e.g. a research workstation or CI runner),
+# add it to the sourceRange list below and kubectl apply the manifest.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: embedding-ipallowlist
+  namespace: optimusddc
+spec:
+  ipAllowList:
+    sourceRange:
+      - 127.0.0.1/32          # localhost — host-level scripts and deploy script
+      - 193.225.250.240/32    # host public IP — self-calls from the server
+      - 10.42.0.0/16          # K3s pod CIDR — all pods in the cluster
+      - 10.43.0.0/16          # K3s service CIDR — ClusterIP services
+---
+# Strip /optimusdb1/embedding → /embedding before forwarding to llama-server.
+# Each node needs its own middleware because stripPrefix is path-specific.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: embedding-node1-stripprefix
+  namespace: optimusddc
+spec:
+  stripPrefix:
+    prefixes:
+      - /optimusdb1
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: embedding-node2-stripprefix
+  namespace: optimusddc
+spec:
+  stripPrefix:
+    prefixes:
+      - /optimusdb2
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: embedding-node3-stripprefix
+  namespace: optimusddc
+spec:
+  stripPrefix:
+    prefixes:
+      - /optimusdb3
+---
+# ==============================================================================
+# NEW: EMBEDDING INGRESSROUTES (Priority 8)
+# ==============================================================================
+#
+# Priority 8 — above the generic /optimusdbN/* catch-all (priority 5) so these
+# routes match BEFORE the Go app routes strip the prefix to port 8089.
+# Targets port 8080 (llama-server) directly, not port 8089 (Go app).
+#
+# Access pattern after this change:
+#   POST http://193.225.250.240/optimusdb1/embedding  → node 1 llama-server
+#   POST http://193.225.250.240/optimusdb2/embedding  → node 2 llama-server
+#   POST http://193.225.250.240/optimusdb3/embedding  → node 3 llama-server
+#
+# Route: /optimusdb1/embedding → optimusdb1-llama:8080 (llama-server node 1)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: optimusdb1-embedding
+  namespace: optimusddc
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: PathPrefix(`/optimusdb1/embedding`)
+      kind: Rule
+      priority: 8
+      middlewares:
+        - name: embedding-ipallowlist
+        - name: embedding-node1-stripprefix
+      services:
+        - name: optimusdb1-llama
+          port: 8080
+---
+# Route: /optimusdb2/embedding → optimusdb2-llama:8080 (llama-server node 2)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: optimusdb2-embedding
+  namespace: optimusddc
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: PathPrefix(`/optimusdb2/embedding`)
+      kind: Rule
+      priority: 8
+      middlewares:
+        - name: embedding-ipallowlist
+        - name: embedding-node2-stripprefix
+      services:
+        - name: optimusdb2-llama
+          port: 8080
+---
+# Route: /optimusdb3/embedding → optimusdb3-llama:8080 (llama-server node 3)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: optimusdb3-embedding
+  namespace: optimusddc
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: PathPrefix(`/optimusdb3/embedding`)
+      kind: Rule
+      priority: 8
+      middlewares:
+        - name: embedding-ipallowlist
+        - name: embedding-node3-stripprefix
+      services:
+        - name: optimusdb3-llama
+          port: 8080
+
+# ==============================================================================
+# UPDATED ROUTING SUMMARY (additions to existing routing summary above)
+# ==============================================================================
+#
+# EMBEDDING ENDPOINTS — NEW (Priority 8, IP-restricted):
+#   POST /optimusdb1/embedding → optimusdb1-llama:8080 (llama-server node 1)
+#   POST /optimusdb2/embedding → optimusdb2-llama:8080 (llama-server node 2)
+#   POST /optimusdb3/embedding → optimusdb3-llama:8080 (llama-server node 3)
+#
+# ALLOWED SOURCE IPs:
+#   127.0.0.1/32         localhost
+#   193.225.250.240/32   host self-calls
+#   10.42.0.0/16         K3s pod CIDR
+#   10.43.0.0/16         K3s service CIDR
+#
+# PRIORITY ORDER (complete):
+#   110  /auth, /realms → keycloak
+#   100  /swarmkb/command → optimusdb1 only
+#    60  /api/v1/chat, /api/v1/semantic → load-balanced
+#    50  /swarmkb/agent/status, /inventory, /log → load-balanced
+#    10  /swarmkb/* catch-all → load-balanced
+#     8  /optimusdbN/embedding → llamaN:8080 (IP-restricted) ← NEW
+#     5  /optimusdbN/* → optimusdbN:8089 (Go app)
+#     1  / → catalogfrontend
+#
+# VERIFY after apply (run from the server — host IP is in the allowlist):
+#   curl -s -X POST http://193.225.250.240/optimusdb1/embedding \
+#     -H "Content-Type: application/json" \
+#     -d '{"content":"solar farm Greece"}' | python3 -c \
+#     "import json,sys; d=json.load(sys.stdin); print(f'Dimensions: {len(d[\"embedding\"])}')"
+#   # Expected: Dimensions: 2048
+#
+#   # From an external IP not in the allowlist — should be blocked:
+#   curl -v http://EXTERNAL_IP/optimusdb1/embedding
+#   # Expected: 403 Forbidden
+#
+# TO ADD AN EXTERNAL IP (e.g. research workstation):
+#   Edit the embedding-ipallowlist sourceRange and kubectl apply.
+#
+# ==============================================================================

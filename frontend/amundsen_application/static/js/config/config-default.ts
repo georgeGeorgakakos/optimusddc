@@ -172,7 +172,7 @@ const configDefault: AppConfig = {
       icon: 'info',
       groupId: 'about',
       children: [
-        { id: 'nav::about-author', label: 'The Author', subtitle: 'PhD · AUEB · iKnowHow BD', icon: 'user', href: '/about/author', use_router: true },
+        { id: 'nav::about-author', label: 'The Author', subtitle: 'ICCS · NTUA', icon: 'user', href: '/about/author', use_router: true },
         { id: 'nav::about-swarmchestrate', label: 'Swarmchestrate', subtitle: 'EU Horizon · Grant #101135012', icon: 'globe', href: '/about/swarmchestrate', use_router: true },
         { id: 'nav::about-iccs', label: 'ICCS', subtitle: 'NTUA · Athens, Greece', icon: 'building', href: '/about/iccs', use_router: true },
         { id: 'nav::about-optimus', label: 'Optimus Stack', subtitle: 'OptimusDB · OptimusDDC', icon: 'layers', href: '/about/optimus', use_router: true },

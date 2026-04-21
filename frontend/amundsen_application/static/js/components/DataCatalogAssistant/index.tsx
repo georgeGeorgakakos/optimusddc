@@ -22,6 +22,14 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  metadata?: {
+    query_type?: string;
+    dataset_type?: string;
+    executed_cmd?: string;
+    result_count?: number;
+    confidence?: number;
+    error?: string;
+  };
 }
 
 interface TalkingHeadInstance {
@@ -274,6 +282,87 @@ const MessageContent: React.FC<{ text: string }> = ({ text }) => {
         );
       })}
     </span>
+  );
+};
+
+// ── Query metadata renderer ─────────────────────────────────────────────────
+
+const DATASET_LABELS: Record<string, string> = {
+  tosca_capacities: 'TOSCA Capacities',
+  tosca_deploymentplan: 'TOSCA Deployments',
+  tosca_eventhistory: 'TOSCA Events',
+  tosca_adt: 'TOSCA ADT',
+  tosca_imported: 'TOSCA Imported',
+  dsswres: 'Energy Resources',
+  dsswresaloc: 'Allocations',
+  kbmetadata: 'Metadata Catalog',
+  kbdata: 'Knowledge Base',
+  validations: 'Validations',
+  whoiswho: 'Who Is Who',
+};
+
+const QueryMetadata: React.FC<{
+  metadata?: Message['metadata'];
+}> = ({ metadata }) => {
+  if (!metadata || metadata.query_type === 'error') return null;
+  if (
+    metadata.query_type === 'greeting' ||
+    metadata.query_type === 'help'
+  )
+    return null;
+
+  const dsLabel =
+    DATASET_LABELS[metadata.dataset_type || ''] ||
+    metadata.dataset_type ||
+    '—';
+
+  const confidencePercent = Math.round((metadata.confidence || 0) * 100);
+  const confidenceClass =
+    confidencePercent >= 80
+      ? 'dca-conf--high'
+      : confidencePercent >= 50
+        ? 'dca-conf--med'
+        : 'dca-conf--low';
+
+  return (
+    <div className="dca-query-meta">
+      <span className="dca-qm-pill dca-qm-store" title="Target datastore">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+        {dsLabel}
+      </span>
+      {metadata.executed_cmd && (
+        <span className="dca-qm-pill dca-qm-cmd" title="Execution method">
+          {metadata.executed_cmd === 'query' ? '⚡ filtered' : '📋 all docs'}
+        </span>
+      )}
+      {metadata.result_count !== undefined && (
+        <span className="dca-qm-pill dca-qm-count" title="Results returned">
+          {metadata.result_count} result
+          {metadata.result_count !== 1 ? 's' : ''}
+        </span>
+      )}
+      {metadata.confidence !== undefined && (
+        <span
+          className={`dca-qm-pill dca-qm-conf ${confidenceClass}`}
+          title={`Confidence: ${confidencePercent}%`}
+        >
+          {confidencePercent}%
+        </span>
+      )}
+    </div>
   );
 };
 
@@ -844,21 +933,33 @@ const DataCatalogAssistant: React.FC = () => {
       setIsLoading(true);
       stopSpeaking();
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for TinyLlama
+
         const response = await fetch(BACKEND_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: text,
-            conversation_history: messages,
+            conversation_history: messages.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
           }),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) throw new Error(`Backend error: ${response.status}`);
         const data = await response.json();
+
+        // OptimusDB returns { response, metadata, timestamp }
         const assistantMsg: Message = {
           role: 'assistant',
-          content: data.response || 'Could not process that.',
+          content: data.response || 'No results found.',
           timestamp: new Date(),
+          metadata: data.metadata || undefined,
         };
 
         setMessages((prev) => [...prev, assistantMsg]);
@@ -866,12 +967,19 @@ const DataCatalogAssistant: React.FC = () => {
         await speak(assistantMsg.content);
       } catch (error: any) {
         if (soundEnabled) playSound('error');
+        const isTimeout = error.name === 'AbortError';
         setMessages((prev) => [
           ...prev,
           {
             role: 'assistant',
-            content: `Backend error: ${error.message}`,
+            content: isTimeout
+              ? 'The query is taking longer than expected. The TinyLlama model may be processing a complex query — please try again or simplify your question.'
+              : `Connection error: ${error.message}. Make sure OptimusDB is running.`,
             timestamp: new Date(),
+            metadata: {
+              query_type: 'error',
+              error: isTimeout ? 'timeout' : error.message,
+            },
           },
         ]);
       } finally {
@@ -1032,20 +1140,20 @@ const DataCatalogAssistant: React.FC = () => {
   const statusLabel = isListening
     ? 'Listening…'
     : isSpeaking
-    ? 'Speaking…'
-    : isLoading
-    ? 'Thinking…'
-    : avatarReady && showAvatar
-    ? `${currentAvatar.name} ready`
-    : 'Ready';
+      ? 'Speaking…'
+      : isLoading
+        ? 'Thinking…'
+        : avatarReady && showAvatar
+          ? `${currentAvatar.name} ready`
+          : 'Ready';
 
   const statusClass = isListening
     ? 'listening'
     : isSpeaking
-    ? 'speaking'
-    : isLoading
-    ? 'loading'
-    : 'ready';
+      ? 'speaking'
+      : isLoading
+        ? 'loading'
+        : 'ready';
 
   const contextPrompts = React.useMemo(getContextPrompts, [isOpen]);
   const pageLabel = React.useMemo(getPageLabel, [isOpen]);
@@ -1395,6 +1503,10 @@ const DataCatalogAssistant: React.FC = () => {
                           </svg>
                           Run in Query Workbench
                         </button>
+                      )}
+                      {/* Query metadata strip */}
+                      {msg.role === 'assistant' && msg.metadata && (
+                        <QueryMetadata metadata={msg.metadata} />
                       )}
                       <div className="dca-msg-meta">
                         {showTimestamps && (

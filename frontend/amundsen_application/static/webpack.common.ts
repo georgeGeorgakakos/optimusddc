@@ -12,6 +12,35 @@ import { CleanWebpackPlugin } from 'clean-webpack-plugin';
 
 import appConfig from './js/config/config';
 
+// ── Load .env file and expose REACT_APP_* vars via DefinePlugin ─────────────
+function loadEnvVars(): Record<string, string> {
+  const envPath = path.resolve(__dirname, '.env');
+  const envVars: Record<string, string> = {};
+
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIndex = trimmed.indexOf('=');
+
+      if (eqIndex === -1) continue;
+      const key = trimmed.substring(0, eqIndex).trim();
+      const value = trimmed.substring(eqIndex + 1).trim();
+
+      if (key.startsWith('REACT_APP_')) {
+        envVars[`process.env.${key}`] = JSON.stringify(value);
+      }
+    }
+  }
+
+  return envVars;
+}
+
+const reactAppEnv = loadEnvVars();
+
 function resolve(dir) {
   return path.join(__dirname, dir);
 }
@@ -131,6 +160,7 @@ const config: webpack.Configuration = {
     new webpack.ProvidePlugin({
       process: 'process/browser',
     }),
+    new webpack.DefinePlugin(reactAppEnv),
   ],
   optimization: {
     moduleIds: 'deterministic',

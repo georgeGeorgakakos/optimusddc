@@ -15,7 +15,7 @@
 
 **OptimusDDC** is a production-ready, decentralized data catalog platform that combines enterprise-grade metadata discovery with P2P networking, distributed operations monitoring, and advanced analytics capabilities.
 
-Built as part of the **EU-funded Swarmchestrate Project** at **ICCS/AUEB**, OptimusDDC replaces traditional centralized architectures (Neo4j) with **OptimusDB**, a novel decentralized metadata engine utilizing LibP2P, OrbitDB, and IPFS.
+Built as part of the **EU-funded Swarmchestrate Project** at **ICCS**, OptimusDDC replaces traditional centralized architectures (Neo4j) with **OptimusDB**, a novel decentralized metadata engine utilizing LibP2P, OrbitDB, and IPFS.
 
 ### 🎯 **Key Innovation**
 
@@ -307,7 +307,7 @@ curl http://localhost:18001/swarmkb/agentstatus
 
 ## 🎓 Research Context
 
-### **PhD Research**
+### **Research**
 **Author:** George Georgakakos  
 **Institution:** Athens University of Economics and Business (AUEB)  
 **Supervisor:** Professor Yiannis Verginadis  
