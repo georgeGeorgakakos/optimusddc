@@ -130,6 +130,51 @@ export const NavIconMap: Record<string, React.ReactNode> = {
       <polyline points="2 12 12 17 22 12" />
     </svg>
   ),
+  sovereignty: (
+    <svg {...ICON_PROPS}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  consensus: (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="3" />
+      <circle cx="12" cy="3" r="1.5" />
+      <circle cx="19" cy="7.5" r="1.5" />
+      <circle cx="19" cy="16.5" r="1.5" />
+      <circle cx="12" cy="21" r="1.5" />
+      <circle cx="5" cy="16.5" r="1.5" />
+      <circle cx="5" cy="7.5" r="1.5" />
+    </svg>
+  ),
+  knowledge_graph: (
+    <svg {...ICON_PROPS}>
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="18" r="3" />
+      <line x1="8.5" y1="7.5" x2="15.5" y2="16.5" />
+      <line x1="15.5" y1="7.5" x2="8.5" y2="16.5" />
+    </svg>
+  ),
+  query_planner: (
+    <svg {...ICON_PROPS}>
+      <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
+      <line x1="12" y1="22" x2="12" y2="15.5" />
+      <polyline points="22 8.5 12 15.5 2 8.5" />
+    </svg>
+  ),
+  data_quality: (
+    <svg {...ICON_PROPS}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
+  activity: (
+    <svg {...ICON_PROPS}>
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  ),
 };
 
 export default NavIconMap;

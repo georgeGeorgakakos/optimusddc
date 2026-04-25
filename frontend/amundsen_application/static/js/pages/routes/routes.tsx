@@ -24,6 +24,12 @@ import LogAnalyticsPage from '../LogAnalyticsPage';
 import PersistedDataPage from '../PersistedDataPage';
 import PostmanPage from '../PostmanPage';
 import ETLWorkbenchPage from '../ETLWorkbenchPage';
+import DataSovereigntyPage from '../DataSovereigntyPage';
+import SwarmConsensusPage from '../SwarmConsensusPage';
+import KnowledgeGraphPage from '../KnowledgeGraphPage';
+import FederatedQueryPlannerPage from '../FederatedQueryPlannerPage';
+import DataQualityPage from '../DataQualityPage';
+import SwarmActivityPage from '../SwarmActivityPage';
 /**
  * Central route configuration for Amundsen with OptimusDB support.
  *
@@ -101,6 +107,29 @@ const AppRoutes: React.FC = () => (
     <Route exact path="/logs" component={LogAnalyticsPage} />
     <Route exact path="/persisted-data" component={PersistedDataPage} />
     <Route exact path="/api-testing" component={PostmanPage} />
+
+    {/* ====================================================================
+        SWARMCHESTRATE ADVANCED PAGES - Governance, Consensus, Intelligence
+        ==================================================================== */}
+
+    {/* Data Sovereignty — RBAC/ABAC policy management, geo-fencing, GDPR */}
+    <Route exact path="/sovereignty" component={DataSovereigntyPage} />
+
+    {/* Swarm Consensus — GossipSub mesh, CRDT conflicts, replication lag */}
+    <Route exact path="/consensus" component={SwarmConsensusPage} />
+
+    {/* Knowledge Graph — Semantic relationships, embedding space, similarity */}
+    <Route exact path="/knowledge-graph" component={KnowledgeGraphPage} />
+
+    {/* Federated Query Planner — Execution plans, cost estimation, optimizer */}
+    <Route exact path="/query-planner" component={FederatedQueryPlannerPage} />
+
+    {/* Data Quality Scorecard — Profiling, schema drift, anomaly detection */}
+    <Route exact path="/data-quality" component={DataQualityPage} />
+
+    {/* Swarm Activity Timeline — Unified event stream, audit history */}
+    <Route exact path="/activity" component={SwarmActivityPage} />
+
     {/* ====================================================================
         ERROR HANDLING - 404 and fallback routes
         ==================================================================== */}

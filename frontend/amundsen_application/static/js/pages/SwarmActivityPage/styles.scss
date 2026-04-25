@@ -1,0 +1,91 @@
+// SwarmActivityPage Styles
+.sa-page { background: #0d1117; min-height: 100vh; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; overflow-y: auto; }
+.sa-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 16px;
+  .sa-loading-spinner { width: 40px; height: 40px; border: 3px solid rgba(165,214,255,0.15); border-top-color: #a5d6ff; border-radius: 50%; animation: sa-spin 0.8s linear infinite; }
+  p { color: #8b949e; font-size: 13px; }
+}
+@keyframes sa-spin { to { transform: rotate(360deg); } }
+
+.sa-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; border-bottom: 1px solid #21262d; background: linear-gradient(180deg, #161b22 0%, #0d1117 100%); }
+.sa-header-left { display: flex; align-items: center; gap: 14px; }
+.sa-header-icon { width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, #0d419d 0%, #58a6ff 100%); display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 4px 12px rgba(88,166,255,0.3); }
+.sa-title { font-size: 18px; font-weight: 600; color: #f0f6fc; margin: 0; }
+.sa-subtitle { font-size: 12px; color: #8b949e; margin: 2px 0 0 0; }
+
+.sa-live-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid #30363d; background: #21262d; color: #8b949e; cursor: pointer; transition: all 0.2s;
+  &.active { background: rgba(63,185,80,0.12); border-color: rgba(63,185,80,0.3); color: #3fb950; }
+  .sa-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #484f58; transition: all 0.2s; }
+  &.active .sa-live-dot { background: #3fb950; box-shadow: 0 0 8px rgba(63,185,80,0.5); animation: sa-pulse 2s infinite; }
+}
+@keyframes sa-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.sa-stats { display: flex; gap: 1px; padding: 0 28px; background: #161b22; border-bottom: 1px solid #21262d; }
+.sa-stat { flex: 1; padding: 12px 16px; text-align: center; border-right: 1px solid #21262d; &:last-child { border-right: none; } }
+.sa-stat-v { font-size: 20px; font-weight: 700; color: #f0f6fc; display: block; &.critical { color: #f85149; } }
+.sa-stat-l { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.sa-filters { display: flex; align-items: center; gap: 8px; padding: 10px 28px; background: #161b22; border-bottom: 1px solid #21262d; flex-wrap: wrap; }
+.sa-search { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 6px 12px; color: #c9d1d9; font-size: 13px; width: 220px; outline: none;
+  &:focus { border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88,166,255,0.15); }
+  &::placeholder { color: #484f58; }
+}
+.sa-select { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 5px 10px; color: #c9d1d9; font-size: 12px; outline: none; cursor: pointer; }
+
+// Content Layout
+.sa-content { display: grid; grid-template-columns: 1fr 260px; gap: 0; }
+
+// Timeline
+.sa-timeline { padding: 16px 28px 40px; border-right: 1px solid #21262d; }
+
+.sa-day-group { margin-bottom: 8px; }
+.sa-day-label { font-size: 11px; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 0 4px 40px; border-bottom: 1px solid #21262d; margin-bottom: 8px; }
+
+.sa-event {
+  display: flex; gap: 12px; cursor: pointer; transition: background 0.15s; padding: 2px 4px; border-radius: 6px;
+  &:hover { background: rgba(56,139,253,0.04); }
+}
+
+.sa-event-indicator { display: flex; flex-direction: column; align-items: center; width: 28px; flex-shrink: 0; }
+.sa-event-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; flex-shrink: 0; }
+.sa-event-icon { font-size: 13px; }
+.sa-event-line { width: 2px; flex: 1; background: #21262d; min-height: 12px; }
+
+.sa-event-body { flex: 1; padding-bottom: 10px; min-width: 0; }
+.sa-event-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+.sa-event-type { font-size: 9px; font-weight: 700; padding: 1px 7px; border-radius: 3px; letter-spacing: 0.3px; }
+.sa-event-time { font-size: 11px; color: #484f58; font-family: monospace; }
+.sa-event-summary { font-size: 13px; color: #f0f6fc; margin-bottom: 4px; }
+.sa-event-agent { }
+.sa-agent-chip { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: rgba(139,148,158,0.08); color: #8b949e; border: 1px solid #21262d; font-family: monospace; }
+
+// Expanded details
+.sa-event-details {
+  margin-top: 8px; padding: 10px; background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+  animation: sa-expand 0.2s ease;
+}
+@keyframes sa-expand { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.sa-detail-text { font-size: 12px; color: #c9d1d9; line-height: 1.5; margin-bottom: 6px; }
+.sa-detail-time { font-size: 10px; color: #484f58; font-family: monospace; margin-bottom: 6px; }
+.sa-detail-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+.sa-meta-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: rgba(56,139,253,0.08); color: #79c0ff; border: 1px solid rgba(56,139,253,0.15); font-family: monospace; }
+
+// Load more
+.sa-load-more { text-align: center; padding: 16px; }
+.sa-load-more-btn { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 8px 24px; color: #8b949e; font-size: 13px; cursor: pointer; transition: all 0.15s;
+  &:hover { border-color: #484f58; color: #c9d1d9; }
+}
+
+.sa-empty { text-align: center; padding: 40px; color: #484f58; font-size: 13px; }
+
+// Breakdown sidebar
+.sa-breakdown { padding: 16px; background: #161b22; overflow-y: auto; max-height: calc(100vh - 200px); }
+.sa-breakdown-title { font-size: 12px; font-weight: 600; color: #f0f6fc; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.sa-breakdown-row { display: flex; align-items: center; gap: 8px; padding: 6px 4px; cursor: pointer; border-radius: 4px; transition: background 0.15s;
+  &:hover { background: rgba(56,139,253,0.04); }
+}
+.sa-breakdown-icon { font-size: 12px; width: 20px; text-align: center; flex-shrink: 0; }
+.sa-breakdown-label { font-size: 10px; flex: 1; font-family: monospace; transition: color 0.15s; }
+.sa-breakdown-count { font-size: 11px; color: #f0f6fc; font-weight: 600; min-width: 24px; text-align: right; }
+.sa-breakdown-bar { width: 50px; height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+.sa-breakdown-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }

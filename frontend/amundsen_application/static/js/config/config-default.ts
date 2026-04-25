@@ -138,6 +138,12 @@ const configDefault: AppConfig = {
     { href: '/analytics', id: 'nav::analytics-dashboard', label: 'Log Analytics', use_router: true, icon: 'analytics_dashboard' },
     { href: '/api-testing', id: 'nav::api-testing', label: 'API Testing', use_router: true, icon: 'api' },
     { href: '/wiki', id: 'nav::wiki', label: 'Wiki', use_router: true, icon: 'wiki' },
+    { href: '/sovereignty', id: 'nav::sovereignty', label: 'Data Sovereignty', use_router: true, icon: 'sovereignty' },
+    { href: '/consensus', id: 'nav::consensus', label: 'Swarm Consensus', use_router: true, icon: 'consensus' },
+    { href: '/knowledge-graph', id: 'nav::knowledge-graph', label: 'Knowledge Graph', use_router: true, icon: 'knowledge_graph' },
+    { href: '/query-planner', id: 'nav::query-planner', label: 'Query Planner', use_router: true, icon: 'query_planner' },
+    { href: '/data-quality', id: 'nav::data-quality', label: 'Data Quality', use_router: true, icon: 'data_quality' },
+    { href: '/activity', id: 'nav::activity', label: 'Activity Timeline', use_router: true, icon: 'activity' },
   ],
   // ── Grouped nav items (used by the new dropdown NavBar) ──────────────────
   navItems: [
@@ -166,6 +172,28 @@ const configDefault: AppConfig = {
       ],
     },
     { id: 'nav::wiki', label: 'Wiki', icon: 'wiki', href: '/wiki', use_router: true },
+    {
+      id: 'nav-group::governance',
+      label: 'Governance',
+      icon: 'sovereignty',
+      groupId: 'governance',
+      children: [
+        { id: 'nav::sovereignty', label: 'Data Sovereignty', subtitle: 'RBAC/ABAC policies & geo-fencing', icon: 'sovereignty', href: '/sovereignty', use_router: true },
+        { id: 'nav::data-quality', label: 'Data Quality', subtitle: 'Profiling, drift & anomaly detection', icon: 'data_quality', href: '/data-quality', use_router: true },
+        { id: 'nav::activity', label: 'Activity Timeline', subtitle: 'Unified swarm event stream', icon: 'activity', href: '/activity', use_router: true },
+      ],
+    },
+    {
+      id: 'nav-group::intelligence',
+      label: 'Intelligence',
+      icon: 'knowledge_graph',
+      groupId: 'intelligence',
+      children: [
+        { id: 'nav::consensus', label: 'Swarm Consensus', subtitle: 'GossipSub mesh & CRDT monitor', icon: 'consensus', href: '/consensus', use_router: true },
+        { id: 'nav::knowledge-graph', label: 'Knowledge Graph', subtitle: 'Semantic relationships & embeddings', icon: 'knowledge_graph', href: '/knowledge-graph', use_router: true },
+        { id: 'nav::query-planner', label: 'Query Planner', subtitle: 'Federated execution plans', icon: 'query_planner', href: '/query-planner', use_router: true },
+      ],
+    },
     {
       id: 'nav-group::about',
       label: 'About',
