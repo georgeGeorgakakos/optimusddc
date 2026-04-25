@@ -85,16 +85,26 @@ function generateAgentConfigs(apiNodes: OptimusDBNode[]): AgentConfig[] {
   const gossipTopics = ['swarm.heartbeat', 'swarm.replicate', 'swarm.query', 'swarm.metadata', 'swarm.consensus', 'swarm.alerts'];
   const statuses: AgentConfig['status'][] = ['RUNNING', 'RUNNING', 'RUNNING', 'RUNNING', 'DEGRADED', 'STOPPED'];
 
-  return apiNodes.map((node, i) => ({
-    id: node.name,
-    name: node.name,
-    status: statuses[i % statuses.length],
-    role: i === 0 ? 'coordinator' : 'follower',
-    version: '1.4.2-swarm',
-    uptime: Math.floor(Math.random() * 864000) + 3600,
-    pid: 1000 + Math.floor(Math.random() * 9000),
-    host: node.host || `10.42.${i}.${10 + i}`,
-    port: node.port || 5984,
+  return apiNodes.map((node, i) => {
+    // Parse host:port from node.url (e.g. "http://10.42.0.10:5984")
+    let host = `10.42.${i}.${10 + i}`;
+    let port = 5984;
+    try {
+      const u = new URL(node.url);
+      host = u.hostname;
+      port = parseInt(u.port, 10) || 5984;
+    } catch (_) { /* use defaults */ }
+
+    return {
+      id: node.name,
+      name: node.name,
+      status: statuses[i % statuses.length],
+      role: i === 0 ? 'coordinator' : 'follower',
+      version: '1.4.2-swarm',
+      uptime: Math.floor(Math.random() * 864000) + 3600,
+      pid: 1000 + Math.floor(Math.random() * 9000),
+      host,
+      port,
     gossipTopics: gossipTopics.slice(0, 3 + Math.floor(Math.random() * 3)),
     gossipPeers: Math.floor(Math.random() * 5) + 2,
     gossipMeshSize: apiNodes.length - 1,
@@ -129,7 +139,8 @@ function generateAgentConfigs(apiNodes: OptimusDBNode[]): AgentConfig[] {
       { key: 'security.tls_enabled', value: 'true', type: 'boolean', category: 'security', description: 'Enable TLS for inter-node communication', editable: false },
       { key: 'security.auth_mode', value: 'mutual-tls', type: 'string', category: 'security', description: 'Authentication mode for peer connections', editable: false },
     ],
-  }));
+  };
+  });
 }
 
 function generateOperationLogs(agents: AgentConfig[]): OperationLog[] {

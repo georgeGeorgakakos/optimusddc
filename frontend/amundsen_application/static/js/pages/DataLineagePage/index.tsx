@@ -75,7 +75,7 @@ function generateLineageGraph(apiNodes: OptimusDBNode[]): { nodes: LineageNode[]
   const cols = { source: 0, ingest: 1, store: 2, transform: 3, replicate: 4, query: 5, sink: 6 };
 
   // Sources
-  const sources = [
+  const sources: { id: string; label: string; meta: Record<string, string> }[] = [
     { id: 'src-iot', label: 'IoT Sensors', meta: { protocol: 'MQTT', frequency: '1s', format: 'JSON' } },
     { id: 'src-api', label: 'REST API', meta: { protocol: 'HTTPS', format: 'JSON', auth: 'OAuth2' } },
     { id: 'src-file', label: 'CSV Upload', meta: { format: 'CSV', encoding: 'UTF-8' } },
