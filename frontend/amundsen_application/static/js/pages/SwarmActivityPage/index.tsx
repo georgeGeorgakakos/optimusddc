@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import DocumentTitle from 'react-document-title';
-import { getAvailableNodes } from 'config/apiConfig';
+import { getAvailableNodes, OptimusDBNode } from 'config/apiConfig';
 
 import './styles.scss';
 
@@ -47,8 +47,7 @@ const EVENT_TEMPLATES: { type: EventType; summaries: string[]; details: string[]
   { type: 'CONSENSUS', summaries: ['Leader election completed', 'Consensus round finished', 'Raft term advanced'], details: ['{agent} elected as new coordinator (term {term})', 'Consensus reached in {latency}ms with {votes}/{total} votes', 'Term {term}: all nodes acknowledged'], severity: 'success' },
 ];
 
-function generateActivityFeed(): ActivityEvent[] {
-  const agents = getAvailableNodes();
+function generateActivityFeed(agents: OptimusDBNode[]): ActivityEvent[] {
   const stores = ['knowledge_base', 'sensor_readings', 'energy_metrics', 'device_config', 'grid_topology'];
   const events: ActivityEvent[] = [];
 
@@ -133,22 +132,25 @@ const SwarmActivityPage: React.FC = () => {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(true);
   const [displayCount, setDisplayCount] = useState(30);
+  const [resolvedNodes, setResolvedNodes] = useState<OptimusDBNode[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setEvents(generateActivityFeed());
+    let cancelled = false;
+    getAvailableNodes().then(apiNodes => {
+      if (cancelled) return;
+      setResolvedNodes(apiNodes);
+      setEvents(generateActivityFeed(apiNodes));
       setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Live simulation
   useEffect(() => {
-    if (!isLive || events.length === 0) return;
+    if (!isLive || events.length === 0 || resolvedNodes.length === 0) return;
     const interval = setInterval(() => {
-      const agents = getAvailableNodes();
       const template = EVENT_TEMPLATES[Math.floor(Math.random() * EVENT_TEMPLATES.length)];
-      const agent = agents[Math.floor(Math.random() * agents.length)];
+      const agent = resolvedNodes[Math.floor(Math.random() * resolvedNodes.length)];
       const newEvent: ActivityEvent = {
         id: `live-${Date.now()}`,
         type: template.type,
@@ -162,7 +164,7 @@ const SwarmActivityPage: React.FC = () => {
       setEvents(prev => [newEvent, ...prev].slice(0, 200));
     }, 8000);
     return () => clearInterval(interval);
-  }, [isLive, events.length]);
+  }, [isLive, events.length, resolvedNodes]);
 
   const agents = useMemo(() => [...new Set(events.map(e => e.agent))].sort(), [events]);
 

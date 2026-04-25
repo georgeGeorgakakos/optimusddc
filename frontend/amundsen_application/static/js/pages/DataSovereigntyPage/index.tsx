@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import DocumentTitle from 'react-document-title';
-import { getAvailableNodes, buildApiUrl, OptimusDBNode } from 'config/apiConfig';
+import { getAvailableNodes, OptimusDBNode } from 'config/apiConfig';
 
 import './styles.scss';
 
@@ -174,8 +174,7 @@ function generateDSARs(): DSARRequest[] {
   ];
 }
 
-function generateNodeDataMap(): NodeDataMap[] {
-  const nodes = getAvailableNodes();
+function generateNodeDataMap(nodes: OptimusDBNode[]): NodeDataMap[] {
   return nodes.map((node, i) => {
     const region = REGIONS[i % REGIONS.length];
     const coords = GEO_COORDS[region];
@@ -191,11 +190,10 @@ function generateNodeDataMap(): NodeDataMap[] {
   });
 }
 
-function generateAuditLog(): AuditLogEntry[] {
+function generateAuditLog(nodes: OptimusDBNode[]): AuditLogEntry[] {
   const actions = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'EXPORT', 'REPLICATE'];
   const actors = ['admin@swarm.eu', 'analyst@energy.eu', 'iot-gateway-svc', 'etl-pipeline', 'user-42@energy.eu'];
   const resources = ['energy_metrics.readings', 'swarmkb.knowledge_base', 'sensor_readings.raw', 'health_records.patient_data', 'grid_topology.nodes'];
-  const nodes = getAvailableNodes();
   const entries: AuditLogEntry[] = [];
   for (let i = 0; i < 50; i++) {
     const isGranted = Math.random() > 0.2;
@@ -403,15 +401,17 @@ const DataSovereigntyPage: React.FC = () => {
 
   // Initialize data
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    getAvailableNodes().then(nodes => {
+      if (cancelled) return;
       setPolicies(generatePolicies());
       setConsents(generateConsents());
       setDsars(generateDSARs());
-      setNodeMap(generateNodeDataMap());
-      setAuditLog(generateAuditLog());
+      setNodeMap(generateNodeDataMap(nodes));
+      setAuditLog(generateAuditLog(nodes));
       setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Computed stats

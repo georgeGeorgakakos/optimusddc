@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import DocumentTitle from 'react-document-title';
-import { getAvailableNodes, buildApiUrl } from 'config/apiConfig';
+import { getAvailableNodes, OptimusDBNode } from 'config/apiConfig';
 
 import './styles.scss';
 
@@ -65,10 +65,9 @@ const CONCEPT_LABELS = ['energy_metrics', 'sensor_data', 'grid_topology', 'weath
 const TABLE_NAMES = ['readings', 'hourly_agg', 'device_config', 'alerts', 'forecasts', 'topology_nodes', 'topology_edges', 'calibration', 'raw_events', 'processed_metrics', 'user_sessions', 'audit_log'];
 const COLUMN_NAMES = ['timestamp', 'value', 'device_id', 'location', 'unit', 'quality_flag', 'source_id', 'latitude', 'longitude', 'voltage', 'current', 'power_factor'];
 
-function generateKnowledgeGraph(): { nodes: KGNode[]; edges: KGEdge[]; clusters: EmbeddingCluster[] } {
+function generateKnowledgeGraph(agentNodes: OptimusDBNode[]): { nodes: KGNode[]; edges: KGEdge[]; clusters: EmbeddingCluster[] } {
   const nodes: KGNode[] = [];
   const edges: KGEdge[] = [];
-  const agentNodes = getAvailableNodes();
   const centerX = 400, centerY = 300;
   let nodeIdx = 0;
 
@@ -175,11 +174,13 @@ const KnowledgeGraphPage: React.FC = () => {
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setGraphData(generateKnowledgeGraph());
+    let cancelled = false;
+    getAvailableNodes().then(apiNodes => {
+      if (cancelled) return;
+      setGraphData(generateKnowledgeGraph(apiNodes));
       setIsLoading(false);
-    }, 700);
-    return () => clearTimeout(timer);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Search handler

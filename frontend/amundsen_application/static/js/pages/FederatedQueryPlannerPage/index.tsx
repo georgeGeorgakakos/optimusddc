@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import DocumentTitle from 'react-document-title';
-import { getAvailableNodes } from 'config/apiConfig';
+import { getAvailableNodes, OptimusDBNode } from 'config/apiConfig';
 
 import './styles.scss';
 
@@ -62,9 +62,8 @@ const SAMPLE_QUERIES = [
   `SELECT node_id, COUNT(DISTINCT table_name) as tables,\n  SUM(row_count) as total_rows\nFROM swarmkb.catalog_metadata\nGROUP BY node_id`,
 ];
 
-function generateQueryPlan(queryIdx: number): QueryPlan {
-  const agents = getAvailableNodes();
-  const usedAgents = agents.slice(0, Math.min(4, agents.length));
+function generateQueryPlan(queryIdx: number, apiNodes: OptimusDBNode[]): QueryPlan {
+  const usedAgents = apiNodes.slice(0, Math.min(4, apiNodes.length));
 
   const plans: PlanNode[][] = [
     // Plan for query 0: complex join+aggregate
@@ -92,7 +91,7 @@ function generateQueryPlan(queryIdx: number): QueryPlan {
     ],
     // Plan for query 2: simple aggregate
     [
-      { id: 'p1', type: 'COLLECT', label: 'Final Aggregation', agent: usedAgents[0]?.name || 'coordinator', estimatedRows: agents.length, estimatedCost: 2, children: ['p2', 'p3', 'p4'], depth: 0, x: 350, y: 60 },
+      { id: 'p1', type: 'COLLECT', label: 'Final Aggregation', agent: usedAgents[0]?.name || 'coordinator', estimatedRows: apiNodes.length, estimatedCost: 2, children: ['p2', 'p3', 'p4'], depth: 0, x: 350, y: 60 },
       { id: 'p2', type: 'AGGREGATE', label: 'Local GROUP BY node_id', agent: usedAgents[0]?.name || 'db1', estimatedRows: 1, estimatedCost: 8, children: ['p5'], depth: 1, x: 150, y: 180 },
       { id: 'p3', type: 'AGGREGATE', label: 'Local GROUP BY node_id', agent: usedAgents[1]?.name || 'db2', estimatedRows: 1, estimatedCost: 8, children: ['p6'], depth: 1, x: 350, y: 180 },
       { id: 'p4', type: 'AGGREGATE', label: 'Local GROUP BY node_id', agent: usedAgents[2]?.name || 'db3', estimatedRows: 1, estimatedCost: 8, children: ['p7'], depth: 1, x: 550, y: 180 },
@@ -198,16 +197,24 @@ const FederatedQueryPlannerPage: React.FC = () => {
   const [selectedPlanNode, setSelectedPlanNode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [customQuery, setCustomQuery] = useState('');
+  const [resolvedNodes, setResolvedNodes] = useState<OptimusDBNode[]>([]);
 
+  // Resolve nodes once
   useEffect(() => {
+    getAvailableNodes().then(n => setResolvedNodes(n));
+  }, []);
+
+  // Generate plan when query or nodes change
+  useEffect(() => {
+    if (resolvedNodes.length === 0) return;
     setIsLoading(true);
     const timer = setTimeout(() => {
-      setQueryPlan(generateQueryPlan(selectedQueryIdx));
+      setQueryPlan(generateQueryPlan(selectedQueryIdx, resolvedNodes));
       setSelectedPlanNode(null);
       setIsLoading(false);
     }, 500);
     return () => clearTimeout(timer);
-  }, [selectedQueryIdx]);
+  }, [selectedQueryIdx, resolvedNodes]);
 
   const selectedNodeData = useMemo(() => queryPlan?.nodes.find(n => n.id === selectedPlanNode), [queryPlan, selectedPlanNode]);
 

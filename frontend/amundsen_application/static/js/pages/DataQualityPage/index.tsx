@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import DocumentTitle from 'react-document-title';
-import { getAvailableNodes } from 'config/apiConfig';
+import { getAvailableNodes, OptimusDBNode } from 'config/apiConfig';
 
 import './styles.scss';
 
@@ -41,8 +41,7 @@ interface QualityAlert {
   acknowledged: boolean;
 }
 
-function generateDatasets(): DatasetQuality[] {
-  const agents = getAvailableNodes();
+function generateDatasets(agents: OptimusDBNode[]): DatasetQuality[] {
   const tables = ['knowledge_base', 'sensor_readings', 'energy_metrics', 'device_config', 'grid_topology', 'audit_log', 'user_sessions', 'calibration_data'];
   const datasets: DatasetQuality[] = [];
 
@@ -140,13 +139,15 @@ const DataQualityPage: React.FC = () => {
   const [filterAgent, setFilterAgent] = useState<string>('all');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const ds = generateDatasets();
+    let cancelled = false;
+    getAvailableNodes().then(apiNodes => {
+      if (cancelled) return;
+      const ds = generateDatasets(apiNodes);
       setDatasets(ds);
       setAlerts(generateAlerts(ds));
       setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const agents = useMemo(() => [...new Set(datasets.map(d => d.agent))], [datasets]);

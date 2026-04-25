@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import DocumentTitle from 'react-document-title';
-import { getAvailableNodes, buildApiUrl, OptimusDBNode } from 'config/apiConfig';
+import { getAvailableNodes, OptimusDBNode } from 'config/apiConfig';
 
 import './styles.scss';
 
@@ -73,13 +73,12 @@ interface ReplicationEvent {
 // MOCK DATA
 // ==============================================================================
 
-function generateSwarmNodes(): SwarmNode[] {
-  const nodes = getAvailableNodes();
+function generateSwarmNodes(apiNodes: OptimusDBNode[]): SwarmNode[] {
   const centerX = 350, centerY = 250;
   const radius = 180;
 
-  return nodes.map((node, i) => {
-    const angle = (2 * Math.PI * i) / nodes.length - Math.PI / 2;
+  return apiNodes.map((node, i) => {
+    const angle = (2 * Math.PI * i) / apiNodes.length - Math.PI / 2;
     return {
       id: node.name,
       name: node.name,
@@ -89,7 +88,7 @@ function generateSwarmNodes(): SwarmNode[] {
       isPartitioned: false,
       replicationLag: Math.floor(Math.random() * 500),
       lastHeartbeat: new Date(Date.now() - Math.random() * 30000).toISOString(),
-      connectedPeers: nodes.filter((_, j) => j !== i && Math.random() > 0.3).map(n => n.name),
+      connectedPeers: apiNodes.filter((_, j) => j !== i && Math.random() > 0.3).map(n => n.name),
       messagesSent: Math.floor(Math.random() * 10000) + 1000,
       messagesReceived: Math.floor(Math.random() * 10000) + 1000,
       crdtVersion: Math.floor(Math.random() * 50) + 100,
@@ -318,14 +317,16 @@ const SwarmConsensusPage: React.FC = () => {
 
   // Initialize
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const swarmNodes = generateSwarmNodes();
+    let cancelled = false;
+    getAvailableNodes().then(apiNodes => {
+      if (cancelled) return;
+      const swarmNodes = generateSwarmNodes(apiNodes);
       setNodes(swarmNodes);
       setConflicts(generateConflicts(swarmNodes));
       setReplEvents(generateReplicationEvents(swarmNodes));
       setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Simulate gossip messages
