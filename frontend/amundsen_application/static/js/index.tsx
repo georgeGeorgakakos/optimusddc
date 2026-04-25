@@ -44,6 +44,12 @@ import AboutAuthorPage from './pages/AboutAuthorPage';
 import AboutSwarmchestatePage from './pages/AboutSwarmchestatePage';
 import AboutOptimusPage from './pages/AboutOptimusPage';
 import AboutICCSPage from './pages/AboutICCSPage';
+import DataSovereigntyPage from './pages/DataSovereigntyPage';
+import SwarmConsensusPage from './pages/SwarmConsensusPage';
+import KnowledgeGraphPage from './pages/KnowledgeGraphPage';
+import FederatedQueryPlannerPage from './pages/FederatedQueryPlannerPage';
+import DataQualityPage from './pages/DataQualityPage';
+import SwarmActivityPage from './pages/SwarmActivityPage';
 
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
@@ -106,6 +112,12 @@ const Routes: React.FC = () => {
         />
         <Route path="/user/:userId" component={ProfilePage} />
         <Route path="/404" component={NotFoundPage} />
+        <Route path="/sovereignty" component={DataSovereigntyPage} />
+        <Route path="/consensus" component={SwarmConsensusPage} />
+        <Route path="/knowledge-graph" component={KnowledgeGraphPage} />
+        <Route path="/query-planner" component={FederatedQueryPlannerPage} />
+        <Route path="/data-quality" component={DataQualityPage} />
+        <Route path="/activity" component={SwarmActivityPage} />
         <Route path="/" component={HomePage} />
       </Switch>
     </>
