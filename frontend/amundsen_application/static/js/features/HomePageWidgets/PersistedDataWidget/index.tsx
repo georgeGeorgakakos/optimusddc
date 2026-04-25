@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { getAvailableNodes, OptimusDBNode } from 'config/apiConfig'; // ← PHASE 2 IMPORT
 import './styles.scss';
 
@@ -73,7 +74,7 @@ const ReplicationHeatmap: React.FC<{
   return (
     <div className="replication-heatmap-mini">
       <h4>Replication Distribution</h4>
-      <div className="heatmap-grid">
+      <div className="heatmap-grid" style={{ gridTemplateColumns: `120px repeat(${agents.length}, 1fr)` }}>
         <div className="heatmap-row heatmap-header">
           <div className="row-label">Table</div>
           {agents.map((agent) => (
@@ -282,6 +283,7 @@ const PersistedDataWidget: React.FC = () => {
   const [activeView, setActiveView] = useState<
     'overview' | 'tables' | 'stores'
   >('overview');
+  const [showAllTables, setShowAllTables] = useState(false);
   const [discoveredAgents, setDiscoveredAgents] = useState<OptimusDBNode[]>([]); // ← PHASE 2
 
   // ==============================================================================
@@ -619,7 +621,7 @@ const PersistedDataWidget: React.FC = () => {
               </span>
             </div>
             <div className="tables-list">
-              {data.tables.slice(0, 10).map((table) => (
+              {data.tables.slice(0, showAllTables ? undefined : 10).map((table) => (
                 <div
                   key={`${table.database}.${table.tableName}`}
                   className="table-item"
@@ -655,9 +657,9 @@ const PersistedDataWidget: React.FC = () => {
             </div>
             {data.tables.length > 10 && (
               <div className="view-more">
-                <a href="/persisted-data">
-                  View all {data.tables.length} tables →
-                </a>
+                <button className="view-more-btn" onClick={() => setShowAllTables(!showAllTables)}>
+                  {showAllTables ? `Show less ↑` : `View all ${data.tables.length} tables ↓`}
+                </button>
               </div>
             )}
           </div>
@@ -722,9 +724,9 @@ const PersistedDataWidget: React.FC = () => {
             Updated {new Date().toLocaleTimeString()}
           </span>
         </div>
-        <a href="/persisted-data" className="view-details-btn">
+        <Link to="/persisted-data" className="view-details-btn">
           View Full Details →
-        </a>
+        </Link>
       </div>
     </div>
   );

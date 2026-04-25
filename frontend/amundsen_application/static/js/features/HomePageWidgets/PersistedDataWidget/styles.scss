@@ -299,11 +299,13 @@
 // ==============================================================================
 
 .replication-heatmap-mini {
+  overflow-x: auto;
+
   .heatmap-grid {
     display: grid;
-    grid-template-columns: 120px repeat(8, 1fr);
     gap: 2px;
     margin-bottom: 12px;
+    min-width: 0;
   }
 
   .heatmap-row {
@@ -709,6 +711,23 @@
     text-align: center;
     padding: 16px 0;
 
+    .view-more-btn {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 14px;
+      background: none;
+      border: 1px solid #667eea;
+      border-radius: 6px;
+      padding: 6px 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: rgba(102, 126, 234, 0.08);
+      }
+    }
+
     a {
       color: #667eea;
       text-decoration: none;
@@ -921,7 +940,6 @@
 
   .replication-heatmap-mini {
     .heatmap-grid {
-      grid-template-columns: 80px repeat(8, 1fr);
       font-size: 10px;
     }
   }
