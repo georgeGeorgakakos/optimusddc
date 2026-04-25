@@ -50,6 +50,9 @@ import KnowledgeGraphPage from './pages/KnowledgeGraphPage';
 import FederatedQueryPlannerPage from './pages/FederatedQueryPlannerPage';
 import DataQualityPage from './pages/DataQualityPage';
 import SwarmActivityPage from './pages/SwarmActivityPage';
+import AgentConfigPage from './pages/AgentConfigPage';
+import DataLineagePage from './pages/DataLineagePage';
+import SwarmBenchmarkPage from './pages/SwarmBenchmarkPage';
 
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
@@ -118,6 +121,9 @@ const Routes: React.FC = () => {
         <Route path="/query-planner" component={FederatedQueryPlannerPage} />
         <Route path="/data-quality" component={DataQualityPage} />
         <Route path="/activity" component={SwarmActivityPage} />
+        <Route path="/agent-config" component={AgentConfigPage} />
+        <Route path="/data-lineage" component={DataLineagePage} />
+        <Route path="/benchmark" component={SwarmBenchmarkPage} />
         <Route path="/" component={HomePage} />
       </Switch>
     </>

@@ -144,6 +144,9 @@ const configDefault: AppConfig = {
     { href: '/query-planner', id: 'nav::query-planner', label: 'Query Planner', use_router: true, icon: 'query_planner' },
     { href: '/data-quality', id: 'nav::data-quality', label: 'Data Quality', use_router: true, icon: 'data_quality' },
     { href: '/activity', id: 'nav::activity', label: 'Activity Timeline', use_router: true, icon: 'activity' },
+    { href: '/agent-config', id: 'nav::agent-config', label: 'Agent Config', use_router: true, icon: 'agent_config' },
+    { href: '/data-lineage', id: 'nav::data-lineage', label: 'Data Lineage', use_router: true, icon: 'data_lineage' },
+    { href: '/benchmark', id: 'nav::benchmark', label: 'Benchmark', use_router: true, icon: 'benchmark' },
   ],
   // ── Grouped nav items (used by the new dropdown NavBar) ──────────────────
   navItems: [
@@ -158,6 +161,8 @@ const configDefault: AppConfig = {
         { id: 'nav::queryworkbench', label: 'Query Workbench', subtitle: 'Execute SQL across agents', icon: 'query', href: '/queryworkbench', use_router: true },
         { id: 'nav::etl-workbench', label: 'Flow Workbench', subtitle: 'Design ETL pipelines visually', icon: 'flow', href: '/etl-workbench', use_router: true },
         { id: 'nav::api-testing', label: 'API Testing', subtitle: 'Test OptimusDB REST endpoints', icon: 'api', href: '/api-testing', use_router: true },
+        { id: 'nav::agent-config', label: 'Agent Config', subtitle: 'Control plane & orchestration', icon: 'agent_config', href: '/agent-config', use_router: true },
+        { id: 'nav::benchmark', label: 'Benchmark', subtitle: 'Stress test & load profiling', icon: 'benchmark', href: '/benchmark', use_router: true },
       ],
     },
     {
@@ -169,6 +174,7 @@ const configDefault: AppConfig = {
         { id: 'nav::cluster-topology', label: 'Agents Topology', subtitle: 'Visualise swarm connections', icon: 'topology', href: '/cluster/topology', use_router: true },
         { id: 'nav::metrics', label: 'Agents Performance', subtitle: 'Monitor swarm-level metrics', icon: 'performance', href: '/metrics', use_router: true },
         { id: 'nav::analytics-dashboard', label: 'Log Analytics', subtitle: 'Search & analyse agent logs', icon: 'analytics_dashboard', href: '/analytics', use_router: true },
+        { id: 'nav::data-lineage', label: 'Data Lineage', subtitle: 'Provenance & flow tracking', icon: 'data_lineage', href: '/data-lineage', use_router: true },
       ],
     },
     { id: 'nav::wiki', label: 'Wiki', icon: 'wiki', href: '/wiki', use_router: true },
