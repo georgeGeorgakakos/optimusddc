@@ -1,14 +1,21 @@
 // ==============================================================================
 // SwarmchestrateWidget - Swarm Operations Dashboard
 // ==============================================================================
-// PHASE 3: All data now fetched from real OptimusDB endpoints
-// - /swarmkb/agent/status → operations metrics, leader info, peer connections
-// - /swarmkb/ems/events → real activity feed
-// - /swarmkb/ems/logs → query/replication events
+// PHASE 5 FINAL: 100% real data from ALL agents
+//
+// Strategy: 3 fast parallel fetches per agent, results merged & sorted
+//   1. /agent/status          → health, election, cluster (already fast)
+//   2. /ems/sql (1 query)     → event counts by level (last hour)
+//   3. /ems/sql (1 query)     → recent interesting log entries
+//   + 1 fetch from any node:
+//   4. /debug/optimusdb/mesh  → libp2p peers, OrbitDB stores, mesh health
+//   5. /api/v1/metadata/metrics → TinyLlama stats
+//
+// Real queries visible: PROC level = SQL DML, INFO with [QUERY] = federated
 // ==============================================================================
 
 import * as React from 'react';
-import { getAvailableNodes, buildApiUrl, OptimusDBNode } from 'config/apiConfig';
+import { getAvailableNodes, buildApiUrl } from 'config/apiConfig';
 import './styles.scss';
 
 // ==============================================================================
@@ -18,65 +25,38 @@ import './styles.scss';
 interface ActivityEvent {
   id: string;
   type: 'query' | 'metadata' | 'replication' | 'election' | 'validation';
-  agent: number;
+  agent: string;
+  agentId: number;
   description: string;
   timestamp: Date;
-  duration?: string;
-  status?: 'success' | 'warning' | 'error';
+  status: 'success' | 'warning' | 'error';
 }
 
-interface QueryMetric {
-  timestamp: Date;
-  responseTime: number;
-  queries: number;
-}
-
-interface TopQuery {
-  query: string;
+interface EventCount {
+  level: string;
   count: number;
-  avgTime: string;
 }
 
-interface ReplicationTask {
-  table: string;
-  targetAgent: number;
-  progress: number;
-  status: 'active' | 'queued' | 'completed';
+interface MeshPeer {
+  peerIdShort: string;
+  connections: number;
+  connectedness: string;
 }
 
-interface NetworkTraffic {
-  from: number;
-  to: number;
-  messageCount: number;
-}
-
-interface AIMetrics {
-  generatedToday: number;
-  avgGenerationTime: number;
-  qualityScore: number;
-  recentGenerations: Array<{ dataset: string; tags: number; time: number }>;
+interface OrbitStore {
+  name: string;
+  initialized: boolean;
+  type: string;
 }
 
 interface OperationsData {
-  queriesLastHour: number;
-  metadataOpsLastHour: number;
-  activeReplications: number;
-  currentLeader: number;
-  leaderTenure: string;
+  electionEvents: number;
+  meshEvents: number;
+  discoveryEvents: number;
+  errorEvents: number;
+  warnEvents: number;
+  queryEvents: number; // PROC + [QUERY] tagged
   avgResponseTime: number;
-}
-
-interface NodeStatusData {
-  nodeId: number;
-  nodeName: string;
-  online: boolean;
-  role: string;
-  isCoordinator: boolean;
-  healthScore: number;
-  cpuUsage: number;
-  peerCount: number;
-  responseTimeMs: number;
-  rawData: any;
 }
 
 // ==============================================================================
@@ -84,243 +64,354 @@ interface NodeStatusData {
 // ==============================================================================
 
 const SwarmchestrateWidget: React.FC = () => {
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'queries' | 'network'>('overview');
-  const [numAgents, setNumAgents] = React.useState<number>(0);
-  const [recentActivity, setRecentActivity] = React.useState<ActivityEvent[]>([]);
-  const [queryMetrics, setQueryMetrics] = React.useState<QueryMetric[]>([]);
-  const [topQueries, setTopQueries] = React.useState<TopQuery[]>([]);
-  const [replications, setReplications] = React.useState<ReplicationTask[]>([]);
-  const [aiMetrics, setAIMetrics] = React.useState<AIMetrics | null>(null);
-  const [networkTraffic, setNetworkTraffic] = React.useState<NetworkTraffic[]>([]);
-  const [operations, setOperations] = React.useState<OperationsData | null>(null);
+  const [activeTab, setActiveTab] = React.useState<
+    'overview' | 'queries' | 'network'
+  >('overview');
+  const [numAgents, setNumAgents] = React.useState(0);
+  const [recentActivity, setRecentActivity] = React.useState<ActivityEvent[]>(
+    []
+  );
+  const [eventBreakdown, setEventBreakdown] = React.useState<EventCount[]>([]);
+  const [operations, setOperations] = React.useState<OperationsData | null>(
+    null
+  );
+  const [agentResponseTimes, setAgentResponseTimes] = React.useState<
+    { name: string; ms: number }[]
+  >([]);
+  const [leaderInfo, setLeaderInfo] = React.useState<{
+    agentId: number;
+    agentName: string;
+    term: number;
+    uptime: string;
+    peerId: string;
+  } | null>(null);
+  const [meshPeers, setMeshPeers] = React.useState<MeshPeer[]>([]);
+  const [meshHealth, setMeshHealth] = React.useState<{
+    status: string;
+    coverage: string;
+    connected: number;
+    discovered: number;
+  }>({ status: 'N/A', coverage: '0', connected: 0, discovered: 0 });
+  const [orbitStores, setOrbitStores] = React.useState<OrbitStore[]>([]);
+  const [enrichmentMetrics, setEnrichmentMetrics] = React.useState<{
+    total: number;
+    llmOk: number;
+    llmFail: number;
+  }>({ total: 0, llmOk: 0, llmFail: 0 });
   const [loading, setLoading] = React.useState(true);
 
   // ==============================================================================
-  // REAL DATA FETCHING
+  // FETCH ALL DATA — from ALL agents in parallel
   // ==============================================================================
 
   const fetchAllData = React.useCallback(async () => {
     try {
       const nodes = await getAvailableNodes();
+
       setNumAgents(nodes.length);
 
-      // Fetch /agent/status from ALL nodes in parallel
-      const statusPromises = nodes.map(async (node): Promise<NodeStatusData> => {
-        const startTime = Date.now();
-        try {
-          const url = buildApiUrl('optimusdb', '/swarmkb/agent/status', node.id);
-          const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const data = await resp.json();
-          const responseTime = Date.now() - startTime;
-          const health = data.agent?.health;
+      // ── 1. /agent/status from ALL nodes (parallel) ──
+      const statusResults = await Promise.all(
+        nodes.map(async (node) => {
+          const t0 = Date.now();
 
-          return {
-            nodeId: node.id,
-            nodeName: node.name,
-            online: true,
-            role: data.agent?.role || 'unknown',
-            isCoordinator: data.agent?.is_coordinator === true,
-            healthScore: parseFloat(health?.score || '0'),
-            cpuUsage: parseFloat((health?.cpu_usage || '0').toString().replace('%', '')),
-            peerCount: Array.isArray(data.peers) ? data.peers.filter((p: any) => p.connected).length : 0,
-            responseTimeMs: responseTime,
-            rawData: data,
-          };
-        } catch {
-          return {
-            nodeId: node.id, nodeName: node.name, online: false, role: 'unknown',
-            isCoordinator: false, healthScore: 0, cpuUsage: 0, peerCount: 0,
-            responseTimeMs: Date.now() - startTime, rawData: null,
-          };
-        }
-      });
+          try {
+            const resp = await fetch(
+              buildApiUrl('optimusdb', '/swarmkb/agent/status', node.id),
+              { signal: AbortSignal.timeout(5000) }
+            );
 
-      const statuses = await Promise.all(statusPromises);
-      const onlineNodes = statuses.filter(s => s.online);
+            if (!resp.ok) throw new Error();
 
-      // ── Build operations data from real status ──
-      const avgResponseTime = onlineNodes.length > 0
-        ? Math.round(onlineNodes.reduce((s, n) => s + n.responseTimeMs, 0) / onlineNodes.length)
-        : 0;
-
-      let totalQueries = 0;
-      let totalMetadataOps = 0;
-      let totalReplications = 0;
-      let coordinatorId = 1;
-      let coordinatorUptime = '';
-
-      onlineNodes.forEach(ns => {
-        const raw = ns.rawData;
-        totalQueries += parseInt(raw?.agent?.stats?.queries_total || raw?.stats?.queries || '0', 10);
-        totalMetadataOps += parseInt(raw?.agent?.stats?.metadata_ops || raw?.stats?.metadata_operations || '0', 10);
-        totalReplications += parseInt(raw?.agent?.stats?.active_replications || raw?.agent?.stats?.replication_count || '0', 10);
-
-        if (ns.isCoordinator) {
-          coordinatorId = ns.nodeId;
-          coordinatorUptime = raw?.agent?.uptime || raw?.agent?.stats?.uptime || 'N/A';
-        }
-      });
-
-      setOperations({
-        queriesLastHour: totalQueries || onlineNodes.length * 52,
-        metadataOpsLastHour: totalMetadataOps || onlineNodes.length * 12,
-        activeReplications: totalReplications || Math.max(0, (onlineNodes.length - 1) * 2),
-        currentLeader: coordinatorId,
-        leaderTenure: coordinatorUptime || 'N/A',
-        avgResponseTime,
-      });
-
-      // ── Fetch real events for activity feed ──
-      const activityEvents: ActivityEvent[] = [];
-      for (const node of nodes.slice(0, 2)) {
-        try {
-          const eventsUrl = buildApiUrl('optimusdb', '/swarmkb/ems/events', node.id);
-          const eventsResp = await fetch(eventsUrl, { signal: AbortSignal.timeout(5000) });
-          if (eventsResp.ok) {
-            const eventsData = await eventsResp.json();
-            const eventsList = Array.isArray(eventsData) ? eventsData : (eventsData.events || eventsData.data || []);
-            eventsList.slice(0, 10).forEach((evt: any, idx: number) => {
-              activityEvents.push({
-                id: `evt-${node.id}-${idx}`,
-                type: inferEventType(evt),
-                agent: node.id,
-                description: evt.message || evt.description || evt.type || 'Operation completed',
-                timestamp: new Date(evt.timestamp || evt.created_at || Date.now()),
-                duration: evt.duration ? `${evt.duration}` : undefined,
-                status: evt.status === 'error' ? 'error' : evt.status === 'warning' ? 'warning' : 'success',
-              });
-            });
+            return {
+              id: node.id,
+              name: node.name,
+              online: true,
+              ms: Date.now() - t0,
+              data: await resp.json(),
+            };
+          } catch {
+            return {
+              id: node.id,
+              name: node.name,
+              online: false,
+              ms: Date.now() - t0,
+              data: null as any,
+            };
           }
-        } catch { /* events endpoint not available */ }
-      }
+        })
+      );
 
-      if (activityEvents.length > 0) {
-        activityEvents.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        setRecentActivity(activityEvents.slice(0, 8));
-      } else {
-        // Fallback: build activity from status data
-        setRecentActivity(onlineNodes.map((ns, i) => ({
-          id: `status-${ns.nodeId}`,
-          type: (ns.isCoordinator ? 'election' : i % 3 === 0 ? 'query' : i % 3 === 1 ? 'replication' : 'validation') as ActivityEvent['type'],
-          agent: ns.nodeId,
-          description: ns.isCoordinator
-            ? `${ns.nodeName} serving as coordinator (health: ${ns.healthScore.toFixed(1)}%)`
-            : `${ns.nodeName} health check: ${ns.healthScore.toFixed(1)}% load, ${ns.peerCount} peers`,
-          timestamp: new Date(Date.now() - i * 120000),
-          duration: `${ns.responseTimeMs}ms`,
-          status: ns.healthScore > 80 ? 'warning' : 'success',
-        })));
-      }
+      const online = statusResults.filter((r) => r.online);
+      const avgMs =
+        online.length > 0
+          ? Math.round(online.reduce((s, r) => s + r.ms, 0) / online.length)
+          : 0;
 
-      // ── Query metrics from real response times ──
-      const now = new Date();
-      setQueryMetrics(onlineNodes.map((ns, i) => ({
-        timestamp: new Date(now.getTime() - (onlineNodes.length - i) * 300000),
-        responseTime: ns.responseTimeMs,
-        queries: Math.max(1, Math.round((totalQueries || onlineNodes.length * 50) / Math.max(1, onlineNodes.length))),
-      })));
+      setAgentResponseTimes(
+        statusResults.map((r) => ({ name: r.name, ms: r.ms }))
+      );
 
-      // ── Top queries from logs ──
-      try {
-        const logsUrl = buildApiUrl('optimusdb', '/swarmkb/ems/logs', nodes[0]?.id || 1);
-        const logsResp = await fetch(logsUrl, { signal: AbortSignal.timeout(5000) });
-        if (logsResp.ok) {
-          const logsData = await logsResp.json();
-          const logsList = Array.isArray(logsData) ? logsData : (logsData.logs || logsData.data || []);
-          const queryLogs = logsList.filter((l: any) =>
-            l.type === 'QUERY' || (l.message && (l.message.includes('SELECT') || l.message.includes('query')))
-          ).slice(0, 5);
+      // Leader info
+      const coord = online.find((r) => r.data?.agent?.is_coordinator);
 
-          if (queryLogs.length > 0) {
-            setTopQueries(queryLogs.map((l: any) => ({
-              query: (l.message || l.query || 'SELECT ...').substring(0, 60),
-              count: parseInt(l.count || '1', 10),
-              avgTime: l.duration || `${l.duration_ms || 'N/A'}ms`,
-            })));
-          } else {
-            setTopQueries([
-              { query: 'SELECT * FROM knowledge_base WHERE ...', count: onlineNodes.length * 15, avgTime: `${avgResponseTime}ms` },
-              { query: 'SELECT * FROM sensor_readings ORDER BY ...', count: onlineNodes.length * 8, avgTime: `${Math.round(avgResponseTime * 1.2)}ms` },
-            ]);
-          }
-        }
-      } catch {
-        setTopQueries([
-          { query: 'SELECT * FROM knowledge_base WHERE ...', count: onlineNodes.length * 15, avgTime: `${avgResponseTime}ms` },
-        ]);
-      }
+      if (coord) {
+        const uptimeH = parseFloat(coord.data.agent.health?.uptime || '0');
+        const d = Math.floor(uptimeH / 24);
+        const h = Math.floor(uptimeH % 24);
+        const m = Math.floor((uptimeH % 1) * 60);
 
-      // ── Network traffic from peer data ──
-      const traffic: NetworkTraffic[] = [];
-      onlineNodes.forEach(ns => {
-        const peers = ns.rawData?.peers;
-        if (Array.isArray(peers)) {
-          peers.forEach((p: any) => {
-            const targetId = parseInt(p.peer_id?.slice(-2) || '0', 16) % nodes.length + 1;
-            if (targetId !== ns.nodeId) {
-              traffic.push({
-                from: ns.nodeId,
-                to: targetId,
-                messageCount: parseInt(p.messages_exchanged || p.message_count || '0', 10) ||
-                  (p.connected ? ns.peerCount * 10 + Math.floor(ns.responseTimeMs / 10) : 0),
-              });
-            }
-          });
-        } else {
-          onlineNodes.forEach(other => {
-            if (other.nodeId !== ns.nodeId) {
-              traffic.push({ from: ns.nodeId, to: other.nodeId, messageCount: Math.round((ns.responseTimeMs + other.responseTimeMs) / 2) });
-            }
-          });
-        }
-      });
-      setNetworkTraffic(traffic);
-
-      // ── Replication tasks ──
-      const replTasks: ReplicationTask[] = [];
-      onlineNodes.forEach(ns => {
-        const replInfo = ns.rawData?.agent?.replication || ns.rawData?.replication;
-        if (replInfo && Array.isArray(replInfo.tasks)) {
-          replInfo.tasks.forEach((task: any) => {
-            replTasks.push({
-              table: task.table || task.store || 'unknown',
-              targetAgent: task.target_agent || ns.nodeId,
-              progress: parseInt(task.progress || '100', 10),
-              status: task.status === 'active' ? 'active' : task.status === 'queued' ? 'queued' : 'completed',
-            });
-          });
-        }
-      });
-      if (replTasks.length === 0 && onlineNodes.length > 1) {
-        onlineNodes.slice(1).forEach(ns => {
-          replTasks.push({ table: 'knowledge_base', targetAgent: ns.nodeId, progress: 100, status: 'completed' });
+        setLeaderInfo({
+          agentId: coord.id,
+          agentName: coord.name,
+          term: coord.data.election?.current_term || 0,
+          uptime: d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`,
+          peerId: (coord.data.agent.peer_id || '').substring(0, 12),
         });
       }
-      setReplications(replTasks);
 
-      // ── AI metrics ──
-      let aiGenCount = 0;
-      let aiQualityTotal = 0;
-      let aiNodeCount = 0;
-      onlineNodes.forEach(ns => {
-        const ai = ns.rawData?.agent?.ai_metrics || ns.rawData?.agent?.stats?.ai;
-        if (ai) {
-          aiGenCount += parseInt(ai.generated_today || ai.generations || '0', 10);
-          aiQualityTotal += parseFloat(ai.quality_score || '0');
-          aiNodeCount++;
+      // ── 2. Event counts from ALL agents (parallel) ──
+      // One fast SQL per agent: counts by level, last hour
+      const countSQL = encodeURIComponent(
+        "SELECT level, COUNT(*) as cnt FROM optimusLogger WHERE timestamp >= datetime('now','-60 minutes') GROUP BY level ORDER BY cnt DESC"
+      );
+      const countResults = await Promise.all(
+        nodes.map(async (node) => {
+          try {
+            const resp = await fetch(
+              buildApiUrl(
+                'optimusdb',
+                `/swarmkb/ems/sql?q=${countSQL}`,
+                node.id
+              ),
+              { signal: AbortSignal.timeout(4000) }
+            );
+
+            if (!resp.ok) return [];
+            const data = await resp.json();
+
+            return (data?.records || []) as { level: string; cnt: number }[];
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      // Merge counts across all agents
+      const merged = new Map<string, number>();
+
+      countResults.forEach((records) => {
+        records.forEach((r: any) => {
+          merged.set(r.level, (merged.get(r.level) || 0) + r.cnt);
+        });
+      });
+
+      const breakdown = [...merged.entries()]
+        .map(([level, count]) => ({ level, count }))
+        .sort((a, b) => b.count - a.count);
+
+      setEventBreakdown(breakdown);
+
+      const getCount = (lvl: string) => merged.get(lvl) || 0;
+
+      setOperations({
+        electionEvents: getCount('ELECTION'),
+        meshEvents: getCount('MESH'),
+        discoveryEvents: getCount('DISCOVERY'),
+        errorEvents: getCount('ERROR'),
+        warnEvents: getCount('WARN'),
+        queryEvents: getCount('PROC') + getCount('gAI'),
+        avgResponseTime: avgMs,
+      });
+
+      // ── 3. Recent activity logs from ALL agents (parallel) ──
+      // Fetch interesting entries: PROC (SQL queries), INFO with [QUERY], WARN, ERROR, gAI
+      const actSQL = encodeURIComponent(
+        "SELECT id, timestamp, level, source, substr(message,1,200) as msg FROM optimusLogger WHERE level IN ('PROC','ERROR','WARN','gAI') OR (level='INFO' AND message LIKE '%[QUERY]%') OR (level='INFO' AND message LIKE '%SQL DML%') ORDER BY id DESC LIMIT 5"
+      );
+      const actResults = await Promise.all(
+        nodes.map(async (node) => {
+          try {
+            const resp = await fetch(
+              buildApiUrl('optimusdb', `/swarmkb/ems/sql?q=${actSQL}`, node.id),
+              { signal: AbortSignal.timeout(4000) }
+            );
+
+            if (!resp.ok) return [];
+            const data = await resp.json();
+
+            return (data?.records || []).map((r: any) => ({
+              ...r,
+              agentNodeId: node.id,
+              agentNodeName: node.name,
+            }));
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      // Merge, sort, deduplicate
+      const allLogs = actResults.flat().sort((a: any, b: any) => {
+        // Sort by timestamp desc, fallback to id desc
+        const ta = new Date(a.timestamp || 0).getTime();
+        const tb = new Date(b.timestamp || 0).getTime();
+
+        return tb - ta || (b.id || 0) - (a.id || 0);
+      });
+
+      const activity: ActivityEvent[] = allLogs
+        .slice(0, 8)
+        .map((r: any, i: number) => {
+          const level = r.level || 'INFO';
+          const msg = (r.msg || r.message || '')
+            .replace(/^\[.*?\]\s*/, '')
+            .trim();
+          let type: ActivityEvent['type'] = 'query';
+          let typeLabel = '';
+
+          // Classify based on actual log content
+          if (msg.includes('CRUDGET')) {
+            type = 'query';
+            typeLabel = 'CRUD GET';
+          } else if (msg.includes('CRUDPUT')) {
+            type = 'metadata';
+            typeLabel = 'CRUD PUT';
+          } else if (msg.includes('CRUDUPDATE')) {
+            type = 'metadata';
+            typeLabel = 'CRUD UPDATE';
+          } else if (msg.includes('CRUDDELETE')) {
+            type = 'validation';
+            typeLabel = 'CRUD DELETE';
+          } else if (msg.includes('SQL DML')) {
+            type = 'query';
+            typeLabel = 'SQL Query';
+          } else if (msg.includes('[QUERY]')) {
+            type = 'query';
+            typeLabel = 'Federated Query';
+          } else if (msg.includes('Contribution')) {
+            type = 'replication';
+            typeLabel = 'Contribution';
+          } else if (level === 'PROC') {
+            type = 'query';
+            typeLabel = 'Operation';
+          } else if (level === 'gAI') {
+            type = 'metadata';
+            typeLabel = 'AI Generation';
+          } else if (level === 'ERROR') {
+            type = 'validation';
+            typeLabel = 'Error';
+          } else if (level === 'WARN') {
+            type = 'replication';
+            typeLabel = 'Warning';
+          }
+
+          return {
+            id: `${r.agentNodeId}-${r.id || i}`,
+            type,
+            agent: r.agentNodeName || `Agent ${r.agentNodeId}`,
+            agentId: r.agentNodeId,
+            description: typeLabel
+              ? `[${typeLabel}] ${
+                  msg.length > 100 ? msg.substring(0, 100) + '…' : msg
+                }`
+              : msg.length > 120
+              ? msg.substring(0, 120) + '…'
+              : msg,
+            timestamp: new Date(r.timestamp || Date.now()),
+            status:
+              level === 'ERROR'
+                ? 'error'
+                : level === 'WARN'
+                ? 'warning'
+                : 'success',
+          };
+        });
+
+      // If no interesting logs, fall back to agent status
+      if (activity.length === 0) {
+        online.forEach((r) => {
+          const h = r.data?.agent?.health;
+
+          activity.push({
+            id: `status-${r.id}`,
+            type: r.data?.agent?.is_coordinator ? 'election' : 'validation',
+            agent: r.name,
+            agentId: r.id,
+            description: `${r.name}: CPU ${h?.cpu_usage || 'N/A'}, Mem ${
+              h?.memory_used || 'N/A'
+            }, Score ${h?.score || '0'}%`,
+            timestamp: new Date(r.data?.timestamp || Date.now()),
+            status: parseFloat(h?.score || '0') > 80 ? 'warning' : 'success',
+          });
+        });
+      }
+      setRecentActivity(activity);
+
+      // ── 4. /debug/optimusdb/mesh from one node ──
+      try {
+        const meshResp = await fetch(
+          buildApiUrl(
+            'optimusdb',
+            '/swarmkb/debug/optimusdb/mesh',
+            nodes[0]?.id || 1
+          ),
+          { signal: AbortSignal.timeout(4000) }
+        );
+
+        if (meshResp.ok) {
+          const mesh = await meshResp.json();
+
+          setMeshPeers(
+            (mesh.libp2p?.peers || []).map((p: any) => ({
+              peerIdShort:
+                p.peer_id_short || p.peer_id?.substring(0, 12) || '?',
+              connections: p.connections || 0,
+              connectedness: p.connectedness || 'Unknown',
+            }))
+          );
+          setMeshHealth({
+            status: mesh.mesh_health?.status || 'UNKNOWN',
+            coverage: mesh.mesh_health?.coverage_percent || '0',
+            connected: mesh.libp2p?.connected_peers || 0,
+            discovered: mesh.discovery?.discovered_count || 0,
+          });
+          setOrbitStores(
+            Object.entries(mesh.orbitdb_stores || {}).map(
+              ([name, info]: [string, any]) => ({
+                name,
+                initialized: info.initialized || false,
+                type: info.type || 'Unknown',
+              })
+            )
+          );
         }
-      });
-      setAIMetrics({
-        generatedToday: aiGenCount || onlineNodes.length * 20,
-        avgGenerationTime: avgResponseTime / 1000,
-        qualityScore: aiNodeCount > 0 ? Math.round(aiQualityTotal / aiNodeCount) : 95,
-        recentGenerations: [],
-      });
+      } catch {
+        /* mesh not available */
+      }
+
+      // ── 5. /api/v1/metadata/metrics from one node ──
+      try {
+        const mUrl = `${nodes[0]?.url || ''}/api/v1/metadata/metrics`;
+        const mResp = await fetch(mUrl, { signal: AbortSignal.timeout(3000) });
+
+        if (mResp.ok) {
+          const mData = await mResp.json();
+          const m = mData?.metrics || {};
+
+          setEnrichmentMetrics({
+            total: m.TotalEnrichments || 0,
+            llmOk: m.SuccessfulLLM || 0,
+            llmFail: m.FailedLLM || 0,
+          });
+        }
+      } catch {
+        /* metadata metrics not available */
+      }
 
       setLoading(false);
     } catch (err) {
-      console.error('SwarmchestrateWidget: Failed to fetch data:', err);
+      console.error('SwarmchestrateWidget: fetch failed:', err);
       setLoading(false);
     }
   }, []);
@@ -328,121 +419,153 @@ const SwarmchestrateWidget: React.FC = () => {
   React.useEffect(() => {
     fetchAllData();
     const interval = setInterval(fetchAllData, 30000);
+
     return () => clearInterval(interval);
   }, [fetchAllData]);
 
   // ==============================================================================
   // HELPERS
   // ==============================================================================
+  const fmtAgo = (d: Date): string => {
+    const s = Math.floor((Date.now() - d.getTime()) / 1000);
 
-  const inferEventType = (evt: any): ActivityEvent['type'] => {
-    const msg = (evt.message || evt.type || evt.event_type || '').toLowerCase();
-    if (msg.includes('query') || msg.includes('select') || msg.includes('sql')) return 'query';
-    if (msg.includes('metadata') || msg.includes('tinyllama') || msg.includes('generat')) return 'metadata';
-    if (msg.includes('replic') || msg.includes('sync') || msg.includes('gossip')) return 'replication';
-    if (msg.includes('elect') || msg.includes('leader') || msg.includes('coordinator') || msg.includes('raft')) return 'election';
-    if (msg.includes('valid') || msg.includes('schema') || msg.includes('check')) return 'validation';
-    return 'query';
+    if (s < 60) return 'Just now';
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+
+    return `${Math.floor(s / 3600)}h ago`;
   };
+  const fmtK = (n: number): string =>
+    n >= 1000000
+      ? `${(n / 1000000).toFixed(1)}M`
+      : n >= 1000
+      ? `${(n / 1000).toFixed(1)}K`
+      : String(n);
+  const icon = (t: ActivityEvent['type']) =>
+    ({
+      query: '🔍',
+      metadata: '📝',
+      replication: '⚠️',
+      election: '👑',
+      validation: '❌',
+    }[t] || '📊');
+  const label = (t: ActivityEvent['type']) =>
+    ({
+      query: 'Query / CRUD',
+      metadata: 'Write / AI',
+      replication: 'Warning',
+      election: 'Leader',
+      validation: 'Error / Delete',
+    }[t] || 'Event');
 
-  const formatTimeAgo = (date: Date): string => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    return `${Math.floor(minutes / 60)}h ago`;
-  };
-
-  const getActivityIcon = (type: ActivityEvent['type']): string => {
-    switch (type) {
-      case 'query': return '🔍';
-      case 'metadata': return '🤖';
-      case 'replication': return '🔄';
-      case 'election': return '👑';
-      case 'validation': return '✓';
-      default: return '📊';
-    }
-  };
-
-  const getActivityTypeLabel = (type: ActivityEvent['type']): string => {
-    switch (type) {
-      case 'query': return 'Query Executed';
-      case 'metadata': return 'AI Metadata Generated';
-      case 'replication': return 'Replication Completed';
-      case 'election': return 'Leader Election';
-      case 'validation': return 'Schema Validation';
-      default: return 'Operation';
-    }
-  };
-
+  // ==============================================================================
+  // RENDER
+  // ==============================================================================
   if (loading) {
     return (
       <div className="swarm-operations-widget">
         <div className="widget-header">
           <div className="header-content">
-            <div className="icon-wrapper"><span className="widget-icon">🔄</span></div>
-            <div className="header-text"><h3>Swarm Operations</h3><p className="subtitle">Real-time cluster activity</p></div>
+            <div className="icon-wrapper">
+              <span className="widget-icon">🔄</span>
+            </div>
+            <div className="header-text">
+              <h3>Swarm Operations</h3>
+              <p className="subtitle">Real-time cluster activity</p>
+            </div>
           </div>
         </div>
         <div className="widget-body">
-          <div className="loading-state"><div className="loading-spinner" /><p>Fetching cluster operations...</p></div>
+          <div className="loading-state">
+            <div className="loading-spinner" />
+            <p>Fetching from {numAgents || '...'} agents...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ==============================================================================
-  // RENDER
-  // ==============================================================================
-
   const renderOverview = () => (
     <div className="overview-content">
       <div className="activity-section">
-        <h4><span className="section-icon">📋</span> Recent Activity</h4>
+        <h4>
+          <span className="section-icon">📋</span> Recent Activity (All Agents)
+        </h4>
         <div className="activity-feed">
-          {recentActivity.slice(0, 6).map((activity) => (
-            <div key={activity.id} className={`activity-item ${activity.status}`}>
-              <div className="activity-icon">{getActivityIcon(activity.type)}</div>
+          {recentActivity.slice(0, 6).map((ev) => (
+            <div key={ev.id} className={`activity-item ${ev.status}`}>
+              <div className="activity-icon">{icon(ev.type)}</div>
               <div className="activity-details">
                 <div className="activity-header">
-                  <span className="activity-type">{getActivityTypeLabel(activity.type)}</span>
-                  <span className="activity-time">{formatTimeAgo(activity.timestamp)}</span>
+                  <span className="activity-type">{label(ev.type)}</span>
+                  <span className="activity-time">{fmtAgo(ev.timestamp)}</span>
                 </div>
-                <div className="activity-description">Agent {activity.agent} • {activity.description}</div>
-                {activity.duration && <div className="activity-duration">{activity.duration}</div>}
+                <div className="activity-description">
+                  {ev.agent} • {ev.description}
+                </div>
               </div>
             </div>
           ))}
+          {recentActivity.length === 0 && (
+            <div style={{ color: '#999', fontSize: 12, padding: 16 }}>
+              No recent activity
+            </div>
+          )}
         </div>
       </div>
 
       <div className="metrics-grid">
-        {aiMetrics && (
-          <div className="metric-card ai-metrics">
-            <div className="metric-header"><span className="metric-icon">🤖</span><h5>TinyLlama Activity</h5></div>
-            <div className="metric-stats">
-              <div className="stat-row"><span className="stat-label">Generated Today:</span><span className="stat-value">{aiMetrics.generatedToday}</span></div>
-              <div className="stat-row"><span className="stat-label">Quality Score:</span><span className="stat-value highlight">{aiMetrics.qualityScore}%</span></div>
+        <div className="metric-card ai-metrics">
+          <div className="metric-header">
+            <span className="metric-icon">🤖</span>
+            <h5>TinyLlama</h5>
+          </div>
+          <div className="metric-stats">
+            <div className="stat-row">
+              <span className="stat-label">Enrichments:</span>
+              <span className="stat-value">{enrichmentMetrics.total}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">LLM OK / Fail:</span>
+              <span className="stat-value highlight">
+                {enrichmentMetrics.llmOk} / {enrichmentMetrics.llmFail}
+              </span>
             </div>
           </div>
-        )}
+        </div>
         <div className="metric-card replication-metrics">
-          <div className="metric-header"><span className="metric-icon">🔄</span><h5>Active Replications</h5></div>
+          <div className="metric-header">
+            <span className="metric-icon">🌐</span>
+            <h5>Mesh</h5>
+          </div>
           <div className="replication-summary">
             <div className="summary-stat">
-              <span className="summary-value">{replications.filter((r) => r.status === 'active').length}</span>
-              <span className="summary-label">In Progress</span>
+              <span className="summary-value">{meshHealth.status}</span>
+              <span className="summary-label">
+                {meshHealth.coverage}% coverage
+              </span>
+            </div>
+            <div className="summary-stat">
+              <span className="summary-value">
+                {orbitStores.filter((s) => s.initialized).length}
+              </span>
+              <span className="summary-label">OrbitDB Stores</span>
             </div>
           </div>
         </div>
       </div>
 
-      {operations && (
+      {leaderInfo && (
         <div className="leader-info">
           <div className="leader-icon">👑</div>
           <div className="leader-details">
             <div className="leader-label">Current Leader</div>
-            <div className="leader-value">Agent {operations.currentLeader} <span className="leader-tenure">({operations.leaderTenure})</span></div>
+            <div className="leader-value">
+              {leaderInfo.agentName}{' '}
+              <span className="leader-tenure">
+                (Term {leaderInfo.term}, up {leaderInfo.uptime})
+              </span>
+            </div>
+            <div className="leader-peer-id">{leaderInfo.peerId}…</div>
           </div>
         </div>
       )}
@@ -452,18 +575,26 @@ const SwarmchestrateWidget: React.FC = () => {
   const renderQueries = () => (
     <div className="queries-content">
       <div className="chart-section">
-        <h4><span className="section-icon">📊</span> Query Performance (Last Hour)</h4>
+        <h4>
+          <span className="section-icon">📊</span> Agent Response Times
+        </h4>
         <div className="performance-chart">
           <div className="chart-container">
-            {queryMetrics.map((metric, idx) => {
-              const maxTime = Math.max(...queryMetrics.map((m) => m.responseTime), 1);
-              const height = (metric.responseTime / maxTime) * 100;
+            {agentResponseTimes.map((a, idx) => {
+              const max = Math.max(...agentResponseTimes.map((r) => r.ms), 1);
+
               return (
                 <div key={idx} className="chart-bar-wrapper">
-                  <div className="chart-bar" style={{ height: `${height}%` }} title={`${metric.responseTime.toFixed(0)}ms - ${metric.queries} queries`}>
+                  <div
+                    className="chart-bar"
+                    style={{ height: `${(a.ms / max) * 100}%` }}
+                    title={`${a.ms}ms`}
+                  >
                     <div className="bar-fill" />
                   </div>
-                  <div className="chart-label">{metric.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
+                  <div className="chart-label">
+                    {a.name.replace('optimusdb', 'db')}
+                  </div>
                 </div>
               );
             })}
@@ -471,14 +602,19 @@ const SwarmchestrateWidget: React.FC = () => {
         </div>
       </div>
       <div className="top-queries-section">
-        <h4><span className="section-icon">🔥</span> Most Frequent Queries</h4>
+        <h4>
+          <span className="section-icon">🔥</span> Event Breakdown — All Agents
+          (Last Hour)
+        </h4>
         <div className="queries-list">
-          {topQueries.map((query, idx) => (
+          {eventBreakdown.map((ev, idx) => (
             <div key={idx} className="query-item">
               <div className="query-rank">{idx + 1}</div>
               <div className="query-details">
-                <div className="query-text">{query.query}</div>
-                <div className="query-stats"><span className="query-count">{query.count} executions</span><span className="query-time">Avg: {query.avgTime}</span></div>
+                <div className="query-text">{ev.level}</div>
+                <div className="query-stats">
+                  <span className="query-count">{fmtK(ev.count)} events</span>
+                </div>
               </div>
             </div>
           ))}
@@ -487,62 +623,138 @@ const SwarmchestrateWidget: React.FC = () => {
     </div>
   );
 
-  const renderNetwork = () => {
-    const maxTraffic = Math.max(...networkTraffic.map((t) => t.messageCount), 1);
-    const agentArray = Array.from({ length: numAgents }, (_, i) => i + 1);
-
-    return (
-      <div className="network-content">
-        <h4><span className="section-icon">🌐</span> Network Traffic Heatmap ({numAgents}×{numAgents} - {numAgents} Agents)</h4>
-        <div className="network-heatmap">
-          <div className="heatmap-grid" style={{ gridTemplateColumns: `80px repeat(${numAgents}, 1fr)` }}>
-            <div className="heatmap-cell header corner" />
-            {agentArray.map((agent) => (<div key={`h-${agent}`} className="heatmap-cell header">Agent {agent}</div>))}
-            {agentArray.map((from) => (
-              <React.Fragment key={`row-${from}`}>
-                <div className="heatmap-cell header">Agent {from}</div>
-                {agentArray.map((to) => {
-                  if (from === to) return <div key={`${from}-${to}`} className="heatmap-cell diagonal">-</div>;
-                  const traffic = networkTraffic.find((t) => t.from === from && t.to === to);
-                  const intensity = traffic ? traffic.messageCount / maxTraffic : 0;
-                  const opacity = 0.2 + intensity * 0.8;
-                  return (
-                    <div key={`${from}-${to}`} className="heatmap-cell data"
-                      style={{ background: `rgba(102, 126, 234, ${opacity})`, color: intensity > 0.5 ? 'white' : '#333' }}
-                      title={`${from} → ${to}: ${traffic?.messageCount || 0} messages`}>
-                      {traffic?.messageCount || 0}
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-          <div className="heatmap-legend"><span>Low Traffic</span><div className="legend-gradient" /><span>High Traffic</span></div>
+  const renderNetwork = () => (
+    <div className="network-content">
+      <h4>
+        <span className="section-icon">🌐</span> P2P Mesh ({numAgents} Agents)
+      </h4>
+      <div className="mesh-summary">
+        <div className="mesh-stat">
+          <span
+            className={`mesh-stat-value ${
+              meshHealth.status === 'EXCELLENT'
+                ? 'excellent'
+                : meshHealth.status === 'GOOD'
+                ? 'good'
+                : 'warning'
+            }`}
+          >
+            {meshHealth.status}
+          </span>
+          <span className="mesh-stat-label">Health</span>
+        </div>
+        <div className="mesh-stat">
+          <span className="mesh-stat-value">{meshHealth.coverage}%</span>
+          <span className="mesh-stat-label">Coverage</span>
+        </div>
+        <div className="mesh-stat">
+          <span className="mesh-stat-value">{meshHealth.connected}</span>
+          <span className="mesh-stat-label">Connected</span>
+        </div>
+        <div className="mesh-stat">
+          <span className="mesh-stat-value">{meshHealth.discovered}</span>
+          <span className="mesh-stat-label">Discovered</span>
         </div>
       </div>
-    );
-  };
+
+      <h4 style={{ marginTop: 16 }}>
+        <span className="section-icon">🔗</span> LibP2P Peers
+      </h4>
+      <div className="peer-table">
+        {meshPeers.map((p, i) => (
+          <div key={i} className="peer-row">
+            <span className="peer-id">{p.peerIdShort}</span>
+            <span
+              className={`peer-status ${
+                p.connectedness === 'Connected' ? 'connected' : 'disconnected'
+              }`}
+            >
+              {p.connectedness}
+            </span>
+            <span className="peer-conns">{p.connections} conn</span>
+          </div>
+        ))}
+        {meshPeers.length === 0 && (
+          <div style={{ color: '#999', fontSize: 12, padding: 12 }}>
+            No peers detected
+          </div>
+        )}
+      </div>
+
+      <h4 style={{ marginTop: 16 }}>
+        <span className="section-icon">📦</span> OrbitDB Stores
+      </h4>
+      <div className="stores-grid">
+        {orbitStores.map((s, i) => (
+          <div
+            key={i}
+            className={`store-chip ${s.initialized ? 'active' : 'inactive'}`}
+          >
+            <span className="store-indicator" />
+            <span className="store-name">{s.name}</span>
+            <span className="store-type">{s.type.replace('Store', '')}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="swarm-operations-widget">
       <div className="widget-header">
         <div className="header-content">
-          <div className="icon-wrapper"><span className="widget-icon">🔄</span></div>
-          <div className="header-text"><h3>Swarm Operations</h3><p className="subtitle">Real-time cluster activity</p></div>
+          <div className="icon-wrapper">
+            <span className="widget-icon">🔄</span>
+          </div>
+          <div className="header-text">
+            <h3>Swarm Operations</h3>
+            <p className="subtitle">Real-time cluster activity</p>
+          </div>
         </div>
         {operations && (
           <div className="header-metrics">
-            <div className="header-metric"><div className="metric-value">{operations.queriesLastHour}</div><div className="metric-label">Queries</div></div>
-            <div className="header-metric"><div className="metric-value">{operations.metadataOpsLastHour}</div><div className="metric-label">Metadata Ops</div></div>
-            <div className="header-metric"><div className="metric-value">{operations.activeReplications}</div><div className="metric-label">Replications</div></div>
-            <div className="header-metric"><div className="metric-value">{operations.avgResponseTime}ms</div><div className="metric-label">Avg Response</div></div>
+            <div className="header-metric">
+              <div className="metric-value">
+                {fmtK(operations.electionEvents)}
+              </div>
+              <div className="metric-label">Elections</div>
+            </div>
+            <div className="header-metric">
+              <div className="metric-value">{fmtK(operations.meshEvents)}</div>
+              <div className="metric-label">Mesh</div>
+            </div>
+            <div className="header-metric">
+              <div className="metric-value">
+                {fmtK(operations.discoveryEvents)}
+              </div>
+              <div className="metric-label">Discovery</div>
+            </div>
+            <div className="header-metric">
+              <div className="metric-value">{operations.avgResponseTime}ms</div>
+              <div className="metric-label">Avg Response</div>
+            </div>
           </div>
         )}
       </div>
       <div className="view-tabs">
-        <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}><span className="tab-icon">📊</span> Overview</button>
-        <button className={`tab-btn ${activeTab === 'queries' ? 'active' : ''}`} onClick={() => setActiveTab('queries')}><span className="tab-icon">🔍</span> Queries</button>
-        <button className={`tab-btn ${activeTab === 'network' ? 'active' : ''}`} onClick={() => setActiveTab('network')}><span className="tab-icon">🌐</span> Network</button>
+        <button
+          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          <span className="tab-icon">📊</span> Overview
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'queries' ? 'active' : ''}`}
+          onClick={() => setActiveTab('queries')}
+        >
+          <span className="tab-icon">🔍</span> Queries
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'network' ? 'active' : ''}`}
+          onClick={() => setActiveTab('network')}
+        >
+          <span className="tab-icon">🌐</span> Network
+        </button>
       </div>
       <div className="widget-body">
         {activeTab === 'overview' && renderOverview()}
@@ -550,9 +762,16 @@ const SwarmchestrateWidget: React.FC = () => {
         {activeTab === 'network' && renderNetwork()}
       </div>
       <div className="widget-footer">
-        <div className="footer-info"><span className="footer-icon">🔄</span> Auto-refresh: 30s</div>
-        <div className="footer-info"><span className="footer-icon">🌐</span> {numAgents} Agent{numAgents !== 1 ? 's' : ''} Detected</div>
-        <div className="footer-info"><span className="footer-icon">🕒</span> Last update: {new Date().toLocaleTimeString()}</div>
+        <div className="footer-info">
+          <span className="footer-icon">🔄</span> Auto-refresh: 30s
+        </div>
+        <div className="footer-info">
+          <span className="footer-icon">🌐</span> {numAgents} Agents
+        </div>
+        <div className="footer-info">
+          <span className="footer-icon">🕒</span>{' '}
+          {new Date().toLocaleTimeString()}
+        </div>
       </div>
     </div>
   );
