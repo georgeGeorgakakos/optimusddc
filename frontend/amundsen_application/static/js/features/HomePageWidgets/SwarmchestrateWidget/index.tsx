@@ -130,7 +130,7 @@ const SwarmchestrateWidget: React.FC = () => {
               ms: Date.now() - t0,
               data: await resp.json(),
             };
-          } catch {
+          } catch (_e) {
             return {
               id: node.id,
               name: node.name,
@@ -191,7 +191,7 @@ const SwarmchestrateWidget: React.FC = () => {
             const data = await resp.json();
 
             return (data?.records || []) as { level: string; cnt: number }[];
-          } catch {
+          } catch (_e) {
             return [];
           }
         })
@@ -245,7 +245,7 @@ const SwarmchestrateWidget: React.FC = () => {
               agentNodeId: node.id,
               agentNodeName: node.name,
             }));
-          } catch {
+          } catch (_e) {
             return [];
           }
         })
@@ -386,7 +386,7 @@ const SwarmchestrateWidget: React.FC = () => {
             )
           );
         }
-      } catch {
+      } catch (_e) {
         /* mesh not available */
       }
 
@@ -405,7 +405,7 @@ const SwarmchestrateWidget: React.FC = () => {
             llmFail: m.FailedLLM || 0,
           });
         }
-      } catch {
+      } catch (_e) {
         /* metadata metrics not available */
       }
 
