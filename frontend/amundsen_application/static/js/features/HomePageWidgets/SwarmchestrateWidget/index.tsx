@@ -252,13 +252,15 @@ const SwarmchestrateWidget: React.FC = () => {
       );
 
       // Merge, sort, deduplicate
-      const allLogs = actResults.flat().sort((a: any, b: any) => {
-        // Sort by timestamp desc, fallback to id desc
-        const ta = new Date(a.timestamp || 0).getTime();
-        const tb = new Date(b.timestamp || 0).getTime();
+      const allLogs = ([] as any[])
+        .concat(...actResults)
+        .sort((a: any, b: any) => {
+          // Sort by timestamp desc, fallback to id desc
+          const ta = new Date(a.timestamp || 0).getTime();
+          const tb = new Date(b.timestamp || 0).getTime();
 
-        return tb - ta || (b.id || 0) - (a.id || 0);
-      });
+          return tb - ta || (b.id || 0) - (a.id || 0);
+        });
 
       const activity: ActivityEvent[] = allLogs
         .slice(0, 8)
